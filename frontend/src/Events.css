@@ -1,0 +1,635 @@
+/* =========
+   Events Page
+   ========= */
+
+.events-page {
+    height: 100vh;
+    padding: 12px 16px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    background-color: #f5f5f5; /* matches body background in index.css */
+}
+
+/* Top bar with logout – light, right‑aligned, like a simple toolbar */
+
+.events-header {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    padding: 4px 0 4px;
+}
+
+.logout-button {
+    color: #dc2626;
+    font-weight: 600;
+    font-size: 14px;
+    padding: 6px 10px;
+    border-radius: 4px;
+    transition:
+        background-color 0.15s,
+        color 0.15s;
+}
+
+.logout-button:hover {
+    background-color: rgba(220, 38, 38, 0.08);
+}
+
+/* Card‑like container for the events list, similar feel to .section */
+
+.events-card {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    border-radius: 10px;
+    border: 1px solid #d1d5db;
+    background-color: #ffffff;
+    overflow: hidden;
+}
+
+/* Fake “header” line to match the wireframe separation */
+
+.events-page .events-card-header {
+    background-color: #1e1b4b !important; /* Dark blue */
+    color: #ffffff !important;
+    padding: 10px 16px !important;
+    font-weight: 600 !important;
+    font-size: 15px !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+}
+
+.events-page .events-header-controls {
+    margin-left: auto !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 16px !important;
+}
+
+.events-page .events-sort-select {
+    /* Reset browser default styles */
+    -webkit-appearance: none !important;
+    -moz-appearance: none !important;
+    appearance: none !important;
+    /* Custom styles */
+    padding: 4px 2px !important;
+    border: none !important;
+    border-bottom: 2px solid #e5e7eb !important;
+    font-size: 13px !important;
+    background-color: transparent !important;
+    color: #ffffff !important;
+    cursor: pointer !important;
+    margin: 0 !important;
+    width: auto !important;
+
+    /* Custom arrow */
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23fff' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e") !important;
+    background-position: right 0.1rem center !important;
+    background-repeat: no-repeat !important;
+    background-size: 1.5em 1.5em !important;
+    padding-right: 1.8em !important; /* space for arrow */
+}
+
+.events-page .events-sort-select:focus {
+    outline: none !important;
+    border-bottom-color: #ffffff !important;
+}
+
+.events-page .events-sort-select option {
+    color: #000000 !important;
+    background-color: #ffffff !important;
+}
+
+.events-page .events-search-input {
+    padding: 4px 2px !important;
+    border: none !important;
+    border-bottom: 2px solid #e5e7eb !important;
+    font-size: 13px !important;
+    min-width: 180px !important;
+    background-color: transparent !important;
+    color: #ffffff !important;
+    margin: 0 !important;
+    width: auto !important;
+    border-radius: 0 !important;
+}
+
+.events-page .events-search-input::placeholder {
+    color: rgba(255, 255, 255, 0.75) !important;
+}
+
+.events-page .events-search-input:focus {
+    outline: none !important;
+    border-bottom-color: #ffffff !important;
+    box-shadow: none !important;
+    background-color: transparent !important;
+    border-color: transparent !important;
+}
+
+/* List area */
+
+.events-list {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Individual event rows */
+
+.event-row {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start; /* align content to the left */
+    gap: 12px;
+    text-align: left;
+
+    padding: 10px 14px;
+    border-bottom: 1px solid #e5e7eb;
+    font-size: 14px;
+    transition:
+        background-color 0.15s ease,
+        transform 0.1s ease,
+        box-shadow 0.1s ease;
+}
+
+.event-row:hover {
+    background-color: #f3f4f6;
+    transform: translateY(-1px);
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.15);
+}
+
+.event-row:last-child {
+    border-bottom: none;
+}
+
+.event-name {
+    cursor: pointer;
+    flex: 1; /* take remaining space */
+    font-weight: 500;
+    letter-spacing: 0.01em;
+}
+
+/* Date in event row */
+
+.event-date {
+    font-size: 13px;
+    color: #4b5563;
+    white-space: nowrap; /* keep date on one line */
+}
+
+.event-input,
+.event-date-input {
+    padding: 8px 10px;
+    border-radius: 4px;
+    border: 1px solid #d1d5db;
+    font-size: 14px;
+    background-color: #ffffff;
+}
+
+.event-input {
+    flex: 0 0 260px;
+}
+
+.event-date-input {
+    flex: 0 0 150px;
+}
+
+.event-input:focus,
+.event-date-input:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+/* Delete icon – red accent like navigation active color */
+
+.event-delete {
+    color: #dc2626;
+    font-size: 24px;
+    line-height: 1;
+    padding: 4px;
+    border-radius: 4px;
+    transition:
+        background-color 0.15s,
+        transform 0.1s;
+}
+
+.event-delete:hover {
+    background-color: rgba(220, 38, 38, 0.08);
+    transform: translateY(-1px);
+}
+
+/* Footer with add input & button, aligned to the bottom right */
+
+.events-footer {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+/* Input & button styling consistent with ReportScreen inputs/buttons */
+
+.event-input {
+    flex: 0 0 260px;
+    padding: 8px 10px;
+    border-radius: 4px;
+    border: 1px solid #d1d5db;
+    font-size: 14px;
+    background-color: #ffffff;
+}
+
+.event-input:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.event-add {
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #ffffff;
+    background-color: #10b981; /* green accent, in line with btn-save */
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition:
+        opacity 0.2s,
+        transform 0.1s,
+        box-shadow 0.1s;
+}
+
+.event-add:hover {
+    opacity: 0.95;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(15, 23, 42, 0.2);
+}
+
+/* Optional small “+” symbol styling if you want to append it in text */
+
+.event-add::after {
+    content: "+";
+    font-weight: 700;
+}
+
+/* When there are no events */
+
+.events-empty {
+    padding: 16px 14px;
+    font-size: 14px;
+    color: #6b7280;
+}
+
+/* Info icon in event row */
+
+.event-info {
+    font-size: 18px;
+    color: #2563eb;
+    padding: 4px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition:
+        background-color 0.15s,
+        transform 0.1s;
+}
+
+.event-info:hover {
+    background-color: rgba(37, 99, 235, 0.08);
+    transform: translateY(-1px);
+}
+
+/* Backdrop + side panel for event information */
+
+.event-info-backdrop {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(15, 23, 42, 0.35);
+    display: flex;
+    justify-content: flex-end;
+    align-items: stretch;
+    z-index: 50;
+}
+
+.event-info-panel {
+    width: 570px;
+    max-width: 100%;
+    height: 100%;
+    background-color: #ffffff;
+    box-shadow: -2px 0 8px rgba(15, 23, 42, 0.35);
+    display: flex;
+    flex-direction: column;
+    padding: 16px 18px;
+    box-sizing: border-box;
+}
+
+.event-info-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+.event-info-header h2 {
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0;
+}
+
+.event-info-close {
+    border-radius: 999px;
+    width: 28px;
+    height: 28px;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+    transition:
+        background-color 0.15s,
+        transform 0.1s;
+}
+
+.event-info-close:hover {
+    background-color: #e5e7eb;
+    transform: translateY(-1px);
+}
+
+.event-info-body {
+    flex: 1;
+    overflow-y: auto;
+    padding-right: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.event-info-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 14px;
+    border-bottom: 1px dashed #e5e7eb;
+    padding-bottom: 6px;
+}
+
+.event-info-label {
+    font-weight: 600;
+    color: #374151;
+    font-size: 13px;
+}
+
+.event-info-value {
+    color: #111827;
+    font-size: 13px;
+    text-align: right;
+}
+
+.event-info-block {
+    font-size: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.event-info-list {
+    margin: 0;
+    padding-left: 16px;
+    color: #111827;
+    font-size: 13px;
+}
+
+.event-info-notes {
+    min-height: 80px;
+    resize: none;
+    padding: 6px 8px;
+    border-radius: 4px;
+    border: 1px solid #d1d5db;
+    font-size: 13px;
+    font-family: inherit;
+    background-color: #f9fafb;
+}
+
+/* Form styling in event side panels (for new event) */
+
+.event-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 10px;
+}
+
+.event-form-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.event-form-row .half {
+    flex: 1;
+}
+
+.event-form-input {
+    padding: 6px 8px;
+    border-radius: 4px;
+    border: 1px solid #d1d5db;
+    font-size: 13px;
+    font-family: inherit;
+    background-color: #ffffff;
+}
+
+.event-form-input:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+}
+
+.event-contact-row {
+    display: grid;
+    grid-template-columns: 1.2fr 1.2fr 1.1fr auto;
+    gap: 4px;
+    align-items: center;
+    margin-bottom: 6px;
+}
+
+.event-contact-remove {
+    width: 26px;
+    height: 26px;
+    border-radius: 999px;
+    font-size: 16px;
+    line-height: 1;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    background-color: #fef2f2;
+    color: #b91c1c;
+    transition:
+        background-color 0.15s,
+        transform 0.1s;
+}
+
+.event-contact-remove:hover {
+    background-color: #fee2e2;
+    transform: translateY(-1px);
+}
+
+.event-contact-add {
+    margin-top: 4px;
+    font-size: 13px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    background-color: #eff6ff;
+    color: #1d4ed8;
+    font-weight: 500;
+    cursor: pointer;
+    transition:
+        background-color 0.15s,
+        transform 0.1s;
+}
+
+.event-contact-add:hover {
+    background-color: #dbeafe;
+    transform: translateY(-1px);
+}
+
+.event-form-footer {
+    padding-top: 10px;
+    border-top: 1px solid #e5e7eb;
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.btn-cancel-event,
+.btn-save-event {
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition:
+        opacity 0.15s,
+        transform 0.1s,
+        box-shadow 0.1s;
+}
+
+.btn-cancel-event {
+    background-color: #f3f4f6;
+    color: #374151;
+}
+
+.btn-cancel-event:hover {
+    opacity: 0.95;
+    transform: translateY(-1px);
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.15);
+}
+
+.btn-save-event {
+    background-color: #10b981;
+    color: #ffffff;
+}
+
+.btn-save-event:hover {
+    opacity: 0.95;
+    transform: translateY(-1px);
+    box-shadow: 0 1px 3px rgba(16, 185, 129, 0.3);
+}
+
+.event-info-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.btn-edit-event {
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    background-color: #e0f2fe;
+    color: #0369a1;
+    cursor: pointer;
+    transition:
+        background-color 0.15s,
+        transform 0.1s,
+        box-shadow 0.1s;
+}
+
+.btn-edit-event:hover {
+    background-color: #bae6fd;
+
+    transform: translateY(-1px);
+
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.15);
+}
+
+/* Toast notification (slide-in from right) */
+
+.toast-container {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    z-index: 60;
+    min-width: 240px;
+    max-width: 320px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    color: #0b1120;
+    background-color: #e0f2fe;
+    box-shadow: 0 4px 10px rgba(15, 23, 42, 0.25);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 500;
+
+    transform: translateX(120%);
+    opacity: 0;
+    pointer-events: none;
+    transition:
+        transform 0.25s ease-out,
+        opacity 0.25s ease-out;
+}
+
+.toast-visible {
+    transform: translateX(0);
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.toast-hidden {
+    transform: translateX(120%);
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* success variant colors */
+.toast-success {
+    background-color: #dcfce7;
+    color: #14532d;
+    border: 1px solid #22c55e;
+}
+
+.toast-message {
+    flex: 1;
+}
+
+/* Responsive tweaks */
+
+@media (max-width: 640px) {
+    .events-page {
+        padding: 8px 10px 12px;
+    }
+
+    .event-input {
+        flex: 1;
+    }
+
+    .events-footer {
+        justify-content: flex-start;
+    }
+}

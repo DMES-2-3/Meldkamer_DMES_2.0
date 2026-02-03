@@ -1,0 +1,136 @@
+.login-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #f5f5f5;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  align-items: center; 
+  width: 350px; 
+  border-radius: 8px;
+  padding: 40px 30px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  background: #fff;
+}
+
+.form h1 {
+  margin-bottom: 1.5rem;
+  font-size: 1.8rem;
+  color: #333;
+}
+
+input[type=text],
+input[type=password],
+input[type=email],
+input[type=date] {
+  margin-top: 0.5rem;
+  margin-bottom: 1rem;
+  font-size: 1rem;
+  width: 100%; 
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  padding: 0.6rem 0.8rem;
+  box-sizing: border-box;
+  transition: border-color 0.3s ease;
+}
+
+input:focus {
+  outline: none;
+  border-color: #4caf50;
+}
+
+label {
+  font-size: 0.9rem;
+  align-self: flex-start;
+}
+
+.button {
+  margin-top: 0.8rem;
+  font-size: 1rem;
+  width: 100%;
+  border: none;
+  border-radius: 5px;
+  padding: 0.7rem 0;
+  background: #4caf50;
+  color: white;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.button:hover:enabled {
+  background: #388e3c;
+}
+
+.button:disabled {
+  background: #a5d6a7;
+  cursor: not-allowed;
+}
+
+.error {
+  color: red;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.input-error {
+  border: 1px solid #ef4444;
+}
+
+.success {
+  color: green;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.clickable {
+  color: #1976d2;
+  cursor: pointer;
+  text-decoration: underline;
+  margin-top: 1rem;
+  font-size: 0.9rem;
+}
+
+.clickable:hover {
+  color: #0d47a1;
+}
+
+.show-pass {
+  font-size: 0.85rem;
+  margin-top: 0.3rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  cursor: pointer;
+}
+
+@media (max-width: 400px) {
+  .form {
+    width: 90%;
+    padding: 30px 20px;
+  }
+
+  input[type=text],
+  input[type=password],
+  input[type=email] {
+    font-size: 0.95rem;
+    padding: 0.5rem 0.6rem;
+  }
+
+  .button {
+    font-size: 0.95rem;
+    padding: 0.6rem 0;
+  }
+}
+
+.login-logo {
+  width: 300px;       
+  height: auto;     
+  margin-bottom: 20px; 
+  display: block;
+}

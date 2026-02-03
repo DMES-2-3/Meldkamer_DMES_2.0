@@ -1,0 +1,14 @@
+{
+  "Events": [
+    {
+      "id": "evt-1",
+
+      "eventName": "Evenement 1",
+
+      "ambulanceOnStandby": false,
+      "materialOnStandby": false,
+      "securityOnStandby": false,
+      "trafficControllersOnStandby": false
+    }
+  ]
+}
