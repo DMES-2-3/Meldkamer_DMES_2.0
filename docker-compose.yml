@@ -47,5 +47,22 @@ services:
       - "8081:80"
     restart: always
 
+  frontend:
+    image: node:20-alpine
+    container_name: frontend
+    restart: unless-stopped
+    working_dir: /var/www/frontend
+    volumes:
+      - ./frontend:/var/www/frontend
+      - frontend_node_modules:/var/www/frontend/node_modules
+    ports:
+      - "5173:5173"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=5173
+      - CHOKIDAR_USEPOLLING=true
+    command: sh -c "npm install && npm start"
+
 volumes:
   db_data:
+  frontend_node_modules:

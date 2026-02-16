@@ -1,17 +1,17 @@
 FROM php:8.4-apache
 
-RUN docker-php-ext-install mysqli pdo pdo_mysql
+# Apache modules
+RUN a2enmod rewrite headers
 
-RUN a2enmod rewrite
-RUN a2enmod headers
-
+# System deps + PHP extensions
 RUN apt-get update && apt-get install -y \
     libzip-dev \
     zlib1g-dev \
-    && docker-php-ext-configure zip \
-    && docker-php-ext-install zip mysqli pdo pdo_mysql \
-    && rm -rf /var/lib/apt/lists/*
+  && docker-php-ext-configure zip \
+  && docker-php-ext-install zip mysqli pdo pdo_mysql \
+  && rm -rf /var/lib/apt/lists/*
 
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www/html
 
