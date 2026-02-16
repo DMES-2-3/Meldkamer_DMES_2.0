@@ -10,6 +10,7 @@ services:
       - ./backend:/var/www/html
       - ./uploads:/var/www/html/uploads
       - ./uploads.ini:/usr/local/etc/php/conf.d/uploads.ini
+      - ./backend/php-dev.ini:/usr/local/etc/php/conf.d/zzz-php-dev.ini
     depends_on:
       - db
     environment:
@@ -56,10 +57,10 @@ services:
       - ./frontend:/var/www/frontend
       - frontend_node_modules:/var/www/frontend/node_modules
     ports:
-      - "5173:5173"
+      - "3000:3000"
     environment:
       - HOST=0.0.0.0
-      - PORT=5173
+      - PORT=3000
       - CHOKIDAR_USEPOLLING=true
     command: sh -c "npm install && npm start"
 
