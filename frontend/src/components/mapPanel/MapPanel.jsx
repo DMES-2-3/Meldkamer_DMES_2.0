@@ -116,25 +116,48 @@ export default function MapPanel({
     return 1; // Final fallback
   };
 
-    useEffect(() => {
+  useEffect(() => {
     if (!message) return;
 
     const timer = setTimeout(() => {
       setMessage(null);
-    }, 3000); 
+    }, 3000);
     return () => clearTimeout(timer);
   }, [message]);
 
-
   useEffect(() => {
-    if(initialMapType) {
+    if (initialMapType) {
       setMapType(initialMapType);
     }
-  }, [initialMapType]); 
+  }, [initialMapType]);
 
   useEffect(() => {
     fetchMaps();
     fetchReports();
+  }, []);
+
+  // Check for a completed pending PDF marker (coming back from ReportScreen)
+  useEffect(() => {
+    const stored = sessionStorage.getItem("pendingPdfMarker");
+    if (!stored) return;
+    try {
+      const pending = JSON.parse(stored);
+      if (pending.reportId) {
+        const newMarker = {
+          id: Date.now(),
+          x: pending.x,
+          y: pending.y,
+          label: pending.label || `Report ${pending.reportId}`,
+          page: pending.page,
+          mapId: pending.mapId,
+          reportId: pending.reportId.toString(),
+        };
+        setMarkers((prev) => [...prev, newMarker]);
+        sessionStorage.removeItem("pendingPdfMarker");
+      }
+    } catch {
+      sessionStorage.removeItem("pendingPdfMarker");
+    }
   }, []);
 
   useEffect(() => {
@@ -227,28 +250,32 @@ export default function MapPanel({
       const x = (e.clientX - rect.left) / zoom;
       const y = (e.clientY - rect.top) / zoom;
 
-      const newMarker = {
-        id: Date.now(),
+      // Store pending marker position in sessionStorage and navigate to ReportScreen
+      const pendingPdfMarker = {
         x,
         y,
-        label: pendingReport
-          ? getShortLabel(pendingReport.description || pendingReport.event, 25)
-          : `Marker ${markers.length + 1}`,
         page: pageNumber,
         mapId: currentMapId,
-        reportId: pendingReport?.id?.toString() || null,
       };
+      sessionStorage.setItem(
+        "pendingPdfMarker",
+        JSON.stringify(pendingPdfMarker),
+      );
 
-      setMarkers((prev) => [...prev, newMarker]);
-      setEditingMarker(newMarker);
-      setTempMarkerLabel(newMarker.label);
-      setTempMarkerReportId(newMarker.reportId || "");
-      setShowMarkerModal(true);
       setIsAddingMarker(false);
       setMessage(null);
+
+      navigate("/melding", {
+        state: {
+          report: {
+            Prioriteit: "Groen",
+            Status: "Open",
+          },
+          from: "pdf-map",
+        },
+      });
       return;
     }
-
 
     setIsDragging(true);
     setDragStart({
@@ -379,8 +406,8 @@ export default function MapPanel({
       state: {
         report: {
           Location: `${coords.lat}, ${coords.lng}`,
-          Prioriteit: "Groen", 
-          Status: "Open",   
+          Prioriteit: "Groen",
+          Status: "Open",
         },
         from: "google-maps",
       },
@@ -512,7 +539,7 @@ export default function MapPanel({
             <button
               className={isAddingMarker ? "btn-marker-active" : ""}
               onClick={() => setIsAddingMarker(!isAddingMarker)}
-              disabled={!currentMapId || !currentMap?.hasFile} 
+              disabled={!currentMapId || !currentMap?.hasFile}
             >
               {isAddingMarker ? "Cancel" : "Add Marker"}
             </button>
@@ -561,36 +588,35 @@ export default function MapPanel({
         currentMapId={currentMapId}
       />
 
-  <MarkerModal
-    show={showMarkerModal}
-    onClose={() => setShowMarkerModal(false)}
-    editingMarker={editingMarker}
-    markers={currentMarkers}
-    localReports={reports}
-    onSave={(updatedMarker) => {
-      setMarkers((prev) =>
-        prev.map((m) => (m.id === updatedMarker.id ? updatedMarker : m))
-      );
-      setEditingMarker(null);
-      setShowMarkerModal(false);
-    }}
-    onDelete={(markerId) => {
-      setMarkers((prev) => prev.filter((m) => m.id !== markerId));
-      setEditingMarker(null);
-      setShowMarkerModal(false);
-    }}
-    onEditMarker={(marker) => {
-      setEditingMarker(marker);
+      <MarkerModal
+        show={showMarkerModal}
+        onClose={() => setShowMarkerModal(false)}
+        editingMarker={editingMarker}
+        markers={currentMarkers}
+        localReports={reports}
+        onSave={(updatedMarker) => {
+          setMarkers((prev) =>
+            prev.map((m) => (m.id === updatedMarker.id ? updatedMarker : m)),
+          );
+          setEditingMarker(null);
+          setShowMarkerModal(false);
+        }}
+        onDelete={(markerId) => {
+          setMarkers((prev) => prev.filter((m) => m.id !== markerId));
+          setEditingMarker(null);
+          setShowMarkerModal(false);
+        }}
+        onEditMarker={(marker) => {
+          setEditingMarker(marker);
 
-      if (!marker) {
-        setShowMarkerModal(true); 
-        return;
-      }
+          if (!marker) {
+            setShowMarkerModal(true);
+            return;
+          }
 
-      setShowMarkerModal(true); 
-    }}
-  />
-
+          setShowMarkerModal(true);
+        }}
+      />
     </div>
   );
 }
