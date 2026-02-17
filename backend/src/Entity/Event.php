@@ -10,6 +10,10 @@ use Doctrine\ORM\Mapping\Id;
 use Doctrine\ORM\Mapping\Table;
 use Doctrine\ORM\Mapping\GeneratedValue;
 
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
+use Doctrine\ORM\Mapping\OneToMany;
+
 #[Entity]
 #[ORM\HasLifecycleCallbacks]
 #[Table(name: "Event")]
@@ -31,6 +35,20 @@ class Event
 
     #[ORM\Column(type: "datetime")]
     private \DateTimeInterface $createdAt;
+
+    #[
+        OneToMany(
+            mappedBy: "event",
+            targetEntity: Map::class,
+            cascade: ["persist", "remove"],
+        ),
+    ]
+    private Collection $maps;
+
+    public function __construct()
+    {
+        $this->maps = new ArrayCollection();
+    }
 
     #[ORM\PrePersist]
     public function initializeTimestamps(): void
@@ -86,15 +104,25 @@ class Event
         return $this->createdAt;
     }
 
+    public function getMaps(): Collection
+    {
+        return $this->maps;
+    }
+
     public function toArray(): array
     {
-        $data = [
+        $mapsData = [];
+        foreach ($this->maps as $map) {
+            $mapsData[] = $map->toArray();
+        }
+
+        return [
             "id" => $this->getEventId(),
             "eventName" => $this->getEventName(),
             "postcode" => $this->getPostcode(),
             "updatedAt" => $this->getUpdatedAt()->format("Y-m-d H:i:s"),
             "createdAt" => $this->getCreatedAt()->format("Y-m-d H:i:s"),
+            "maps" => $mapsData,
         ];
-        return $data;
     }
 }

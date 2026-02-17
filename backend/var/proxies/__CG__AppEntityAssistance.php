@@ -22,18 +22,18 @@ class Assistance extends \App\Entity\Assistance implements \Doctrine\ORM\Proxy\I
     
 
     private const LAZY_OBJECT_PROPERTY_SCOPES = [
-        "\0".parent::class."\0".'aidTeam' => [parent::class, 'aidTeam', null, 16],
-        "\0".parent::class."\0".'assistanceId' => [parent::class, 'assistanceId', null, 16],
-        "\0".parent::class."\0".'basicCareVPK' => [parent::class, 'basicCareVPK', null, 16],
-        "\0".parent::class."\0".'coordinator' => [parent::class, 'coordinator', null, 16],
-        "\0".parent::class."\0".'doctor' => [parent::class, 'doctor', null, 16],
-        "\0".parent::class."\0".'emergencyCare' => [parent::class, 'emergencyCare', null, 16],
-        'aidTeam' => [parent::class, 'aidTeam', null, 16],
-        'assistanceId' => [parent::class, 'assistanceId', null, 16],
-        'basicCareVPK' => [parent::class, 'basicCareVPK', null, 16],
-        'coordinator' => [parent::class, 'coordinator', null, 16],
-        'doctor' => [parent::class, 'doctor', null, 16],
-        'emergencyCare' => [parent::class, 'emergencyCare', null, 16],
+        "\0".parent::class."\0".'aidTeam' => [parent::class, 'aidTeam', null],
+        "\0".parent::class."\0".'assistanceId' => [parent::class, 'assistanceId', null],
+        "\0".parent::class."\0".'basicCareVPK' => [parent::class, 'basicCareVPK', null],
+        "\0".parent::class."\0".'coordinator' => [parent::class, 'coordinator', null],
+        "\0".parent::class."\0".'doctor' => [parent::class, 'doctor', null],
+        "\0".parent::class."\0".'emergencyCare' => [parent::class, 'emergencyCare', null],
+        'aidTeam' => [parent::class, 'aidTeam', null],
+        'assistanceId' => [parent::class, 'assistanceId', null],
+        'basicCareVPK' => [parent::class, 'basicCareVPK', null],
+        'coordinator' => [parent::class, 'coordinator', null],
+        'doctor' => [parent::class, 'doctor', null],
+        'emergencyCare' => [parent::class, 'emergencyCare', null],
     ];
 
     public function __isInitialized(): bool

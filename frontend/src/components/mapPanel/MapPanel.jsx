@@ -20,6 +20,8 @@ export default function MapPanel({
   pendingReport,
   onRequestMarkerAdd,
   selectedEventId,
+  initialMaps = [],
+  onMapsUpdate = () => {},
   reports: dashboardReports = [],
   updateReportLocation,
   colorMode = "priority",
@@ -30,7 +32,7 @@ export default function MapPanel({
   const pdfPageRef = useRef(null);
   const fileInputRef = useRef(null);
 
-  const [maps, setMaps] = useState([]);
+  const [maps, setMaps] = useState(initialMaps);
   const [reports, setReports] = useState([]);
   const [currentMapId, setCurrentMapId] = useState(
     () => JSON.parse(sessionStorage.getItem("currentMapId")) || null,
@@ -101,21 +103,6 @@ export default function MapPanel({
       : description.slice(0, maxLength).trim() + "...";
   };
 
-  const fetchValidEventId = async () => {
-    if (selectedEventId) return selectedEventId;
-
-    try {
-      const res = await fetch("http://localhost:8080/src/api/v1/event");
-      const data = await res.json();
-      if (data.success && data.data.length > 0) {
-        return data.data[0].id;
-      }
-    } catch (err) {
-      console.error("Failed to fetch events:", err);
-    }
-    return 1; // Final fallback
-  };
-
   useEffect(() => {
     if (!message) return;
 
@@ -132,9 +119,14 @@ export default function MapPanel({
   }, [initialMapType]);
 
   useEffect(() => {
-    fetchMaps();
+    setMaps(initialMaps);
+    if (initialMaps.length > 0 && !currentMapId) {
+      setCurrentMapId(initialMaps[0].mapId);
+    } else if (initialMaps.length === 0) {
+      setCurrentMapId(null);
+    }
     fetchReports();
-  }, []);
+  }, [initialMaps, selectedEventId]);
 
   // Check for a completed pending PDF marker (coming back from ReportScreen)
   useEffect(() => {
@@ -197,11 +189,17 @@ export default function MapPanel({
       setTempMarkerLabel(getShortLabel(report.description || report.event, 25));
   }, [tempMarkerReportId, reports]);
 
-  const fetchMaps = async () => {
+  const fetchMapsForEvent = async (eventId) => {
+    if (!eventId) return;
     try {
-      const res = await fetch(MAPS_URL);
+      const res = await fetch(`${MAPS_URL}?eventId=${eventId}`);
       const data = await res.json();
-      setMaps(Array.isArray(data.data) ? data.data : []);
+      const eventMaps = Array.isArray(data) ? data : [];
+      setMaps(eventMaps);
+      onMapsUpdate(eventMaps);
+      if (eventMaps.length > 0 && !currentMapId) {
+        setCurrentMapId(eventMaps[0].mapId);
+      }
     } catch (err) {
       console.error(err);
     }
@@ -372,13 +370,12 @@ export default function MapPanel({
 
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
-    if (!file) return;
+    if (!file || !selectedEventId) return;
 
     setUploading(true);
-    const validEventId = await fetchValidEventId();
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("eventId", validEventId);
+    formData.append("eventId", selectedEventId);
 
     try {
       const res = await fetch(MAPS_URL, { method: "POST", body: formData });
@@ -387,8 +384,11 @@ export default function MapPanel({
         setMessage({ type: "error", text: data.error || "Upload failed" });
       else {
         setMessage({ type: "success", text: "Upload successful!" });
-        await fetchMaps();
-        setCurrentMapId(data.data.mapId);
+        const newMap = data.data;
+        const updatedMaps = [...maps, newMap];
+        setMaps(updatedMaps);
+        onMapsUpdate(updatedMaps);
+        setCurrentMapId(newMap.mapId);
         setPageNumber(1);
       }
     } catch (err) {
@@ -582,7 +582,7 @@ export default function MapPanel({
           if (window.confirm(`Delete map "${map.name}"?`)) {
             fetch(`${MAPS_URL}/${map.mapId}`, { method: "DELETE" })
               .then((res) => res.json())
-              .then(() => fetchMaps());
+              .then(() => fetchMapsForEvent(selectedEventId));
           }
         }}
         currentMapId={currentMapId}

@@ -87,16 +87,23 @@ class MapController extends BaseController
 
     private function handleGet($id)
     {
-        if (!$id) {
-            $maps = $this->repo->findAll();
-            $this->sendResponse(array_map(fn($m) => $m->toArray(), $maps));
-        } else {
+        if ($id) {
             $map = $this->repo->findOneBy(["mapId" => $id]);
             if (!$map) {
                 $this->sendError("Map not found", 404);
             }
             $this->sendResponse($map->toArray());
+            return;
         }
+
+        $eventId = $_GET["eventId"] ?? null;
+        if ($eventId) {
+            $maps = $this->repo->findBy(["event" => $eventId]);
+        } else {
+            $maps = $this->repo->findAll();
+        }
+
+        $this->sendResponse(array_map(fn($m) => $m->toArray(), $maps));
     }
 
     private function handleDelete($id)
