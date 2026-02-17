@@ -2,7 +2,7 @@ import React from "react";
 import { getStatusColorForReport, getPriorityColor } from "../utils";
 
 export default function ReportsTable({ reports }) {
-  if (!reports.length) return <p>No reports available</p>;
+  if (!reports.length) return <p>Geen rapporten beschikbaar</p>;
 
   return (
     <div
@@ -13,13 +13,13 @@ export default function ReportsTable({ reports }) {
         <thead>
           <tr>
             <th>ID</th>
-            <th>Subject</th>
-            <th>Location</th>
-            <th>Time</th>
+            <th>Onderwerp</th>
+            <th>Locatie</th>
+            <th>Tijd</th>
             <th>Status</th>
-            <th>Priority</th>
-            <th>Ambulance Needed</th>
-            <th>Description</th>
+            <th>Prioriteit</th>
+            <th>Ambulance Nodig</th>
+            <th>Beschrijving</th>
             <th>Aid Team</th>
           </tr>
         </thead>

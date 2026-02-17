@@ -426,7 +426,7 @@ export default function ReportScreen({ reloadData }) {
           <div className="section-block">
             <div className="section-title">AVPU</div>
             <div className="checkbox-list">
-              {["Alert", "Verbal", "Pain", "Unresponsive"].map((field) => (
+              {["Alert", "Spraakzaam", "Onbekwaam"].map((field) => (
                 <label key={field}>
                   <input
                     type="checkbox"
@@ -474,7 +474,7 @@ export default function ReportScreen({ reloadData }) {
                     )
                   }
                 />{" "}
-                Doctor
+                Dokter
               </label>
               <label>
                 <input

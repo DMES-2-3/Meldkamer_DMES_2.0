@@ -488,8 +488,8 @@ export default function MapPanel({
           ) : (
             <div className="map-no-content">
               {currentMapId
-                ? "Map file not available"
-                : "No map loaded. Upload a map to get started."}
+                ? "Map bestand niet beschikbaar"
+                : "Geen map geladen. Upload een map om te beginnen."}
             </div>
           )}
 
@@ -498,13 +498,13 @@ export default function MapPanel({
               disabled={pageNumber <= 1}
               onClick={() => setPageNumber((p) => p - 1)}
             >
-              Prev
+              Vorige
             </button>
             <button
               disabled={!numPages || pageNumber >= numPages}
               onClick={() => setPageNumber((p) => p + 1)}
             >
-              Next
+              Volgende
             </button>
             <button onClick={zoomIn}>Zoom +</button>
             <button onClick={zoomOut}>Zoom -</button>
@@ -514,7 +514,7 @@ export default function MapPanel({
               onClick={() => setIsAddingMarker(!isAddingMarker)}
               disabled={!currentMapId || !currentMap?.hasFile} 
             >
-              {isAddingMarker ? "Cancel" : "Add Marker"}
+              {isAddingMarker ? "Annuleren" : "Voeg Marker toe"}
             </button>
             <button
               onClick={() => {
@@ -529,7 +529,7 @@ export default function MapPanel({
               onClick={() => fileInputRef.current?.click()}
               disabled={uploading}
             >
-              {uploading ? "Uploading..." : "Upload"}
+              {uploading ? "Uploaden..." : "Upload"}
             </button>
             <span className="zoom-percentage">{Math.round(zoom * 100)}%</span>
           </div>
@@ -552,7 +552,7 @@ export default function MapPanel({
         uploading={uploading}
         onUploadClick={() => fileInputRef.current?.click()}
         onDeleteClick={(map) => {
-          if (window.confirm(`Delete map "${map.name}"?`)) {
+          if (window.confirm(`Verwijder map "${map.name}"?`)) {
             fetch(`${MAPS_URL}/${map.mapId}`, { method: "DELETE" })
               .then((res) => res.json())
               .then(() => fetchMaps());

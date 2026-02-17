@@ -54,10 +54,10 @@ export default function Dashboard({ reports, reloadData, setReports }) {
   ];
 
   const reportSubTabs = [
-    { value: REPORT_TABS.ALL, label: "All" },
+    { value: REPORT_TABS.ALL, label: "Alles" },
     { value: REPORT_TABS.TEAM, label: "Team" },
     { value: REPORT_TABS.STATUS, label: "Status" },
-    { value: REPORT_TABS.PRIORITY, label: "Priority" },
+    { value: REPORT_TABS.PRIORITY, label: "Prioriteit" },
   ];
 
   const startResize = (e) => {

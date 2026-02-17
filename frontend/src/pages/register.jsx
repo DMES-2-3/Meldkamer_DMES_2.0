@@ -58,7 +58,7 @@ function Register() {
   return (
     <div className="login-page">
       <div className="form">
-        <h1>Register</h1>
+        <h1>Registreer</h1>
         {errors.map((e, i) => (
           <p key={i} className="error">
             {e}
@@ -71,7 +71,7 @@ function Register() {
             registerSubmit();
           }}
         >
-          <label>First Name</label>
+          <label>Voornaam</label>
           <input
             autoFocus
             type="text"
@@ -80,7 +80,7 @@ function Register() {
             onChange={handleInputChange}
             disabled={loading}
           />
-          <label>Last Name</label>
+          <label>Achternaam</label>
           <input
             type="text"
             name="lastname"
@@ -88,7 +88,7 @@ function Register() {
             onChange={handleInputChange}
             disabled={loading}
           />
-          <label>Username</label>
+          <label>Usernaam</label>
           <input
             type="text"
             name="username"
@@ -96,7 +96,7 @@ function Register() {
             onChange={handleInputChange}
             disabled={loading}
           />
-          <label>Birthday</label>
+          <label>Geboortedatum</label>
           <input
             type="date"
             name="birthday"
@@ -112,7 +112,7 @@ function Register() {
             onChange={handleInputChange}
             disabled={loading}
           />
-          <label>Password</label>
+          <label>Wachtwoord</label>
           <input
             type={showPass ? "text" : "password"}
             name="pass"
@@ -127,14 +127,14 @@ function Register() {
               onChange={() => setShowPass(!showPass)}
               disabled={loading}
             />
-            Show password
+            Toon wachtwoord
           </label>
           <button className="button" type="submit" disabled={loading}>
-            {loading ? "Registering..." : "Register"}
+            {loading ? "Registreren..." : "Registreren"}
           </button>
         </form>
         <p className="clickable" onClick={() => navigate("/")}>
-          Already have an account? Login here.
+          Al een account? Inloggen
         </p>
       </div>
     </div>
