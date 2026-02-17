@@ -8,7 +8,6 @@ import ReportsTableContainer from "../components/ReportsTableContainer";
 import FilterControls from "../components/FilterControls";
 import Legend from "../components/Legend";
 import { MAPS, MAIN_TABS, REPORT_TABS } from "../utils";
-import { useNotepad } from "../contexts/NotepadContexts";
 import "../Dashboard.css";
 
 export default function Dashboard({ reports, reloadData, setReports }) {
@@ -21,9 +20,7 @@ export default function Dashboard({ reports, reloadData, setReports }) {
   const [statusFilter, setStatusFilter] = useState("All");
   const [priorityFilter, setPriorityFilter] = useState("All");
   const [showKladblok, setShowKladblok] = useState(false);
-  const [selectedEventId, setSelectedEventId] = useState(null);
-  const { notes, setNotes } = useNotepad();
-  const notepadRef = useRef(null);
+  const [selectedEvent, setSelectedEvent] = useState(null);
 
   // Get selected event from localStorage
   React.useEffect(() => {
@@ -31,7 +28,7 @@ export default function Dashboard({ reports, reloadData, setReports }) {
     if (stored) {
       try {
         const parsed = JSON.parse(stored);
-        setSelectedEventId(parsed.id);
+        setSelectedEvent(parsed);
       } catch (e) {
         console.error("Failed to parse selected_event from localStorage", e);
       }
@@ -45,7 +42,6 @@ export default function Dashboard({ reports, reloadData, setReports }) {
 
   const mapPanelRef = useRef(null);
   const [isResizing, setIsResizing] = useState(false);
-  const [showCreateReport, setShowCreateReport] = useState(false);
 
   const mainTabs = [
     { value: MAIN_TABS.TEAMS, label: "Teams" },
@@ -109,6 +105,12 @@ export default function Dashboard({ reports, reloadData, setReports }) {
     }
   };
 
+  const handleMapsUpdate = (maps) => {
+    const newSelectedEvent = { ...selectedEvent, maps };
+    setSelectedEvent(newSelectedEvent);
+    localStorage.setItem("selected_event", JSON.stringify(newSelectedEvent));
+  };
+
   return (
     <div className="dashboard">
       <div className="resizable-map-panel" ref={mapPanelRef}>
@@ -116,7 +118,9 @@ export default function Dashboard({ reports, reloadData, setReports }) {
           onMapSelect={setCurrentMap}
           pendingReport={null}
           onRequestMarkerAdd={null}
-          selectedEventId={selectedEventId}
+          selectedEventId={selectedEvent?.id}
+          initialMaps={selectedEvent?.maps || []}
+          onMapsUpdate={handleMapsUpdate}
           reports={reports}
           updateReportLocation={updateReportLocation}
           colorMode={mapColorMode}
@@ -194,38 +198,11 @@ export default function Dashboard({ reports, reloadData, setReports }) {
           </>
         )}
 
-      <Legend
-        colorMode={mapColorMode}        
-        setColorMode={setMapColorMode}  
-        onOpenNotepad={() => {
-          setShowKladblok(true);         
-          setTimeout(() => {
-            if (notepadRef.current) {
-              notepadRef.current.scrollIntoView({ behavior: "smooth" });
-              notepadRef.current.focus();
-            }
-          }, 100); 
-        }}
-      />
-        {/* Notepad modal */}
-          {showKladblok && (
-            <div className="modal-backdrop" onClick={() => setShowKladblok(false)}>
-              <div className="modal" onClick={(e) => e.stopPropagation()}>
-                <div className="modal-header">
-                  <h2>Kladblok</h2>
-                  <button className="modal-close" onClick={() => setShowKladblok(false)}>
-                    ×
-                  </button>
-                </div>
-                <textarea
-                  className="notepad"
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Schrijf notitie"
-                />
-              </div>
-            </div>
-          )}
+        <Legend
+          colorMode={mapColorMode}
+          setColorMode={setMapColorMode}
+          onOpenNotepad={() => setShowKladblok(true)}
+        />
       </div>
     </div>
   );

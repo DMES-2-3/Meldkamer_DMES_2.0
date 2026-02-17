@@ -22,16 +22,16 @@ class AVPU extends \App\Entity\AVPU implements \Doctrine\ORM\Proxy\InternalProxy
     
 
     private const LAZY_OBJECT_PROPERTY_SCOPES = [
-        "\0".parent::class."\0".'AVPUId' => [parent::class, 'AVPUId', null, 16],
-        "\0".parent::class."\0".'alert' => [parent::class, 'alert', null, 16],
-        "\0".parent::class."\0".'pain' => [parent::class, 'pain', null, 16],
-        "\0".parent::class."\0".'unresponsive' => [parent::class, 'unresponsive', null, 16],
-        "\0".parent::class."\0".'verbal' => [parent::class, 'verbal', null, 16],
-        'AVPUId' => [parent::class, 'AVPUId', null, 16],
-        'alert' => [parent::class, 'alert', null, 16],
-        'pain' => [parent::class, 'pain', null, 16],
-        'unresponsive' => [parent::class, 'unresponsive', null, 16],
-        'verbal' => [parent::class, 'verbal', null, 16],
+        "\0".parent::class."\0".'AVPUId' => [parent::class, 'AVPUId', null],
+        "\0".parent::class."\0".'alert' => [parent::class, 'alert', null],
+        "\0".parent::class."\0".'pain' => [parent::class, 'pain', null],
+        "\0".parent::class."\0".'unresponsive' => [parent::class, 'unresponsive', null],
+        "\0".parent::class."\0".'verbal' => [parent::class, 'verbal', null],
+        'AVPUId' => [parent::class, 'AVPUId', null],
+        'alert' => [parent::class, 'alert', null],
+        'pain' => [parent::class, 'pain', null],
+        'unresponsive' => [parent::class, 'unresponsive', null],
+        'verbal' => [parent::class, 'verbal', null],
     ];
 
     public function __isInitialized(): bool
