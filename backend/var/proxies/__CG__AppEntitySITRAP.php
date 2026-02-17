@@ -22,12 +22,12 @@ class SITRAP extends \App\Entity\SITRAP implements \Doctrine\ORM\Proxy\InternalP
     
 
     private const LAZY_OBJECT_PROPERTY_SCOPES = [
-        "\0".parent::class."\0".'SITRAPId' => [parent::class, 'SITRAPId', null, 16],
-        "\0".parent::class."\0".'description' => [parent::class, 'description', null, 16],
-        "\0".parent::class."\0".'injury' => [parent::class, 'injury', null, 16],
-        'SITRAPId' => [parent::class, 'SITRAPId', null, 16],
-        'description' => [parent::class, 'description', null, 16],
-        'injury' => [parent::class, 'injury', null, 16],
+        "\0".parent::class."\0".'SITRAPId' => [parent::class, 'SITRAPId', null],
+        "\0".parent::class."\0".'description' => [parent::class, 'description', null],
+        "\0".parent::class."\0".'injury' => [parent::class, 'injury', null],
+        'SITRAPId' => [parent::class, 'SITRAPId', null],
+        'description' => [parent::class, 'description', null],
+        'injury' => [parent::class, 'injury', null],
     ];
 
     public function __isInitialized(): bool
