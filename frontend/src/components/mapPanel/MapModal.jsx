@@ -25,7 +25,7 @@ export default function MapModal({
 
       {maps.length === 0 && (
         <p style={{ fontStyle: "italic", color: "#888" }}>
-          No maps available. Upload a PDF to get started.
+          Geen mappen beschikbaar. Upload een PDF om te beginnen.
         </p>
       )}
 
@@ -45,7 +45,7 @@ export default function MapModal({
               }}
               className="btn-delete"
             >
-              Delete
+              Verwijder
             </button>
           </div>
         ))}

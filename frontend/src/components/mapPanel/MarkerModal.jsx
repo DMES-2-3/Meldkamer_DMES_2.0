@@ -64,7 +64,7 @@ export default function MarkerModal({
           <div className="marker-list">
             {markers.length === 0 && (
               <p style={{ fontStyle: "italic", color: "#777" }}>
-                No markers on this page
+                Geen markers op de kaart
               </p>
             )}
             {markers.map((marker) => {
@@ -108,13 +108,13 @@ export default function MarkerModal({
               </div>
 
               <div className="report-details-row">
-                <span className="label">Linked Report:</span>
+                <span className="label">Gelinkt Rapport:</span>
                 <select
                   className="form-input"
                   value={linkedReportId || ""}
                   onChange={(e) => setLinkedReportId(e.target.value)}
                 >
-                  <option value="">-- Select Report --</option>
+                  <option value="">-- Selecteer Rapport --</option>
                   {localReports
                     .filter((r) => r.id)
                     .map((report) => (
@@ -131,13 +131,13 @@ export default function MarkerModal({
                     <b>Event:</b> {linkedReport.event}
                   </div>
                   <div>
-                    <b>Description:</b> {linkedReport.description || "-"}
+                    <b>Beschrijving:</b> {linkedReport.description || "-"}
                   </div>
                   <div>
                     <b>Status:</b> {linkedReport.status || "-"}
                   </div>
                   <div>
-                    <b>Priority:</b> {linkedReport.priority || "-"}
+                    <b>Prioriteit:</b> {linkedReport.priority || "-"}
                   </div>
                 </div>
               )}
@@ -145,19 +145,19 @@ export default function MarkerModal({
 
             <div className="marker-form-actions">
               <button className="btn-save" onClick={handleSave}>
-                Save
+                Opslaan
               </button>
               <button
                 className="btn-delete"
                 onClick={() => onDelete(editingMarker.id)}
               >
-                Delete
+                Verwijder
               </button>
               <button
                 className="btn-cancel"
                 onClick={() => onEditMarker(null)}
               >
-                Back to list
+                Terug naar lijst
               </button>
             </div>
           </>

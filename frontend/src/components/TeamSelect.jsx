@@ -8,7 +8,7 @@ export default function TeamSelect({
   placeholder = "Kies team",
 }) {
   const isTeamUnavailable = (status) => {
-    return ["BUSY", "NOTIFICATION", "UNAVAILABLE", "SIGNED_OUT"].includes(
+    return ["Bezig", "Notificatie", "Niet beschikbaar", "Uitgelogd"].includes(
       status,
     );
   };
