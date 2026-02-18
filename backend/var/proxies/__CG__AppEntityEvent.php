@@ -25,11 +25,13 @@ class Event extends \App\Entity\Event implements \Doctrine\ORM\Proxy\InternalPro
         "\0".parent::class."\0".'createdAt' => [parent::class, 'createdAt', null],
         "\0".parent::class."\0".'eventId' => [parent::class, 'eventId', null],
         "\0".parent::class."\0".'eventName' => [parent::class, 'eventName', null],
+        "\0".parent::class."\0".'maps' => [parent::class, 'maps', null],
         "\0".parent::class."\0".'postcode' => [parent::class, 'postcode', null],
         "\0".parent::class."\0".'updatedAt' => [parent::class, 'updatedAt', null],
         'createdAt' => [parent::class, 'createdAt', null],
         'eventId' => [parent::class, 'eventId', null],
         'eventName' => [parent::class, 'eventName', null],
+        'maps' => [parent::class, 'maps', null],
         'postcode' => [parent::class, 'postcode', null],
         'updatedAt' => [parent::class, 'updatedAt', null],
     ];

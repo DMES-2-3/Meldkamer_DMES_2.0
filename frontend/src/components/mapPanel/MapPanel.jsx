@@ -20,6 +20,8 @@ export default function MapPanel({
   pendingReport,
   onRequestMarkerAdd,
   selectedEventId,
+  initialMaps = [],
+  onMapsUpdate = () => {},
   reports: dashboardReports = [],
   updateReportLocation,
   colorMode = "priority",
@@ -30,7 +32,7 @@ export default function MapPanel({
   const pdfPageRef = useRef(null);
   const fileInputRef = useRef(null);
 
-  const [maps, setMaps] = useState([]);
+  const [maps, setMaps] = useState(initialMaps);
   const [reports, setReports] = useState([]);
   const [currentMapId, setCurrentMapId] = useState(
     () => JSON.parse(sessionStorage.getItem("currentMapId")) || null,
@@ -101,40 +103,53 @@ export default function MapPanel({
       : description.slice(0, maxLength).trim() + "...";
   };
 
-  const fetchValidEventId = async () => {
-    if (selectedEventId) return selectedEventId;
-
-    try {
-      const res = await fetch("http://localhost:8080/src/api/v1/event");
-      const data = await res.json();
-      if (data.success && data.data.length > 0) {
-        return data.data[0].id;
-      }
-    } catch (err) {
-      console.error("Failed to fetch events:", err);
-    }
-    return 1; // Final fallback
-  };
-
-    useEffect(() => {
+  useEffect(() => {
     if (!message) return;
 
     const timer = setTimeout(() => {
       setMessage(null);
-    }, 3000); 
+    }, 3000);
     return () => clearTimeout(timer);
   }, [message]);
 
-
   useEffect(() => {
-    if(initialMapType) {
+    if (initialMapType) {
       setMapType(initialMapType);
     }
-  }, [initialMapType]); 
+  }, [initialMapType]);
 
   useEffect(() => {
-    fetchMaps();
+    setMaps(initialMaps);
+    if (initialMaps.length > 0 && !currentMapId) {
+      setCurrentMapId(initialMaps[0].mapId);
+    } else if (initialMaps.length === 0) {
+      setCurrentMapId(null);
+    }
     fetchReports();
+  }, [initialMaps, selectedEventId]);
+
+  // Check for a completed pending PDF marker (coming back from ReportScreen)
+  useEffect(() => {
+    const stored = sessionStorage.getItem("pendingPdfMarker");
+    if (!stored) return;
+    try {
+      const pending = JSON.parse(stored);
+      if (pending.reportId) {
+        const newMarker = {
+          id: Date.now(),
+          x: pending.x,
+          y: pending.y,
+          label: pending.label || `Report ${pending.reportId}`,
+          page: pending.page,
+          mapId: pending.mapId,
+          reportId: pending.reportId.toString(),
+        };
+        setMarkers((prev) => [...prev, newMarker]);
+        sessionStorage.removeItem("pendingPdfMarker");
+      }
+    } catch {
+      sessionStorage.removeItem("pendingPdfMarker");
+    }
   }, []);
 
   useEffect(() => {
@@ -174,11 +189,17 @@ export default function MapPanel({
       setTempMarkerLabel(getShortLabel(report.description || report.event, 25));
   }, [tempMarkerReportId, reports]);
 
-  const fetchMaps = async () => {
+  const fetchMapsForEvent = async (eventId) => {
+    if (!eventId) return;
     try {
-      const res = await fetch(MAPS_URL);
+      const res = await fetch(`${MAPS_URL}?eventId=${eventId}`);
       const data = await res.json();
-      setMaps(Array.isArray(data.data) ? data.data : []);
+      const eventMaps = Array.isArray(data) ? data : [];
+      setMaps(eventMaps);
+      onMapsUpdate(eventMaps);
+      if (eventMaps.length > 0 && !currentMapId) {
+        setCurrentMapId(eventMaps[0].mapId);
+      }
     } catch (err) {
       console.error(err);
     }
@@ -227,28 +248,32 @@ export default function MapPanel({
       const x = (e.clientX - rect.left) / zoom;
       const y = (e.clientY - rect.top) / zoom;
 
-      const newMarker = {
-        id: Date.now(),
+      // Store pending marker position in sessionStorage and navigate to ReportScreen
+      const pendingPdfMarker = {
         x,
         y,
-        label: pendingReport
-          ? getShortLabel(pendingReport.description || pendingReport.event, 25)
-          : `Marker ${markers.length + 1}`,
         page: pageNumber,
         mapId: currentMapId,
-        reportId: pendingReport?.id?.toString() || null,
       };
+      sessionStorage.setItem(
+        "pendingPdfMarker",
+        JSON.stringify(pendingPdfMarker),
+      );
 
-      setMarkers((prev) => [...prev, newMarker]);
-      setEditingMarker(newMarker);
-      setTempMarkerLabel(newMarker.label);
-      setTempMarkerReportId(newMarker.reportId || "");
-      setShowMarkerModal(true);
       setIsAddingMarker(false);
       setMessage(null);
+
+      navigate("/melding", {
+        state: {
+          report: {
+            Prioriteit: "Groen",
+            Status: "Open",
+          },
+          from: "pdf-map",
+        },
+      });
       return;
     }
-
 
     setIsDragging(true);
     setDragStart({
@@ -345,13 +370,12 @@ export default function MapPanel({
 
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
-    if (!file) return;
+    if (!file || !selectedEventId) return;
 
     setUploading(true);
-    const validEventId = await fetchValidEventId();
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("eventId", validEventId);
+    formData.append("eventId", selectedEventId);
 
     try {
       const res = await fetch(MAPS_URL, { method: "POST", body: formData });
@@ -360,8 +384,11 @@ export default function MapPanel({
         setMessage({ type: "error", text: data.error || "Upload failed" });
       else {
         setMessage({ type: "success", text: "Upload successful!" });
-        await fetchMaps();
-        setCurrentMapId(data.data.mapId);
+        const newMap = data.data;
+        const updatedMaps = [...maps, newMap];
+        setMaps(updatedMaps);
+        onMapsUpdate(updatedMaps);
+        setCurrentMapId(newMap.mapId);
         setPageNumber(1);
       }
     } catch (err) {
@@ -379,8 +406,8 @@ export default function MapPanel({
       state: {
         report: {
           Location: `${coords.lat}, ${coords.lng}`,
-          Prioriteit: "Groen", 
-          Status: "Open",   
+          Prioriteit: "Groen",
+          Status: "Open",
         },
         from: "google-maps",
       },
@@ -488,8 +515,8 @@ export default function MapPanel({
           ) : (
             <div className="map-no-content">
               {currentMapId
-                ? "Map file not available"
-                : "No map loaded. Upload a map to get started."}
+                ? "Map bestand niet beschikbaar"
+                : "Geen map geladen. Upload een map om te beginnen."}
             </div>
           )}
 
@@ -498,13 +525,13 @@ export default function MapPanel({
               disabled={pageNumber <= 1}
               onClick={() => setPageNumber((p) => p - 1)}
             >
-              Prev
+              Vorige
             </button>
             <button
               disabled={!numPages || pageNumber >= numPages}
               onClick={() => setPageNumber((p) => p + 1)}
             >
-              Next
+              Volgende
             </button>
             <button onClick={zoomIn}>Zoom +</button>
             <button onClick={zoomOut}>Zoom -</button>
@@ -512,9 +539,9 @@ export default function MapPanel({
             <button
               className={isAddingMarker ? "btn-marker-active" : ""}
               onClick={() => setIsAddingMarker(!isAddingMarker)}
-              disabled={!currentMapId || !currentMap?.hasFile} 
+              disabled={!currentMapId || !currentMap?.hasFile}
             >
-              {isAddingMarker ? "Cancel" : "Add Marker"}
+              {isAddingMarker ? "Annuleren" : "Voeg Marker toe"}
             </button>
             <button
               onClick={() => {
@@ -529,7 +556,7 @@ export default function MapPanel({
               onClick={() => fileInputRef.current?.click()}
               disabled={uploading}
             >
-              {uploading ? "Uploading..." : "Upload"}
+              {uploading ? "Uploaden..." : "Upload"}
             </button>
             <span className="zoom-percentage">{Math.round(zoom * 100)}%</span>
           </div>
@@ -552,45 +579,44 @@ export default function MapPanel({
         uploading={uploading}
         onUploadClick={() => fileInputRef.current?.click()}
         onDeleteClick={(map) => {
-          if (window.confirm(`Delete map "${map.name}"?`)) {
+          if (window.confirm(`Verwijder map "${map.name}"?`)) {
             fetch(`${MAPS_URL}/${map.mapId}`, { method: "DELETE" })
               .then((res) => res.json())
-              .then(() => fetchMaps());
+              .then(() => fetchMapsForEvent(selectedEventId));
           }
         }}
         currentMapId={currentMapId}
       />
 
-  <MarkerModal
-    show={showMarkerModal}
-    onClose={() => setShowMarkerModal(false)}
-    editingMarker={editingMarker}
-    markers={currentMarkers}
-    localReports={reports}
-    onSave={(updatedMarker) => {
-      setMarkers((prev) =>
-        prev.map((m) => (m.id === updatedMarker.id ? updatedMarker : m))
-      );
-      setEditingMarker(null);
-      setShowMarkerModal(false);
-    }}
-    onDelete={(markerId) => {
-      setMarkers((prev) => prev.filter((m) => m.id !== markerId));
-      setEditingMarker(null);
-      setShowMarkerModal(false);
-    }}
-    onEditMarker={(marker) => {
-      setEditingMarker(marker);
+      <MarkerModal
+        show={showMarkerModal}
+        onClose={() => setShowMarkerModal(false)}
+        editingMarker={editingMarker}
+        markers={currentMarkers}
+        localReports={reports}
+        onSave={(updatedMarker) => {
+          setMarkers((prev) =>
+            prev.map((m) => (m.id === updatedMarker.id ? updatedMarker : m)),
+          );
+          setEditingMarker(null);
+          setShowMarkerModal(false);
+        }}
+        onDelete={(markerId) => {
+          setMarkers((prev) => prev.filter((m) => m.id !== markerId));
+          setEditingMarker(null);
+          setShowMarkerModal(false);
+        }}
+        onEditMarker={(marker) => {
+          setEditingMarker(marker);
 
-      if (!marker) {
-        setShowMarkerModal(true); 
-        return;
-      }
+          if (!marker) {
+            setShowMarkerModal(true);
+            return;
+          }
 
-      setShowMarkerModal(true); 
-    }}
-  />
-
+          setShowMarkerModal(true);
+        }}
+      />
     </div>
   );
 }

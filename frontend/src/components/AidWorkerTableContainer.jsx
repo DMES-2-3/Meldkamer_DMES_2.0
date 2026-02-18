@@ -59,9 +59,9 @@ export default function AidWorkersTableContainer() {
     fetchWorkers();
   }, []);
 
-  if (loading) return <p>Loading aid workers…</p>;
+  if (loading) return <p>Aid workers laden...</p>;
   if (error) return <p style={{ color: "red" }}>Error: {error}</p>;
-  if (!workers.length) return <p>No aid workers available</p>;
+  if (!workers.length) return <p>Geen aid workers beschikbaar</p>;
 
   return <AidWorkersTable workers={workers} />;
 }

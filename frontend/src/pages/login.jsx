@@ -86,7 +86,7 @@ function Login() {
             onChange={handleInputChange}
             disabled={loading}
           />
-          <label>Password</label>
+          <label>Wachtwoord</label>
           <input
             type={showPass ? "text" : "password"}
             name="pass"
@@ -101,14 +101,14 @@ function Login() {
               onChange={() => setShowPass(!showPass)}
               disabled={loading}
             />
-            Show password
+            Toon wachtwoord
           </label>
           <button className="button" type="submit" disabled={loading}>
-            {loading ? "Logging in..." : "Login"}
+            {loading ? "Inloggen..." : "Inloggen"}
           </button>
         </form>
         <p className="clickable" onClick={() => navigate("/register")}>
-          Don't have an account? Register here.
+          Geen account? Registreren
         </p>
       </div>
     </div>

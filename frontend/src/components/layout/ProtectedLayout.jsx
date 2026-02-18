@@ -25,7 +25,7 @@ export default function ProtectedLayout() {
     checkSession();
   }, []);
 
-  if (loading) return <p>Checking session…</p>;
+  if (loading) return <p>Checken van de sessie...</p>;
 
   if (!allowed) return <Navigate to="/" replace />;
 

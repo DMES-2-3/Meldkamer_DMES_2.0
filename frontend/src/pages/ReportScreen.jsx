@@ -47,13 +47,14 @@ export default function ReportScreen({ reloadData }) {
   const navigate = useNavigate();
   const initialReport = location.state?.report;
   const fromGoogleMaps = location.state?.from === "google-maps";
+  const fromPdfMap = location.state?.from === "pdf-map";
   const originalReportData = React.useRef(null);
 
   const [units, setUnits] = useState([]);
   const [aidWorkers, setAidWorkers] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [formData, setFormData] = useState(DEFAULT_FORM_STATE);
-  const { notes, setNotes } = useNotepad(); 
+  const { notes, setNotes } = useNotepad();
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
@@ -155,6 +156,8 @@ export default function ReportScreen({ reloadData }) {
   const goBack = () => {
     if (fromGoogleMaps) {
       navigate("/dashboard", { state: { openMapType: "GoogleMaps" } });
+    } else if (fromPdfMap) {
+      navigate("/dashboard", { state: { openMapType: "PDF" } });
     } else {
       navigate("/overzicht");
     }
@@ -223,7 +226,39 @@ export default function ReportScreen({ reloadData }) {
         }
       }
 
-      await saveReport(formData);
+      const savedResult = await saveReport(formData);
+
+      // If coming from PDF map, attach the new report ID to the pending marker
+      if (fromPdfMap) {
+        try {
+          const stored = sessionStorage.getItem("pendingPdfMarker");
+          if (stored) {
+            const pending = JSON.parse(stored);
+            // Extract report ID from the saved result
+            const newReportId =
+              savedResult?.data?.id ??
+              savedResult?.data?.notificationId ??
+              savedResult?.id ??
+              savedResult?.notificationId ??
+              formData.id;
+            if (newReportId) {
+              const shortLabel = formData.Note || formData.Subject || "Marker";
+              pending.reportId = newReportId.toString();
+              pending.label =
+                shortLabel.length > 25
+                  ? shortLabel.slice(0, 25).trim() + "..."
+                  : shortLabel;
+              sessionStorage.setItem(
+                "pendingPdfMarker",
+                JSON.stringify(pending),
+              );
+            }
+          }
+        } catch {
+          // ignore sessionStorage errors
+        }
+      }
+
       if (reloadData) await reloadData();
       goBack();
     } catch (err) {
@@ -233,6 +268,9 @@ export default function ReportScreen({ reloadData }) {
   };
 
   const handleCancel = () => {
+    if (fromPdfMap) {
+      sessionStorage.removeItem("pendingPdfMarker");
+    }
     goBack();
   };
 
@@ -426,7 +464,7 @@ export default function ReportScreen({ reloadData }) {
           <div className="section-block">
             <div className="section-title">AVPU</div>
             <div className="checkbox-list">
-              {["Alert", "Verbal", "Pain", "Unresponsive"].map((field) => (
+              {["Alert", "Spraakzaam", "Onbekwaam"].map((field) => (
                 <label key={field}>
                   <input
                     type="checkbox"
@@ -474,7 +512,7 @@ export default function ReportScreen({ reloadData }) {
                     )
                   }
                 />{" "}
-                Doctor
+                Dokter
               </label>
               <label>
                 <input

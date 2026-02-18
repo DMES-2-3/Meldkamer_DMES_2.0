@@ -1,7 +1,7 @@
 import React from "react";
 
 export default function AidWorkersTable({ workers }) {
-  if (!workers.length) return <p>No aid workers available</p>;
+  if (!workers.length) return <p>Geen aid workers beschikbaar</p>;
 
   return (
     <div className="team-table-wrapper" style={{ maxHeight: "260px", overflowY: "auto" }}>
@@ -9,9 +9,9 @@ export default function AidWorkersTable({ workers }) {
         <thead>
           <tr>
             <th>Status</th>
-            <th>Call Number</th>
-            <th>Name</th>
-            <th>Role</th>
+            <th>Roepnummer</th>
+            <th>Naam</th>
+            <th>Rol</th>
             <th>Team</th>
           </tr>
         </thead>

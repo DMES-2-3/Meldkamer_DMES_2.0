@@ -24,7 +24,7 @@ export default function ProtectedRoute({ Component }) {
     verifySession();
   }, []);
 
-  if (loading) return <p>Checking session…</p>;
+  if (loading) return <p>Sessie checken...</p>;
 
   if (!allowed) return <Navigate to="/login" replace />;
 
