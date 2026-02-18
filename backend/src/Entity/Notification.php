@@ -93,8 +93,8 @@ class Notification
     #[Column(type: "datetime")]
     private \DateTimeInterface $time;
 
-    #[column(enumType: Status::class)]
-    private Status $status;
+    #[column(enumType: NotificationStatus::class)]
+    private NotificationStatus $status;
 
     #[column(enumType: Priority::class)]
     private Priority $priority;
@@ -231,12 +231,12 @@ class Notification
         $this->time = $time;
     }
 
-    public function getStatus(): Status
+    public function getStatus(): NotificationStatus
     {
         return $this->status;
     }
 
-    public function setStatus(Status $status): void
+    public function setStatus(NotificationStatus $status): void
     {
         $this->status = $status;
     }

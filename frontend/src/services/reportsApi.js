@@ -46,9 +46,9 @@ function mapPriorityToBackend(priority) {
 
 function mapStatusToBackend(status) {
   const map = {
-    Open: "REGISTERED",
-    "In behandeling": "NOTIFICATION",
-    Gesloten: "SIGNED_OUT",
+    Open: "NEW",
+    "In behandeling": "PENDING",
+    Gesloten: "CLOSED",
   };
   return map[status] || null;
 }
@@ -68,9 +68,9 @@ function mapReportFromServer(reportWrapper) {
 
   const priorityMap = { GREEN: "Groen", ORANGE: "Geel", RED: "Rood" };
   const statusMap = {
-    REGISTERED: "Open",
-    NOTIFICATION: "In behandeling",
-    SIGNED_OUT: "Gesloten",
+    NEW: "Open",
+    PENDING: "In behandeling",
+    CLOSED: "Gesloten",
   };
   const genderMap = { MALE: "Man", FEMALE: "Vrouw" };
 
