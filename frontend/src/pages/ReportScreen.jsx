@@ -18,7 +18,7 @@ const DEFAULT_FORM_STATE = {
   Note: "",
   Notepad: "",
   Team: "",
-  Prioriteit: "Groen",
+  Prioriteit: "Laag",
   Status: "Open",
   SITrap: {
     Gender: "",
@@ -319,7 +319,6 @@ export default function ReportScreen({ reloadData }) {
               type="time"
               className="time-input"
               value={formData.Time}
-              readOnly
             />
             <div className="input-group">
               <label>Melder</label>
@@ -372,20 +371,20 @@ export default function ReportScreen({ reloadData }) {
             <label>Prioriteit:</label>
             <div className="priority-flags">
               <button
-                className={`flag green ${formData.Prioriteit?.toLowerCase() === "groen" ? "active" : ""}`}
-                onClick={() => handleChange("Prioriteit", "Groen")}
+                className={`flag green ${formData.Prioriteit?.toLowerCase() === "laag" ? "active" : ""}`}
+                onClick={() => handleChange("Prioriteit", "Laag")}
               >
                 ⚑
               </button>
               <button
-                className={`flag orange ${formData.Prioriteit?.toLowerCase() === "geel" ? "active" : ""}`}
-                onClick={() => handleChange("Prioriteit", "Geel")}
+                className={`flag orange ${formData.Prioriteit?.toLowerCase() === "gemiddeld" ? "active" : ""}`}
+                onClick={() => handleChange("Prioriteit", "Gemiddeld")}
               >
                 ⚑
               </button>
               <button
-                className={`flag red ${formData.Prioriteit?.toLowerCase() === "rood" ? "active" : ""}`}
-                onClick={() => handleChange("Prioriteit", "Rood")}
+                className={`flag red ${formData.Prioriteit?.toLowerCase() === "hoog" ? "active" : ""}`}
+                onClick={() => handleChange("Prioriteit", "Hoog")}
               >
                 ⚑
               </button>
@@ -462,7 +461,9 @@ export default function ReportScreen({ reloadData }) {
           </div>
 
           <div className="section-block">
-            <div className="section-title">AVPU</div>
+            <div className="section-title">
+              <h3>AVPU</h3>
+            </div>
             <div className="checkbox-list">
               {["Alert", "Spraakzaam", "Onbekwaam"].map((field) => (
                 <label key={field}>
@@ -478,8 +479,11 @@ export default function ReportScreen({ reloadData }) {
           </div>
 
           <div className="section-block">
-            <div className="section-title">Assistentie</div>
-            <div className="input-group">
+            <div className="section-title">
+              <h3>Assistentie</h3>
+            </div>
+            <div className="input-group"
+                  style={{ marginBottom: "12px" }}>
               <label>Optioneel extra team</label>
               <TeamSelect
                 units={units}
@@ -559,7 +563,7 @@ export default function ReportScreen({ reloadData }) {
         <div className="column-header">
           <label>Kladblok</label>
         </div>
-        <div className="column-content full-height">
+        <div className="column-content full-height notepad-column">
           <textarea
             className="notepad"
             placeholder="Schrijf notitie"

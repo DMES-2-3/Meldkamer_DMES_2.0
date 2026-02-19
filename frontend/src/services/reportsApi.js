@@ -37,9 +37,9 @@ async function handleJsonResponse(res) {
 
 function mapPriorityToBackend(priority) {
   const map = {
-    Groen: "GREEN",
-    Geel: "ORANGE",
-    Rood: "RED",
+    Laag: "GREEN",
+    Gemiddeld: "ORANGE",
+    Hoog: "RED",
   };
   return map[priority] || null;
 }
@@ -66,7 +66,7 @@ function mapReportFromServer(reportWrapper) {
   const report = reportWrapper.Report ?? reportWrapper;
   if (!report) return reportWrapper;
 
-  const priorityMap = { GREEN: "Groen", ORANGE: "Geel", RED: "Rood" };
+  const priorityMap = { GREEN: "Laag", ORANGE: "Gemiddeld", RED: "Hoog" };
   const statusMap = {
     REGISTERED: "Open",
     NOTIFICATION: "In behandeling",

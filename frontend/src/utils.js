@@ -1,21 +1,19 @@
-import React from "react";
-
 export const MAIN_TABS = {
   TEAMS: "Teams",
-  AIDWORKERS: "AidWorkers",
-  REPORTS: "Reports",
+  AIDWORKERS: "Hulpverleners",
+  REPORTS: "Rapporten",
 };
 
 export const REPORT_TABS = {
-  ALL: "All",
+  ALL: "Alles",
   TEAM: "Team",
   STATUS: "Status",
-  PRIORITY: "Priority",
+  PRIORITY: "Prioriteit",
 };
 
 export const FILTER_OPTIONS = {
-  status: ["All", "Open", "In behandeling", "Gesloten"],
-  priority: ["All", "Rood", "Geel", "Groen"],
+  status: ["Alles", "Open", "In behandeling", "Gesloten"],
+  priority: ["Alles", "Hoog", "Gemiddeld", "Laag"],
 };
 
 export const MAPS = [
@@ -40,9 +38,9 @@ export const REPORT_STATUS_COLORS = {
 };
 
 export const PRIORITY_COLORS = {
-  Red: "#b91c1c",
-  Yellow: "#eab308",
-  Green: "#15803d",
+  green: "#15803d",   // laag
+  orange: "#fbbf24",  // gemiddeld
+  red: "#b91c1c",     // hoog
   default: "#d1d5db",
 };
 
@@ -66,12 +64,25 @@ export const normalizeReportStatus = (status) => {
 };
 
 export const normalizePriority = (priority) => {
-  if (!priority) return "Green";
-  const p = priority.toString().toLowerCase();
-  if (p === "rood" || p === "red") return "Red";
-  if (p === "geel" || p === "yellow") return "Yellow";
-  if (p === "groen" || p === "green") return "Green";
-  return "Green";
+  if (!priority) return "green";
+
+  const p = priority.toString().trim().toLowerCase();
+
+  // UI labels
+  if (p === "hoog") return "red";
+  if (p === "gemiddeld") return "orange";
+  if (p === "laag") return "green";
+
+  // backend enums
+  if (p === "red") return "red";
+  if (p === "orange") return "orange";
+  if (p === "green") return "green";
+
+  if (p === "red") return "red";
+  if (p === "orange") return "orange";
+  if (p === "green") return "green";
+
+  return "green";
 };
 
 export const getTeamStatusColor = (status) =>
@@ -107,18 +118,23 @@ export function getSelectedEvent(navigate) {
   }
 }
 
-export const createMarkerIcon = (color = "#FF0000") => ({
-  url:
-    "data:image/svg+xml;charset=UTF-8," +
-    encodeURIComponent(`
-      <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24">
-        <path fill="${color}" stroke="black" stroke-width="1"
-          d="M12 2C8.1 2 5 5.1 5 9c0 5.2 7 13 7 13s7-7.8 7-13c0-3.9-3.1-7-7-7z"/>
-        <circle cx="12" cy="9" r="3.5" fill="white"/>
-      </svg>
-    `),
-  scaledSize: new window.google.maps.Size(36, 36),
-});
+export const createMarkerIcon = (color = "#FF0000") => {
+  const icon = {
+    url:
+      "data:image/svg+xml;charset=UTF-8," +
+      encodeURIComponent(`
+        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24">
+          <path fill="${color}" stroke="black" stroke-width="1"
+            d="M12 2C8.1 2 5 5.1 5 9c0 5.2 7 13 7 13s7-7.8 7-13c0-3.9-3.1-7-7-7z"/>
+          <circle cx="12" cy="9" r="3.5" fill="white"/>
+        </svg>
+      `),
+  };
+  if (window.google?.maps?.Size) {
+    icon.scaledSize = new window.google.maps.Size(36, 36);
+  }
+  return icon;
+};
 export const getTeamsForMarker = (marker, reports = []) => {
   if (!marker?.reportId || !Array.isArray(reports)) return [];
   const report = reports.find(

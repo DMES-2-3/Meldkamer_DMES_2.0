@@ -266,7 +266,7 @@ export default function MapPanel({
       navigate("/melding", {
         state: {
           report: {
-            Prioriteit: "Groen",
+            Prioriteit: "Laag",
             Status: "Open",
           },
           from: "pdf-map",
