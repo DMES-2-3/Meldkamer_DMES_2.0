@@ -57,8 +57,8 @@ function mapGenderToBackend(gender) {
   const map = {
     Man: "MALE",
     Vrouw: "FEMALE",
+    X: "OTHER",
   };
-  // Backend does not support 'X', so we send null.
   return map[gender] || null;
 }
 
@@ -72,7 +72,7 @@ function mapReportFromServer(reportWrapper) {
     NOTIFICATION: "In behandeling",
     SIGNED_OUT: "Gesloten",
   };
-  const genderMap = { MALE: "Man", FEMALE: "Vrouw" };
+  const genderMap = { MALE: "Man", FEMALE: "Vrouw", OTHER: "X" };
 
   const mappedReport = {
     ...report,
