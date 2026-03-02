@@ -129,6 +129,13 @@ if ($zip->open($zipFilePath, ZipArchive::OVERWRITE) !== true) {
     exit;
 }
 
+// Haal eventnaam op voor bestandsnaam
+$eventName = $conn->executeQuery(
+    "SELECT eventName FROM `Event` WHERE eventId = :eventId",
+    ['eventId' => $eventId]
+)->fetchOne();
+$eventNameSafe = strtolower(preg_replace('/[^a-zA-Z0-9_-]/', '_', $eventName));
+
 foreach ($tablesToExport as $table => $sql) {
     $rows = [];
     try {
@@ -162,14 +169,14 @@ foreach ($tablesToExport as $table => $sql) {
     $csvContent = stream_get_contents($csvStream);
     fclose($csvStream);
 
-    $filename = $table . "_event_" . $eventId . ".csv";
+    $filename = $table . "_{$eventNameSafe}.csv";
     $zip->addFromString($filename, $csvContent);
 }
 
 $zip->close();
 
 // 5) Stuur ZIP naar browser (geen output vóór dit punt!)
-$downloadName = "export_event_{$eventId}_" . date("Ymd_His") . ".zip";
+$downloadName = "export_{$eventNameSafe}_" . date("Ymd_His") . ".zip";
 
 // Maak outputbuffer schoon en zet headers
 while (ob_get_level()) {
