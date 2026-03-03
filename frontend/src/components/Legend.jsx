@@ -36,11 +36,10 @@ export default function Legend({ colorMode, setColorMode, onOpenNotepad }) {
         Prioriteit
       </h3>
       <div className="legend-grid">
-        <LegendItem color={PRIORITY_COLORS.Green} label="Groen" />
-        <LegendItem color={PRIORITY_COLORS.Yellow} label="Geel" />
-        <LegendItem color={PRIORITY_COLORS.Red} label="Rood" />
+        <LegendItem color={PRIORITY_COLORS.green} label="Laag" />
+        <LegendItem color={PRIORITY_COLORS.orange} label="Gemiddeld" />
+        <LegendItem color={PRIORITY_COLORS.red} label="Hoog" />
       </div>
-
       <div className="legend-buttons">
         <button className="btn-small" onClick={onOpenNotepad}>
           Kladblok
