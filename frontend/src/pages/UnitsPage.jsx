@@ -2,18 +2,28 @@ import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   getUnits,
-  updateUnit,
+  getUnit,
   createUnit,
+  updateUnit,
   deleteUnit,
+  getWorkers,
+  createWorker,
+  updateWorker,
+  deleteWorker,
 } from "../services/unitsApi";
-import { STATUSES } from "../constants";
+import { STATUSES, UNIT_STATUSES } from "../constants";
 import "../UnitsPage.css";
 
-// Check of het roepnummer het juiste formaat heeft
-const isValidCallNumber = (callNumber) => {
-  const regex = /^\d{2}-\d{2}$/;
-  return regex.test(callNumber);
-};
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+const STATUS_OPTIONS = Object.entries(UNIT_STATUSES).map(
+  ([value, { label }]) => ({
+    value,
+    label,
+  }),
+);
 
 const getStatusLabelClass = (status) => {
   switch (status) {
@@ -23,53 +33,871 @@ const getStatusLabelClass = (status) => {
       return "label-yellow";
     case "WAIT":
       return "label-blue";
+    case "ACTIVE":
+      return "label-green";
+    case "BUSY":
+      return "label-yellow";
     default:
       return "label-gray";
   }
 };
 
-const mapUnitFromApi = (u) => ({
-  id: u.aidTeamId || u.id,
-  callNumber: u.callNumber,
-  teamName: u.aidTeamName || u.name,
-  status: u.status,
-  note: u.description || u.note,
-  updatedAt: u.updatedAt,
-});
+const statusLabel = (status) =>
+  UNIT_STATUSES[status]?.label ?? STATUSES[status]?.label ?? status;
+
+// ---------------------------------------------------------------------------
+// SectionTable — dark header bar + table rows, visually joined
+// ---------------------------------------------------------------------------
+
+function SectionTable({ title, accent, headers, rows, emptyMsg }) {
+  return (
+    <section className="up-section">
+      <div className="up-section-header" style={{ background: accent }}>
+        <span>{title}</span>
+        <span className="up-section-count">{rows.length}</span>
+      </div>
+      <div className="up-table-wrapper up-table-wrapper--attached">
+        <table className="up-table">
+          <tbody>
+            {rows.length === 0 ? (
+              <tr>
+                <td colSpan={headers.length} className="up-td-empty">
+                  {emptyMsg}
+                </td>
+              </tr>
+            ) : (
+              rows
+            )}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Reusable form primitives
+// ---------------------------------------------------------------------------
+
+function Field({ label, error, children }) {
+  return (
+    <div className="up-field">
+      {label && <label className="up-field-label">{label}</label>}
+      {children}
+      {error && <span className="up-field-error">{error}</span>}
+    </div>
+  );
+}
+
+function TextInput({ value, onChange, placeholder, disabled }) {
+  return (
+    <input
+      className="up-input"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+      disabled={disabled}
+    />
+  );
+}
+
+function SelectInput({ value, onChange, options, placeholder, disabled }) {
+  return (
+    <select
+      className="up-input"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      disabled={disabled}
+    >
+      {placeholder && <option value="">{placeholder}</option>}
+      {options.map((o) => (
+        <option key={o.value} value={o.value}>
+          {o.label}
+        </option>
+      ))}
+    </select>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Modal shell
+// ---------------------------------------------------------------------------
+
+function Modal({ title, onClose, children }) {
+  return (
+    <div className="up-modal-backdrop" onClick={onClose}>
+      <div className="up-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="up-modal-header">
+          <h2 className="up-modal-title">{title}</h2>
+          <button className="up-modal-close" onClick={onClose}>
+            ×
+          </button>
+        </div>
+        <div className="up-modal-body">{children}</div>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Delete confirm modal
+// ---------------------------------------------------------------------------
+
+function DeleteModal({ label, onClose, onConfirm, deleting }) {
+  return (
+    <Modal title="Verwijderen bevestigen" onClose={onClose}>
+      <p className="up-delete-msg">
+        Weet je zeker dat je <strong>{label}</strong> wilt verwijderen?
+      </p>
+      <div className="up-modal-footer">
+        <button
+          className="up-btn up-btn-secondary"
+          onClick={onClose}
+          disabled={deleting}
+        >
+          Annuleren
+        </button>
+        <button
+          className="up-btn up-btn-danger"
+          onClick={onConfirm}
+          disabled={deleting}
+        >
+          {deleting ? "Verwijderen…" : "Verwijderen"}
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Worker modal — add / edit
+// ---------------------------------------------------------------------------
+
+function WorkerModal({ worker, eventId, onClose, onSaved }) {
+  const isEdit = !!worker;
+
+  const [form, setForm] = useState({
+    firstName: worker?.firstName ?? "",
+    lastName: worker?.lastName ?? "",
+    callNumber: worker?.callNumber ?? "",
+    workerType: worker?.workerType ?? "",
+    status: worker?.status ?? "AVAILABLE",
+    note: worker?.note ?? "",
+  });
+  const [errors, setErrors] = useState({});
+  const [saving, setSaving] = useState(false);
+  const [apiError, setApiError] = useState("");
+
+  const set = (field) => (val) => setForm((f) => ({ ...f, [field]: val }));
+
+  const validate = () => {
+    const e = {};
+    if (!form.firstName.trim()) e.firstName = "Verplicht";
+    if (!form.lastName.trim()) e.lastName = "Verplicht";
+    if (!form.callNumber.trim()) e.callNumber = "Verplicht";
+    if (!form.workerType.trim()) e.workerType = "Verplicht";
+    if (!form.status) e.status = "Verplicht";
+    return e;
+  };
+
+  const handleSave = async () => {
+    const e = validate();
+    if (Object.keys(e).length) {
+      setErrors(e);
+      return;
+    }
+    setSaving(true);
+    setApiError("");
+    try {
+      const payload = { ...form, eventId };
+      isEdit
+        ? await updateWorker(worker.id, payload)
+        : await createWorker(payload);
+      onSaved();
+    } catch (err) {
+      setApiError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Modal
+      title={isEdit ? "Hulpverlener bewerken" : "Hulpverlener toevoegen"}
+      onClose={onClose}
+    >
+      {apiError && <div className="up-api-error">{apiError}</div>}
+
+      <div className="up-form-grid">
+        <Field label="Voornaam" error={errors.firstName}>
+          <TextInput
+            value={form.firstName}
+            onChange={set("firstName")}
+            placeholder="Jan"
+          />
+        </Field>
+        <Field label="Achternaam" error={errors.lastName}>
+          <TextInput
+            value={form.lastName}
+            onChange={set("lastName")}
+            placeholder="de Vries"
+          />
+        </Field>
+        <Field label="Roepnummer" error={errors.callNumber}>
+          <TextInput
+            value={form.callNumber}
+            onChange={set("callNumber")}
+            placeholder="A-01"
+          />
+        </Field>
+        <Field label="Type" error={errors.workerType}>
+          <TextInput
+            value={form.workerType}
+            onChange={set("workerType")}
+            placeholder="bv. EHBO, BHV, Arts…"
+          />
+        </Field>
+        <Field label="Status" error={errors.status}>
+          <SelectInput
+            value={form.status}
+            onChange={set("status")}
+            options={STATUS_OPTIONS}
+            placeholder="Kies status…"
+          />
+        </Field>
+        <Field label="Notitie">
+          <TextInput
+            value={form.note}
+            onChange={set("note")}
+            placeholder="Optionele notitie"
+          />
+        </Field>
+      </div>
+
+      <div className="up-modal-footer">
+        <button
+          className="up-btn up-btn-secondary"
+          onClick={onClose}
+          disabled={saving}
+        >
+          Annuleren
+        </button>
+        <button
+          className="up-btn up-btn-primary"
+          onClick={handleSave}
+          disabled={saving}
+        >
+          {saving ? "Opslaan…" : isEdit ? "Opslaan" : "Toevoegen"}
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Team modal — add / edit  (checkbox worker picker)
+// ---------------------------------------------------------------------------
+
+function TeamModal({ team, eventId, onClose, onSaved }) {
+  const isEdit = !!team;
+
+  const [form, setForm] = useState({
+    teamName: team?.name ?? "",
+    callNumber: team?.callNumber ?? "",
+    status: team?.status ?? "AVAILABLE",
+    note: team?.note ?? "",
+  });
+  const [selectedWorkerIds, setSelectedWorkerIds] = useState(
+    team?.workers?.map((w) => w.id) ?? [],
+  );
+  const [availableWorkers, setAvailableWorkers] = useState([]);
+  const [errors, setErrors] = useState({});
+  const [saving, setSaving] = useState(false);
+  const [apiError, setApiError] = useState("");
+  const [loadingWorkers, setLoadingWorkers] = useState(true);
+
+  const set = (field) => (val) => setForm((f) => ({ ...f, [field]: val }));
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        setLoadingWorkers(true);
+        const res = await getWorkers({ eventId });
+        const all = Array.isArray(res?.data)
+          ? res.data
+          : Array.isArray(res)
+            ? res
+            : [];
+        const currentIds = new Set(team?.workers?.map((w) => w.id) ?? []);
+        setAvailableWorkers(
+          all.filter((w) => !w.isActive || currentIds.has(w.id)),
+        );
+      } catch {
+        setAvailableWorkers([]);
+      } finally {
+        setLoadingWorkers(false);
+      }
+    };
+    load();
+  }, [eventId, team]);
+
+  const toggleWorker = (id) =>
+    setSelectedWorkerIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
+
+  const validate = () => {
+    const e = {};
+    if (!form.teamName.trim()) e.teamName = "Verplicht";
+    if (!form.status) e.status = "Verplicht";
+    if (selectedWorkerIds.length < 1)
+      e.workers = "Selecteer minimaal 1 hulpverlener";
+    return e;
+  };
+
+  const handleSave = async () => {
+    const e = validate();
+    if (Object.keys(e).length) {
+      setErrors(e);
+      return;
+    }
+    setSaving(true);
+    setApiError("");
+    try {
+      const payload = { ...form, workerIds: selectedWorkerIds, eventId };
+      isEdit ? await updateUnit(team.id, payload) : await createUnit(payload);
+      onSaved();
+    } catch (err) {
+      setApiError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Modal title={isEdit ? "Team bewerken" : "Team aanmaken"} onClose={onClose}>
+      {apiError && <div className="up-api-error">{apiError}</div>}
+
+      <div className="up-form-grid">
+        <Field label="Teamnaam" error={errors.teamName}>
+          <TextInput
+            value={form.teamName}
+            onChange={set("teamName")}
+            placeholder="Team Alpha"
+          />
+        </Field>
+        <Field label="Roepnummer">
+          <TextInput
+            value={form.callNumber}
+            onChange={set("callNumber")}
+            placeholder="T-01"
+          />
+        </Field>
+        <Field label="Status" error={errors.status}>
+          <SelectInput
+            value={form.status}
+            onChange={set("status")}
+            options={STATUS_OPTIONS}
+            placeholder="Kies status…"
+          />
+        </Field>
+        <Field label="Notitie">
+          <TextInput
+            value={form.note}
+            onChange={set("note")}
+            placeholder="Optionele notitie"
+          />
+        </Field>
+      </div>
+
+      <div className="up-worker-picker">
+        <div className="up-worker-picker-header">
+          <span className="up-worker-picker-title">Hulpverleners</span>
+          <span className="up-worker-picker-count">
+            {selectedWorkerIds.length} geselecteerd
+          </span>
+        </div>
+        {errors.workers && (
+          <div className="up-field-error up-field-error--standalone">
+            {errors.workers}
+          </div>
+        )}
+        {loadingWorkers ? (
+          <div className="up-worker-picker-loading">Laden…</div>
+        ) : availableWorkers.length === 0 ? (
+          <div className="up-worker-picker-empty">
+            Geen beschikbare hulpverleners. Voeg eerst hulpverleners toe op het
+            tabblad Hulpverleners.
+          </div>
+        ) : (
+          <div className="up-worker-picker-list">
+            {availableWorkers.map((w) => {
+              const checked = selectedWorkerIds.includes(w.id);
+              return (
+                <label
+                  key={w.id}
+                  className={`up-worker-option ${checked ? "up-worker-option--checked" : ""}`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={() => toggleWorker(w.id)}
+                  />
+                  <span className="up-worker-option-name">
+                    {w.firstName} {w.lastName}
+                  </span>
+                  <span className="up-worker-option-meta">
+                    {w.callNumber} · {w.workerType}
+                  </span>
+                </label>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      <div className="up-modal-footer">
+        <button
+          className="up-btn up-btn-secondary"
+          onClick={onClose}
+          disabled={saving}
+        >
+          Annuleren
+        </button>
+        <button
+          className="up-btn up-btn-primary"
+          onClick={handleSave}
+          disabled={saving}
+        >
+          {saving ? "Opslaan…" : isEdit ? "Opslaan" : "Aanmaken"}
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Workers tab
+// Two sections: "Geen Team" (unassigned) and "In Team" (assigned)
+// ---------------------------------------------------------------------------
+
+const WORKER_HEADERS_BASE = [
+  "Naam",
+  "Roepnummer",
+  "Type",
+  "Status",
+  "Notitie",
+  "",
+];
+const WORKER_HEADERS_TEAM = [
+  "Naam",
+  "Roepnummer",
+  "Type",
+  "Status",
+  "Team",
+  "Notitie",
+  "",
+];
+
+function WorkersTab({ eventId }) {
+  const [workers, setWorkers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [showAdd, setShowAdd] = useState(false);
+  const [editTarget, setEditTarget] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const fetchWorkers = useCallback(async () => {
+    try {
+      setError("");
+      setLoading(true);
+      const res = await getWorkers({ eventId });
+      const list = Array.isArray(res?.data)
+        ? res.data
+        : Array.isArray(res)
+          ? res
+          : [];
+      setWorkers(list);
+    } catch (err) {
+      setError("Fout bij ophalen hulpverleners: " + err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [eventId]);
+
+  useEffect(() => {
+    fetchWorkers();
+  }, [fetchWorkers]);
+
+  const handleDeleteConfirm = async () => {
+    setDeleting(true);
+    try {
+      await deleteWorker(deleteTarget.id);
+      setDeleteTarget(null);
+      fetchWorkers();
+    } catch (err) {
+      setError("Fout bij verwijderen: " + err.message);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const actionCells = (w) => (
+    <>
+      <button
+        className="up-btn-icon"
+        title="Bewerken"
+        onClick={() => setEditTarget(w)}
+      >
+        ✏️
+      </button>
+      <button
+        className="up-btn-icon up-btn-icon--danger"
+        title="Verwijderen"
+        onClick={() => setDeleteTarget(w)}
+      >
+        🗑️
+      </button>
+    </>
+  );
+
+  const unassigned = workers.filter((w) => !w.teamId);
+  const assigned = workers.filter((w) => !!w.teamId);
+
+  const unassignedRows = unassigned.map((w) => (
+    <tr key={w.id}>
+      <td className="up-td-name">
+        {w.firstName} {w.lastName}
+      </td>
+      <td>
+        <span className={`unit-label ${getStatusLabelClass(w.status)}`}>
+          {w.callNumber}
+        </span>
+      </td>
+      <td>{w.workerType}</td>
+      <td>
+        <span
+          className={`up-status-pill up-status-pill--${w.status?.toLowerCase()}`}
+        >
+          {statusLabel(w.status)}
+        </span>
+      </td>
+      <td className="up-td-note">{w.note || "—"}</td>
+      <td className="up-td-actions">{actionCells(w)}</td>
+    </tr>
+  ));
+
+  const assignedRows = assigned.map((w) => (
+    <tr key={w.id}>
+      <td className="up-td-name">
+        {w.firstName} {w.lastName}
+      </td>
+      <td>
+        <span className={`unit-label ${getStatusLabelClass(w.status)}`}>
+          {w.callNumber}
+        </span>
+      </td>
+      <td>{w.workerType}</td>
+      <td>
+        <span
+          className={`up-status-pill up-status-pill--${w.status?.toLowerCase()}`}
+        >
+          {statusLabel(w.status)}
+        </span>
+      </td>
+      <td>
+        <span className="up-team-badge">{w.teamName}</span>
+      </td>
+      <td className="up-td-note">{w.note || "—"}</td>
+      <td className="up-td-actions">{actionCells(w)}</td>
+    </tr>
+  ));
+
+  return (
+    <div className="up-tab-content">
+      <div className="up-tab-toolbar">
+        <span className="up-tab-count">{workers.length} hulpverlener(s)</span>
+        <button
+          className="up-btn up-btn-primary"
+          onClick={() => setShowAdd(true)}
+        >
+          + Toevoegen
+        </button>
+      </div>
+
+      {error && <div className="up-api-error">{error}</div>}
+
+      {loading ? (
+        <div className="up-loading">Laden…</div>
+      ) : workers.length === 0 ? (
+        <div className="up-empty">
+          Nog geen hulpverleners. Klik op "+ Toevoegen" om te beginnen.
+        </div>
+      ) : (
+        <>
+          <SectionTable
+            title="Geen Team"
+            accent="#6b7280"
+            headers={WORKER_HEADERS_BASE}
+            rows={unassignedRows}
+            emptyMsg="Alle hulpverleners zijn ingedeeld in een team"
+          />
+          <SectionTable
+            title="In Team"
+            accent="#1e1b4b"
+            headers={WORKER_HEADERS_TEAM}
+            rows={assignedRows}
+            emptyMsg="Nog geen hulpverleners ingedeeld in een team"
+          />
+        </>
+      )}
+
+      {showAdd && (
+        <WorkerModal
+          eventId={eventId}
+          onClose={() => setShowAdd(false)}
+          onSaved={() => {
+            setShowAdd(false);
+            fetchWorkers();
+          }}
+        />
+      )}
+      {editTarget && (
+        <WorkerModal
+          worker={editTarget}
+          eventId={eventId}
+          onClose={() => setEditTarget(null)}
+          onSaved={() => {
+            setEditTarget(null);
+            fetchWorkers();
+          }}
+        />
+      )}
+      {deleteTarget && (
+        <DeleteModal
+          label={`${deleteTarget.firstName} ${deleteTarget.lastName}`}
+          deleting={deleting}
+          onClose={() => setDeleteTarget(null)}
+          onConfirm={handleDeleteConfirm}
+        />
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Teams tab
+// Three sections:
+//   "Beschikbaar"      — AVAILABLE only
+//   "Wacht"            — WAIT only
+//   "Niet Beschikbaar" — NOTIFICATION + UNAVAILABLE + anything else
+// ---------------------------------------------------------------------------
+
+const TEAM_HEADERS = [
+  "Teamnaam",
+  "Roepnummer",
+  "Hulpverleners",
+  "Notitie",
+  "Bijgewerkt",
+  "",
+];
+
+function TeamsTab({ eventId }) {
+  const [teams, setTeams] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [showAdd, setShowAdd] = useState(false);
+  const [editTarget, setEditTarget] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const fetchTeams = useCallback(async () => {
+    try {
+      setError("");
+      setLoading(true);
+      const res = await getUnits(eventId);
+      const list = Array.isArray(res?.data)
+        ? res.data
+        : Array.isArray(res)
+          ? res
+          : [];
+      setTeams(list);
+    } catch (err) {
+      setError("Fout bij ophalen teams: " + err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [eventId]);
+
+  useEffect(() => {
+    fetchTeams();
+  }, [fetchTeams]);
+
+  const handleEditClick = async (team) => {
+    try {
+      const res = await getUnit(team.id);
+      setEditTarget(res?.data ?? res);
+    } catch {
+      setEditTarget(team);
+    }
+  };
+
+  const handleDeleteConfirm = async () => {
+    setDeleting(true);
+    try {
+      await deleteUnit(deleteTarget.id);
+      setDeleteTarget(null);
+      fetchTeams();
+    } catch (err) {
+      setError("Fout bij verwijderen: " + err.message);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const renderTeamRow = (t) => {
+    const workerCount = t.workerCount ?? t.workers?.length ?? 0;
+    return (
+      <tr key={t.id}>
+        <td className="up-td-name">{t.name}</td>
+        <td>
+          {t.callNumber ? (
+            <span className={`unit-label ${getStatusLabelClass(t.status)}`}>
+              {t.callNumber}
+            </span>
+          ) : (
+            <span className="up-td-muted">—</span>
+          )}
+        </td>
+        <td>
+          <span className="up-team-badge">
+            {workerCount} hulpverlener{workerCount !== 1 ? "s" : ""}
+          </span>
+        </td>
+        <td className="up-td-note">{t.note || "—"}</td>
+        <td className="up-td-muted">
+          {t.updatedAt
+            ? new Date(t.updatedAt).toLocaleTimeString("nl-NL", {
+                hour: "2-digit",
+                minute: "2-digit",
+              })
+            : "—"}
+        </td>
+        <td className="up-td-actions">
+          <button
+            className="up-btn-icon"
+            title="Bewerken"
+            onClick={() => handleEditClick(t)}
+          >
+            ✏️
+          </button>
+          <button
+            className="up-btn-icon up-btn-icon--danger"
+            title="Verwijderen"
+            onClick={() => setDeleteTarget(t)}
+          >
+            🗑️
+          </button>
+        </td>
+      </tr>
+    );
+  };
+
+  const beschikbaar = teams.filter((t) => t.status === "AVAILABLE");
+  const wacht = teams.filter((t) => t.status === "WAIT");
+  const nietBeschikbaar = teams.filter(
+    (t) => t.status !== "AVAILABLE" && t.status !== "WAIT",
+  );
+
+  return (
+    <div className="up-tab-content">
+      <div className="up-tab-toolbar">
+        <span className="up-tab-count">{teams.length} team(s)</span>
+        <button
+          className="up-btn up-btn-primary"
+          onClick={() => setShowAdd(true)}
+        >
+          + Aanmaken
+        </button>
+      </div>
+
+      {error && <div className="up-api-error">{error}</div>}
+
+      {loading ? (
+        <div className="up-loading">Laden…</div>
+      ) : teams.length === 0 ? (
+        <div className="up-empty">
+          Nog geen teams. Voeg eerst hulpverleners toe, daarna kun je hier een
+          team aanmaken.
+        </div>
+      ) : (
+        <>
+          <SectionTable
+            title="Beschikbaar"
+            accent="#1e1b4b"
+            headers={TEAM_HEADERS}
+            rows={beschikbaar.map(renderTeamRow)}
+            emptyMsg="Geen beschikbare teams"
+          />
+          <SectionTable
+            title="Wacht"
+            accent="#1d6fb5"
+            headers={TEAM_HEADERS}
+            rows={wacht.map(renderTeamRow)}
+            emptyMsg="Geen teams in wacht"
+          />
+          <SectionTable
+            title="Niet Beschikbaar"
+            accent="#6b7280"
+            headers={TEAM_HEADERS}
+            rows={nietBeschikbaar.map(renderTeamRow)}
+            emptyMsg="Geen niet-beschikbare teams"
+          />
+        </>
+      )}
+
+      {showAdd && (
+        <TeamModal
+          eventId={eventId}
+          onClose={() => setShowAdd(false)}
+          onSaved={() => {
+            setShowAdd(false);
+            fetchTeams();
+          }}
+        />
+      )}
+      {editTarget && (
+        <TeamModal
+          team={editTarget}
+          eventId={eventId}
+          onClose={() => setEditTarget(null)}
+          onSaved={() => {
+            setEditTarget(null);
+            fetchTeams();
+          }}
+        />
+      )}
+      {deleteTarget && (
+        <DeleteModal
+          label={deleteTarget.name}
+          deleting={deleting}
+          onClose={() => setDeleteTarget(null)}
+          onConfirm={handleDeleteConfirm}
+        />
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Page root
+// ---------------------------------------------------------------------------
 
 export default function UnitsPage() {
   const navigate = useNavigate();
-  const [units, setUnits] = useState([]);
-  const [error, setError] = useState("");
-  const [mode, setMode] = useState("edit"); // "edit", "add" of "delete"
   const [selectedEvent, setSelectedEvent] = useState(null);
-  const [formUnit, setFormUnit] = useState({
-    callNumber: "",
-    teamName: "",
-    status: "",
-    note: "",
-  });
-
-  const resetForm = () => {
-    setFormUnit({
-      callNumber: "",
-      teamName: "",
-      status: "",
-      note: "",
-    });
-    setError("");
-  };
-
-  const fetchUnits = useCallback(async () => {
-    try {
-      const eventId = selectedEvent?.id;
-      const data = await getUnits(eventId);
-      const mapped = (data || []).map(mapUnitFromApi);
-      setUnits(mapped);
-    } catch (err) {
-      setError("Fout bij het ophalen van eenheden: " + err.message);
-    }
-  }, [selectedEvent]);
+  const [activeTab, setActiveTab] = useState("workers");
 
   useEffect(() => {
     const stored = localStorage.getItem("selected_event");
@@ -78,267 +906,36 @@ export default function UnitsPage() {
       return;
     }
     try {
-      const parsed = JSON.parse(stored);
-      setSelectedEvent(parsed);
+      setSelectedEvent(JSON.parse(stored));
     } catch {
       navigate("/events");
-      return;
     }
   }, [navigate]);
 
-  useEffect(() => {
-    if (selectedEvent) {
-      fetchUnits();
-    }
-  }, [selectedEvent, fetchUnits]);
-
-  const handleAddUnit = async () => {
-    // Add mode validatie: alles verplicht behalve note
-    if (!formUnit.callNumber || !formUnit.teamName || !formUnit.status) {
-      setError("Roepnummer, teamnaam en status zijn verplicht");
-      return;
-    }
-
-    // Controleer formaat roepnummer
-    if (!isValidCallNumber(formUnit.callNumber)) {
-      setError("Roepnummer moet het formaat xx-xx hebben");
-      return;
-    }
-
-    try {
-      await createUnit({
-        ...formUnit,
-        aidTeamName: formUnit.teamName,
-        description: formUnit.note,
-        eventId: selectedEvent?.id,
-      });
-      await fetchUnits();
-      resetForm();
-      setMode("edit");
-    } catch (err) {
-      setError("Fout bij het toevoegen van eenheid: " + err.message);
-    }
-  };
-
-  const handleEditUnit = async () => {
-    // Edit mode validatie
-    if (!formUnit.callNumber) {
-      setError("Selecteer eerst een roepnummer");
-      return;
-    }
-
-    const found = units.find((u) => u.callNumber === formUnit.callNumber);
-    if (!found) {
-      setError("Eenheid niet gevonden");
-      return;
-    }
-
-    // Controleer of er minstens één wijziging is
-    if (!formUnit.status && !formUnit.note) {
-      setError("Voer minimaal één wijziging in");
-      return;
-    }
-
-    try {
-      await updateUnit(found.id, {
-        aidTeamName: found.teamName,
-        status: formUnit.status || found.status,
-        description: formUnit.note || found.note,
-        eventId: selectedEvent?.id,
-      });
-      await fetchUnits();
-      resetForm();
-    } catch (err) {
-      setError("Fout bij het bijwerken van eenheid: " + err.message);
-    }
-  };
-
-  const handleDeleteUnit = async () => {
-    // Delete mode validatie
-    if (!formUnit.callNumber) {
-      setError("Selecteer eerst een roepnummer om te verwijderen");
-      return;
-    }
-
-    const found = units.find((u) => u.callNumber === formUnit.callNumber);
-    if (!found) {
-      setError("Eenheid niet gevonden");
-      return;
-    }
-
-    if (
-      !window.confirm(
-        `Weet je zeker dat je eenheid ${found.callNumber} wilt verwijderen?`,
-      )
-    )
-      return;
-
-    try {
-      await deleteUnit(found.id);
-      await fetchUnits();
-      resetForm();
-    } catch (err) {
-      setError("Fout bij het verwijderen van eenheid: " + err.message);
-    }
-  };
-
-  const onSubmit = async () => {
-    if (mode === "add") await handleAddUnit();
-    else if (mode === "edit") await handleEditUnit();
-    else if (mode === "delete") await handleDeleteUnit();
-  };
-
-  const groups = {
-    Wachtrij: units.filter((u) => STATUSES[u.status]?.group === "Wachtrij"),
-    Aangemeld: units.filter((u) => STATUSES[u.status]?.group === "Aangemeld"),
-    Afgemeld: units.filter((u) => STATUSES[u.status]?.group === "Afgemeld"),
-  };
+  if (!selectedEvent) return null;
 
   return (
     <div className="units-wrapper">
-      <div className="units-actionbar-wrapper">
-        {error && <div className="units-error">{error}</div>}
-
-        <div className="units-actionbar">
-          {mode === "edit" || mode === "delete" ? (
-            <select
-              value={formUnit.callNumber}
-              onChange={(e) =>
-                setFormUnit({ ...formUnit, callNumber: e.target.value })
-              }
-            >
-              <option value="">
-                {mode === "delete"
-                  ? "Kies te verwijderen roepnummer"
-                  : "Kies roepnummer"}
-              </option>
-              {[...new Set(units.map((u) => u.callNumber))].map((cn) => (
-                <option key={cn} value={cn}>
-                  {cn}
-                </option>
-              ))}
-            </select>
-          ) : (
-            <input
-              placeholder="Roepnummer"
-              value={formUnit.callNumber}
-              onChange={(e) =>
-                setFormUnit({ ...formUnit, callNumber: e.target.value })
-              }
-            />
-          )}
-
-          {mode === "add" && (
-            <input
-              placeholder="Teamnaam"
-              value={formUnit.teamName}
-              onChange={(e) =>
-                setFormUnit({ ...formUnit, teamName: e.target.value })
-              }
-            />
-          )}
-
-          {mode !== "delete" && (
-            <>
-              <select
-                value={formUnit.status}
-                onChange={(e) =>
-                  setFormUnit({ ...formUnit, status: e.target.value })
-                }
-              >
-                <option value="">Status</option>
-                {Object.entries(STATUSES).map(([value, { label }]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-
-              <input
-                placeholder="Notitie"
-                value={formUnit.note}
-                onChange={(e) =>
-                  setFormUnit({ ...formUnit, note: e.target.value })
-                }
-                className="units-input-note"
-              />
-            </>
-          )}
-
-          <button className="units-btn-update" onClick={onSubmit}>
-            {mode === "add"
-              ? "Toevoegen"
-              : mode === "delete"
-                ? "Verwijderen"
-                : "Bijwerken"}
-          </button>
-        </div>
-
-        <div className="units-mode-toggle">
-          <span
-            className={mode === "add" ? "active" : ""}
-            onClick={() => {
-              setMode("add");
-              resetForm();
-            }}
-          >
-            Toevoegen
-          </span>{" "}
-          |{" "}
-          <span
-            className={mode === "edit" ? "active" : ""}
-            onClick={() => {
-              setMode("edit");
-              resetForm();
-            }}
-          >
-            Bewerken
-          </span>{" "}
-          |{" "}
-          <span
-            className={mode === "delete" ? "active" : ""}
-            onClick={() => {
-              setMode("delete");
-              resetForm();
-            }}
-          >
-            Verwijderen
-          </span>
-        </div>
+      <div className="up-tabs">
+        <button
+          className={`up-tab ${activeTab === "workers" ? "up-tab--active" : ""}`}
+          onClick={() => setActiveTab("workers")}
+        >
+          Hulpverleners
+        </button>
+        <button
+          className={`up-tab ${activeTab === "teams" ? "up-tab--active" : ""}`}
+          onClick={() => setActiveTab("teams")}
+        >
+          Teams
+        </button>
       </div>
 
-      {/* 3 SECTIES */}
-      {Object.entries(groups).map(([groupName, list]) => (
-        <section key={groupName} className="units-section">
-          <div className="units-section-header">{groupName}</div>
-
-          <div className="units-unit-list">
-            {list.length === 0 && (
-              <div className="units-empty">Geen eenheden</div>
-            )}
-
-            {list.map((u) => (
-              <div key={u.id} className="unit-card">
-                <div className={`unit-label ${getStatusLabelClass(u.status)}`}>
-                  {u.callNumber}
-                </div>
-
-                <div className="unit-team-name">{u.teamName}</div>
-
-                {u.updatedAt && (
-                  <div className="unit-updated">
-                    {STATUSES[u.status]?.label || u.status} –{" "}
-                    {new Date(u.updatedAt).toLocaleTimeString("nl-NL", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </section>
-      ))}
+      {activeTab === "workers" ? (
+        <WorkersTab eventId={selectedEvent.id} />
+      ) : (
+        <TeamsTab eventId={selectedEvent.id} />
+      )}
     </div>
   );
 }

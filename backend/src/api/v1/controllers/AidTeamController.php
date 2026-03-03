@@ -124,12 +124,11 @@ class AidTeamController
         if (
             !isset($data["workerIds"]) ||
             !is_array($data["workerIds"]) ||
-            count($data["workerIds"]) < 2
+            count($data["workerIds"]) < 1
         ) {
             http_response_code(400);
             echo json_encode([
-                "error" =>
-                    "workerIds must be an array of at least 2 worker IDs",
+                "error" => "workerIds must be an array of at least 1 worker ID",
             ]);
             return;
         }
@@ -253,12 +252,12 @@ class AidTeamController
             if (isset($data["workerIds"])) {
                 if (
                     !is_array($data["workerIds"]) ||
-                    count($data["workerIds"]) < 2
+                    count($data["workerIds"]) < 1
                 ) {
                     http_response_code(400);
                     echo json_encode([
                         "error" =>
-                            "workerIds must be an array of at least 2 worker IDs",
+                            "workerIds must be an array of at least 1 worker ID",
                     ]);
                     return;
                 }
