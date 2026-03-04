@@ -155,40 +155,31 @@ export default function Dashboard({ reports, reloadData, setReports }) {
                 justifyContent: "space-between",
                 alignItems: "center",
                 marginBottom: 12,
+                paddingRight: 8,
               }}
             >
-              <div className="subtabs">
-                {reportSubTabs.map((t) => (
-                  <button
-                    key={t.value}
-                    className={
-                      reportsTab === t.value ? "subtab active-subtab" : "subtab"
-                    }
-                    onClick={() => setReportsTab(t.value)}
-                  >
-                    {t.label}
-                  </button>
-                ))}
-              </div>
-              <button
-                className="btn-small"
-                style={{
-                  background: "#22c55e",
-                  color: "white",
-                  fontWeight: 500,
-                }}
-                onClick={() => navigate("/melding")}
-              >
-                + Nieuwe Melding
-              </button>
-            </div>
-
             <FilterControls
               statusFilter={statusFilter}
               priorityFilter={priorityFilter}
               onStatusChange={setStatusFilter}
               onPriorityChange={setPriorityFilter}
             />
+              <button
+                className="btn-small"
+                style={{
+                  background: "#14a84b",
+                  color: "white",
+                  fontWeight: 600,
+                  border: "none",
+                  borderRadius: 6,
+                  padding: "4px 10px",
+                  cursor: "pointer",
+                }}
+                onClick={() => navigate("/melding")}
+              >
+                Nieuwe Melding
+              </button>
+            </div>
 
             <ReportsTableContainer
               reportsTab={reportsTab}
