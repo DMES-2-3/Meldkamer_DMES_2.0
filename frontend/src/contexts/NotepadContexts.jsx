@@ -1,25 +1,37 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 
-const NotepadContext = createContext();
+const NotepadContext = createContext(null);
 
 export const NotepadProvider = ({ children }) => {
-  const [notes, setNotesState] = useState("");
+  const [activeKey, setActiveKey] = useState(null);
+  const [notes, setNotes] = useState("");
 
+  // Load notes whenever the active key changes
   useEffect(() => {
-    const stored = localStorage.getItem("shared_notes");
-    if (stored) setNotesState(stored);
-  }, []);
+    if (!activeKey) {
+      setNotes("");
+      return;
+    }
+    const stored = localStorage.getItem(activeKey);
+    setNotes(stored ?? "");
+  }, [activeKey]);
 
-  const setNotes = (text) => {
-    setNotesState(text);
-    localStorage.setItem("shared_notes", text);
-  };
+  // Persist notes whenever notes change (for current active key)
+  useEffect(() => {
+    if (!activeKey) return;
+    localStorage.setItem(activeKey, notes);
+  }, [activeKey, notes]);
 
-  return (
-    <NotepadContext.Provider value={{ notes, setNotes }}>
-      {children}
-    </NotepadContext.Provider>
+  const value = useMemo(
+    () => ({ notes, setNotes, activeKey, setActiveKey }),
+    [notes, activeKey]
   );
+
+  return <NotepadContext.Provider value={value}>{children}</NotepadContext.Provider>;
 };
 
-export const useNotepad = () => useContext(NotepadContext);
+export const useNotepad = () => {
+  const ctx = useContext(NotepadContext);
+  if (!ctx) throw new Error("useNotepad must be used within a NotepadProvider");
+  return ctx;
+};
