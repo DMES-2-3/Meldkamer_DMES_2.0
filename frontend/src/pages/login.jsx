@@ -2,28 +2,23 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "../login.css";
 import logo from "../assets/logo/DMES_Vierkant_Logo.png";
+import { useAuth } from "../contexts/AuthContext";
 
 function Login() {
   const navigate = useNavigate();
+  const { user, loading, refreshSession } = useAuth();
   const [form, setForm] = useState({ email: "", pass: "" });
   const [errors, setErrors] = useState([]);
   const [msg, setMsg] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [showPass, setShowPass] = useState(false);
 
+  // If already logged in, skip straight to the app
   useEffect(() => {
-    const checkSession = async () => {
-      try {
-        const res = await fetch(
-          "http://localhost:8080/src/api/v1/user/session",
-          { credentials: "include" },
-        );
-        const data = await res.json();
-        if (data.success) navigate("/evenementen");
-      } catch {}
-    };
-    checkSession();
-  }, [navigate]);
+    if (!loading && user) {
+      navigate("/evenementen", { replace: true });
+    }
+  }, [user, loading, navigate]);
 
   const handleInputChange = (e) => {
     setErrors([]);
@@ -31,7 +26,7 @@ function Login() {
   };
 
   const loginSubmit = async () => {
-    setLoading(true);
+    setSubmitting(true);
     setErrors([]);
     setMsg("");
 
@@ -51,14 +46,19 @@ function Login() {
         ]);
       } else {
         setMsg(data.message || "Login successful!");
-        setTimeout(() => navigate("/evenementen"), 500);
+        // Refresh the shared auth context so the rest of the app knows who is logged in
+        await refreshSession();
+        navigate("/evenementen", { replace: true });
       }
     } catch (err) {
       setErrors([`Network error: ${err.message}`]);
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
+
+  // While we're still checking the existing session, show nothing to avoid flicker
+  if (loading) return null;
 
   return (
     <div className="login-page">
@@ -84,7 +84,7 @@ function Login() {
             name="email"
             value={form.email}
             onChange={handleInputChange}
-            disabled={loading}
+            disabled={submitting}
           />
           <label>Wachtwoord</label>
           <input
@@ -92,24 +92,21 @@ function Login() {
             name="pass"
             value={form.pass}
             onChange={handleInputChange}
-            disabled={loading}
+            disabled={submitting}
           />
           <label className="show-pass">
             <input
               type="checkbox"
               checked={showPass}
               onChange={() => setShowPass(!showPass)}
-              disabled={loading}
+              disabled={submitting}
             />
             Toon wachtwoord
           </label>
-          <button className="button" type="submit" disabled={loading}>
-            {loading ? "Inloggen..." : "Inloggen"}
+          <button className="button" type="submit" disabled={submitting}>
+            {submitting ? "Inloggen..." : "Inloggen"}
           </button>
         </form>
-        <p className="clickable" onClick={() => navigate("/register")}>
-          Geen account? Registreren
-        </p>
       </div>
     </div>
   );

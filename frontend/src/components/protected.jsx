@@ -1,33 +1,14 @@
-import { useEffect, useState } from "react";
-import { Navigate, Outlet } from "react-router-dom";
+import { Navigate } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
 
-export default function ProtectedRoute({ Component }) {
-  const [loading, setLoading] = useState(true);
-  const [allowed, setAllowed] = useState(false);
-
-  useEffect(() => {
-    const verifySession = async () => {
-      try {
-        const res = await fetch(
-          "http://localhost:8080/src/api/v1/user/session",
-          { credentials: "include" },
-        );
-        const data = await res.json();
-        setAllowed(data.success === true);
-      } catch {
-        setAllowed(false);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    verifySession();
-  }, []);
+export default function Protected({ Component, adminOnly = false }) {
+  const { user, loading } = useAuth();
 
   if (loading) return <p>Sessie checken...</p>;
 
-  if (!allowed) return <Navigate to="/login" replace />;
+  if (!user) return <Navigate to="/login" replace />;
 
-  // If Component prop is provided, render it; otherwise use Outlet for nested routes
-  return Component ? <Component /> : <Outlet />;
+  if (adminOnly && !user.isAdmin) return <Navigate to="/evenementen" replace />;
+
+  return <Component />;
 }
