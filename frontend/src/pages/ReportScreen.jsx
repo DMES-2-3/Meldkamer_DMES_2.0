@@ -54,7 +54,30 @@ export default function ReportScreen({ reloadData }) {
   const [aidWorkers, setAidWorkers] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [formData, setFormData] = useState(DEFAULT_FORM_STATE);
-  const { notes, setNotes } = useNotepad();
+  const { notes, setNotes, setActiveKey } = useNotepad();
+
+  const reportId =
+    formData.id ??
+    initialReport?.Report?.id ??
+    initialReport?.id ??
+    null;
+
+  const draftKey = React.useMemo(() => {
+    let k = sessionStorage.getItem("draft_report_notepad_key");
+    if (!k) {
+      k = `notepad:report:draft:${Date.now()}-${Math.random().toString(16).slice(2)}`;
+      sessionStorage.setItem("draft_report_notepad_key", k);
+    }
+    return k;
+  }, []);
+
+  useEffect(() => {
+    const key = reportId ? `notepad:report:${reportId}` : draftKey;
+    setActiveKey(key);
+
+    return () => setActiveKey(null);
+  }, [reportId, draftKey, setActiveKey]);
+    
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
@@ -228,6 +251,25 @@ export default function ReportScreen({ reloadData }) {
 
       const savedResult = await saveReport(formData);
 
+      const newReportId =
+        savedResult?.data?.id ??
+        savedResult?.data?.notificationId ??
+        savedResult?.id ??
+        savedResult?.notificationId ??
+        formData.id;
+
+      if (newReportId) {
+        const finalKey = `notepad:report:${newReportId}`;
+
+        const draftStored = localStorage.getItem(draftKey);
+        if (draftStored != null) {
+          localStorage.setItem(finalKey, draftStored);
+          localStorage.removeItem(draftKey);
+        }
+
+        sessionStorage.removeItem("draft_report_notepad_key");
+      }
+
       // If coming from PDF map, attach the new report ID to the pending marker
       if (fromPdfMap) {
         try {
@@ -319,6 +361,7 @@ export default function ReportScreen({ reloadData }) {
               type="time"
               className="time-input"
               value={formData.Time}
+              onChange={(e) => handleChange("Time", e.target.value)}
             />
             <div className="input-group">
               <label>Melder</label>
