@@ -8,7 +8,7 @@ use App\Entity\Gender;
 use App\Entity\Notification;
 use App\Entity\Priority;
 use App\Entity\SITRAP;
-use App\Entity\Status;
+use App\Entity\NotificationStatus;
 use App\Entity\AidWorker;
 use DoctrineProxies\__CG__\App\Entity\Event;
 use TypeError;
@@ -109,7 +109,9 @@ class NotificationController extends BaseController implements IController
                 );
             }
             if (isset($input["Status"])) {
-                $notification->setStatus(Status::from($input["Status"]));
+                $notification->setStatus(
+                    NotificationStatus::from($input["Status"]),
+                );
             }
 
             $notification->setAmbulanceNeeded(
@@ -239,7 +241,9 @@ class NotificationController extends BaseController implements IController
         }
 
         if (isset($input["Status"])) {
-            $notification->setStatus(Status::from($input["Status"]));
+            $notification->setStatus(
+                NotificationStatus::from($input["Status"]),
+            );
         }
 
         if (isset($input["Ambulance"])) {

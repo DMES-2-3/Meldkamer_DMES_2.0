@@ -508,7 +508,7 @@ export default function ReportScreen({ reloadData }) {
               <h3>AVPU</h3>
             </div>
             <div className="checkbox-list">
-              {["Alert", "Spraakzaam", "Onbekwaam"].map((field) => (
+              {["Alert", "Verbal", "Pain", "Unresponsive"].map((field) => (
                 <label key={field}>
                   <input
                     type="checkbox"

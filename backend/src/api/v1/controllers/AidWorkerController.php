@@ -1,8 +1,9 @@
 <?php
 namespace App\Api\Controllers;
 
-use App\Entity\AidTeam;
 use App\Entity\AidWorker;
+use App\Entity\AidTeam;
+use App\Entity\Event;
 use App\Entity\Status;
 use TypeError;
 use ValueError;
@@ -20,15 +21,26 @@ class AidWorkerController extends BaseController implements IController
         $this->repo = $this->entityManager->getRepository(AidWorker::class);
         header("Content-Type: application/json");
         header("Access-Control-Allow-Origin: *");
+        header(
+            "Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS",
+        );
+        header("Access-Control-Allow-Headers: Content-Type, Authorization");
     }
 
     public function handleRequest($method, $id = null)
     {
+        if ($method === "OPTIONS") {
+            http_response_code(200);
+            exit();
+        }
+
         switch ($method) {
             case "GET":
                 return $this->handleGet($id);
             case "POST":
                 return $this->handlePost();
+            case "PUT":
+                return $this->handlePut($id);
             case "PATCH":
                 return $this->handlePatch($id);
             case "DELETE":
@@ -38,56 +50,53 @@ class AidWorkerController extends BaseController implements IController
         }
     }
 
+    // -------------------------------------------------------------------------
+    // GET /aidworker          — all workers (optionally filtered by ?eventId=X)
+    // GET /aidworker?available=1&eventId=X — only unassigned workers for event
+    // GET /aidworker/:id      — single worker
+    // -------------------------------------------------------------------------
     private function handleGet($id = null)
     {
-        if ($id === null) {
-            $response = $this->repo->findAll();
-            $this->sendResponse(
-                array_map(fn($r) => $this->workerToArray($r), $response),
-            );
-        } else {
-            $aidWorker = $this->repo->find($id);
-            if (!$this->validateEntity($aidWorker, "AidWorker", $id)) {
+        if ($id !== null) {
+            $worker = $this->repo->find($id);
+            if (!$this->validateEntity($worker, "AidWorker", $id)) {
                 return;
             }
-            $this->sendResponse($this->workerToArray($aidWorker));
+            $this->sendResponse($worker->toArray());
+            return;
         }
+
+        $eventId = $_GET["eventId"] ?? null;
+        $available = isset($_GET["available"]) && $_GET["available"] !== "0";
+
+        $qb = $this->entityManager
+            ->createQueryBuilder()
+            ->select("w")
+            ->from(AidWorker::class, "w");
+
+        if ($eventId !== null) {
+            $qb->andWhere("w.event = :eventId")->setParameter(
+                "eventId",
+                (int) $eventId,
+            );
+        }
+
+        // ?available=1 returns only workers not yet assigned to a team
+        if ($available) {
+            $qb->andWhere("w.team IS NULL");
+        }
+
+        $workers = $qb->getQuery()->getResult();
+
+        $this->sendResponse(array_map(fn($w) => $w->toArray(), $workers));
     }
 
-    private function workerToArray($worker)
-    {
-        $status = $worker->getStatus();
-        $statusValue = $status ? $status->value : "AVAILABLE";
-
-        // Map status to color
-        $colorMap = [
-            "AVAILABLE" => "#10B981",
-            "BUSY" => "#F59E0B",
-            "UNAVAILABLE" => "#EF4444",
-            "OFF_DUTY" => "#6B7280",
-        ];
-
-        return [
-            "id" => $worker->getAidWorkerId(),
-            "name" => trim(
-                $worker->getFirstname() . " " . $worker->getLastname(),
-            ),
-            "firstName" => $worker->getFirstname(),
-            "lastName" => $worker->getLastname(),
-            "role" => $worker->getAidWorkerType() ?? "N/A",
-            "callNumber" => $worker->getCallSign() ?? "",
-            "note" => $worker->getDescription() ?? "",
-            "status" => $statusValue,
-            "color" => $colorMap[$statusValue] ?? "#10B981",
-            "teamName" => $worker->getTeam()
-                ? $worker->getTeam()->getAidTeamName()
-                : "N/A",
-            "teamId" => $worker->getTeam()
-                ? $worker->getTeam()->getAidTeamId()
-                : null,
-        ];
-    }
-
+    // -------------------------------------------------------------------------
+    // POST /aidworker
+    // Required: firstName, lastName, callNumber, workerType, eventId
+    // Optional: status, note
+    // Workers are created WITHOUT a team — they become available for selection.
+    // -------------------------------------------------------------------------
     private function handlePost()
     {
         $input = $this->getJsonInput();
@@ -95,35 +104,54 @@ class AidWorkerController extends BaseController implements IController
             return;
         }
 
-        $team = $this->entityManager
-            ->getRepository(AidTeam::class)
-            ->findOneBy(["aidTeamName" => $input["teamName"] ?? null]);
+        // Validate required fields
+        $required = [
+            "firstName",
+            "lastName",
+            "callNumber",
+            "workerType",
+            "eventId",
+        ];
+        foreach ($required as $field) {
+            if (empty($input[$field])) {
+                $this->sendError("Missing required field: {$field}", 400);
+                return;
+            }
+        }
 
-        if (!$team) {
+        $event = $this->entityManager
+            ->getRepository(Event::class)
+            ->find($input["eventId"]);
+        if (!$event) {
             $this->sendError(
-                "Team " . ($input["teamName"] ?? "") . " does not exist",
-                400,
+                "Event with id {$input["eventId"]} not found",
+                404,
             );
             return;
         }
 
         try {
-            $aidWorker = new AidWorker();
-            $aidWorker->setAidWorkerType($input["workerType"] ?? "");
-            $aidWorker->setFirstname($input["firstName"] ?? "");
-            $aidWorker->setLastname($input["lastName"] ?? "");
-            $aidWorker->setCallSign($input["callNumber"] ?? "");
-            $aidWorker->setDescription($input["note"] ?? "");
-            if (isset($input["status"])) {
-                $aidWorker->setStatus(Status::from($input["status"]));
-            }
-            $aidWorker->setTeam($team);
-            $aidWorker->setIsActive(true);
+            $worker = new AidWorker();
+            $worker->setFirstname($input["firstName"]);
+            $worker->setLastname($input["lastName"]);
+            $worker->setCallSign($input["callNumber"]);
+            $worker->setAidWorkerType($input["workerType"]);
+            $worker->setEvent($event);
+            $worker->setDescription($input["note"] ?? null);
+            $worker->setIsActive(false); // not active until assigned to a team
 
-            $this->entityManager->persist($aidWorker);
+            $statusEnum =
+                Status::tryFrom($input["status"] ?? "AVAILABLE") ??
+                Status::AVAILABLE;
+            $worker->setStatus($statusEnum);
+
+            // Team is intentionally NOT set here — workers start unassigned
+            // setTeam() on AidTeam will call worker->setTeam() which sets isActive
+
+            $this->entityManager->persist($worker);
             $this->entityManager->flush();
 
-            $this->sendResponse($this->workerToArray($aidWorker), 200);
+            $this->sendResponse($worker->toArray(), 201);
         } catch (ValueError | TypeError $e) {
             $this->sendError(
                 "Invalid or missing argument(s): " . $e->getMessage(),
@@ -132,15 +160,18 @@ class AidWorkerController extends BaseController implements IController
         }
     }
 
-    private function handlePatch($id)
+    // -------------------------------------------------------------------------
+    // PUT /aidworker/:id  — full update (all fields)
+    // -------------------------------------------------------------------------
+    private function handlePut($id)
     {
         if ($id === null) {
-            $this->sendError("ID is required for PATCH requests", 400);
+            $this->sendError("ID is required for PUT requests", 400);
             return;
         }
 
-        $aidWorker = $this->repo->find($id);
-        if (!$this->validateEntity($aidWorker, "AidWorker", $id)) {
+        $worker = $this->repo->find($id);
+        if (!$this->validateEntity($worker, "AidWorker", $id)) {
             return;
         }
 
@@ -150,56 +181,73 @@ class AidWorkerController extends BaseController implements IController
         }
 
         try {
-            $inputFields = [
-                "workerType",
-                "firstName",
-                "lastName",
-                "callNumber",
-                "note",
-                "status",
-                "teamName",
-            ];
-            foreach ($inputFields as $field) {
-                if (!isset($input[$field])) {
-                    continue;
+            $worker->setFirstname(
+                $input["firstName"] ?? $worker->getFirstname(),
+            );
+            $worker->setLastname($input["lastName"] ?? $worker->getLastname());
+            $worker->setCallSign(
+                $input["callNumber"] ?? $worker->getCallSign(),
+            );
+            $worker->setAidWorkerType(
+                $input["workerType"] ?? $worker->getAidWorkerType(),
+            );
+            $worker->setDescription(
+                $input["note"] ?? $worker->getDescription(),
+            );
+
+            if (isset($input["status"])) {
+                $statusEnum = Status::tryFrom($input["status"]);
+                if ($statusEnum === null) {
+                    $this->sendError(
+                        "Invalid status value: {$input["status"]}",
+                        422,
+                    );
+                    return;
                 }
-                switch ($field) {
-                    case "workerType":
-                        $aidWorker->setAidWorkerType($input[$field]);
-                        break;
-                    case "firstName":
-                        $aidWorker->setFirstname($input[$field]);
-                        break;
-                    case "lastName":
-                        $aidWorker->setLastname($input[$field]);
-                        break;
-                    case "callNumber":
-                        $aidWorker->setCallSign($input[$field]);
-                        break;
-                    case "note":
-                        $aidWorker->setDescription($input[$field]);
-                        break;
-                    case "status":
-                        $aidWorker->setStatus(Status::from($input[$field]));
-                        break;
-                    case "teamName":
-                        $team = $this->entityManager
-                            ->getRepository(AidTeam::class)
-                            ->findOneBy(["aidTeamName" => $input[$field]]);
-                        if (!$team) {
-                            $this->sendError(
-                                "Team " . $input[$field] . " does not exist",
-                                400,
-                            );
-                            return;
-                        }
-                        $aidWorker->setTeam($team);
-                        break;
+                $worker->setStatus($statusEnum);
+            }
+
+            if (isset($input["eventId"])) {
+                $event = $this->entityManager
+                    ->getRepository(Event::class)
+                    ->find($input["eventId"]);
+                if (!$event) {
+                    $this->sendError(
+                        "Event with id {$input["eventId"]} not found",
+                        404,
+                    );
+                    return;
+                }
+                $worker->setEvent($event);
+            }
+
+            // Allow explicitly unassigning a worker from a team via PUT
+            if (array_key_exists("teamId", $input)) {
+                if ($input["teamId"] === null) {
+                    // Remove from current team cleanly
+                    $currentTeam = $worker->getTeam();
+                    if ($currentTeam) {
+                        $currentTeam->removeAidWorker($worker);
+                    } else {
+                        $worker->setTeam(null);
+                    }
+                } else {
+                    $team = $this->entityManager
+                        ->getRepository(AidTeam::class)
+                        ->find($input["teamId"]);
+                    if (!$team) {
+                        $this->sendError(
+                            "Team with id {$input["teamId"]} not found",
+                            404,
+                        );
+                        return;
+                    }
+                    $team->addAidWorker($worker);
                 }
             }
 
             $this->entityManager->flush();
-            $this->sendResponse($this->workerToArray($aidWorker));
+            $this->sendResponse($worker->toArray());
         } catch (ValueError | TypeError $e) {
             $this->sendError(
                 "Invalid value provided: " . $e->getMessage(),
@@ -208,6 +256,107 @@ class AidWorkerController extends BaseController implements IController
         }
     }
 
+    // -------------------------------------------------------------------------
+    // PATCH /aidworker/:id  — partial update
+    // -------------------------------------------------------------------------
+    private function handlePatch($id)
+    {
+        if ($id === null) {
+            $this->sendError("ID is required for PATCH requests", 400);
+            return;
+        }
+
+        $worker = $this->repo->find($id);
+        if (!$this->validateEntity($worker, "AidWorker", $id)) {
+            return;
+        }
+
+        $input = $this->getJsonInput();
+        if ($input === null) {
+            return;
+        }
+
+        try {
+            if (isset($input["firstName"])) {
+                $worker->setFirstname($input["firstName"]);
+            }
+            if (isset($input["lastName"])) {
+                $worker->setLastname($input["lastName"]);
+            }
+            if (isset($input["callNumber"])) {
+                $worker->setCallSign($input["callNumber"]);
+            }
+            if (isset($input["workerType"])) {
+                $worker->setAidWorkerType($input["workerType"]);
+            }
+            if (isset($input["note"])) {
+                $worker->setDescription($input["note"]);
+            }
+
+            if (isset($input["status"])) {
+                $statusEnum = Status::tryFrom($input["status"]);
+                if ($statusEnum === null) {
+                    $this->sendError(
+                        "Invalid status value: {$input["status"]}",
+                        422,
+                    );
+                    return;
+                }
+                $worker->setStatus($statusEnum);
+            }
+
+            if (isset($input["eventId"])) {
+                $event = $this->entityManager
+                    ->getRepository(Event::class)
+                    ->find($input["eventId"]);
+                if (!$event) {
+                    $this->sendError(
+                        "Event with id {$input["eventId"]} not found",
+                        404,
+                    );
+                    return;
+                }
+                $worker->setEvent($event);
+            }
+
+            // array_key_exists so we can explicitly pass null to unassign
+            if (array_key_exists("teamId", $input)) {
+                if ($input["teamId"] === null) {
+                    $currentTeam = $worker->getTeam();
+                    if ($currentTeam) {
+                        $currentTeam->removeAidWorker($worker);
+                    } else {
+                        $worker->setTeam(null);
+                    }
+                } else {
+                    $team = $this->entityManager
+                        ->getRepository(AidTeam::class)
+                        ->find($input["teamId"]);
+                    if (!$team) {
+                        $this->sendError(
+                            "Team with id {$input["teamId"]} not found",
+                            404,
+                        );
+                        return;
+                    }
+                    $team->addAidWorker($worker);
+                }
+            }
+
+            $this->entityManager->flush();
+            $this->sendResponse($worker->toArray());
+        } catch (ValueError | TypeError $e) {
+            $this->sendError(
+                "Invalid value provided: " . $e->getMessage(),
+                422,
+            );
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // DELETE /aidworker/:id
+    // Removes the worker from their team (if any) before deleting.
+    // -------------------------------------------------------------------------
     private function handleDelete($id)
     {
         if ($id === null) {
@@ -215,14 +364,21 @@ class AidWorkerController extends BaseController implements IController
             return;
         }
 
-        $aidWorker = $this->repo->find($id);
-        if (!$this->validateEntity($aidWorker, "AidWorker", $id)) {
+        $worker = $this->repo->find($id);
+        if (!$this->validateEntity($worker, "AidWorker", $id)) {
             return;
         }
 
-        $this->entityManager->remove($aidWorker);
+        // Cleanly remove from team so the team's collection stays consistent
+        $team = $worker->getTeam();
+        if ($team) {
+            $team->removeAidWorker($worker);
+        }
+
+        $this->entityManager->remove($worker);
         $this->entityManager->flush();
-        $this->sendResponse(["message" => "AidWorker deleted successfully"]);
+
+        http_response_code(204);
+        exit();
     }
 }
-?>
