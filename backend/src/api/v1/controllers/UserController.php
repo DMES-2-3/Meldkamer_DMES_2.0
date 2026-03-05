@@ -85,7 +85,7 @@ class UserController extends BaseController
         }
         if (!empty($missing)) {
             $this->sendError(
-                "Please fill in the following fields: " .
+                "Vul alstublieft de volgende velden in: " .
                     implode(", ", $missing),
                 400,
             );
@@ -98,29 +98,29 @@ class UserController extends BaseController
         $password = $data["pass"];
 
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            $this->sendError("Please enter a valid email address.", 400);
+            $this->sendError("Vul alstublieft een geldig email adres in.", 400);
         }
 
         $passwordErrors = [];
         if (strlen($password) < 12) {
-            $passwordErrors[] = "at least 12 characters";
+            $passwordErrors[] = "ten minste 12 karakters";
         }
         if (!preg_match("/[A-Z]/", $password)) {
-            $passwordErrors[] = "an uppercase letter";
+            $passwordErrors[] = "een hoofdletter";
         }
         if (!preg_match("/[a-z]/", $password)) {
-            $passwordErrors[] = "a lowercase letter";
+            $passwordErrors[] = "een kleine letter";
         }
         if (!preg_match("/[0-9]/", $password)) {
-            $passwordErrors[] = "a number";
+            $passwordErrors[] = "een getal";
         }
         if (!preg_match("/[\W]/", $password)) {
-            $passwordErrors[] = "a special character";
+            $passwordErrors[] = "een speciaal karakter";
         }
 
         if (!empty($passwordErrors)) {
             $this->sendError(
-                "Your password must include: " .
+                "Wachtwoord moet het volgende bevatten: " .
                     implode(", ", $passwordErrors) .
                     ".",
                 400,
@@ -131,7 +131,7 @@ class UserController extends BaseController
             $birthday = new \DateTime($data["birthday"]);
         } catch (\Exception $e) {
             $this->sendError(
-                "Please enter a valid birthday (YYYY-MM-DD).",
+                "Vul alstublieft een geldige geboortedatum in (YYYY-MM-DD).",
                 400,
             );
         }
@@ -139,13 +139,13 @@ class UserController extends BaseController
         $repo = $this->entityManager->getRepository(User::class);
         if ($repo->findOneBy(["email" => $email])) {
             $this->sendError(
-                "This email is already in use. Try logging in or use a different email.",
+                "Dit email adres is al in gebruik. Probeer in te loggen of gebruik een ander email adres.",
                 409,
             );
         }
         if ($repo->findOneBy(["username" => $username])) {
             $this->sendError(
-                "This username is taken. Please choose another one.",
+                "Deze gebruikersnaam is al in gebruik. Probeer een andere gebruikersnaam.",
                 409,
             );
         }
@@ -164,7 +164,7 @@ class UserController extends BaseController
             $this->entityManager->flush();
         } catch (\Exception $e) {
             $this->sendError(
-                "Registration failed. Please try again later.",
+                "Registratie mislukt. Probeer het later opnieuw.",
                 500,
             );
         }
@@ -172,7 +172,7 @@ class UserController extends BaseController
         $this->sendResponse(
             [
                 "success" => true,
-                "message" => "Registration successful! You can now log in.",
+                "message" => "Registratie gelukt! U kunt nu inloggen.",
             ],
             201,
         );
@@ -183,20 +183,20 @@ class UserController extends BaseController
         $data = $this->getJsonInput();
 
         if (empty($data["email"]) || empty($data["pass"])) {
-            $this->sendError("Please enter both your email and password.", 400);
+            $this->sendError("Vul alstublieft uw email en wachtwoord in.", 400);
         }
 
         $repo = $this->entityManager->getRepository(User::class);
         $email = strtolower(trim($data["email"]));
 
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            $this->sendError("Please enter a valid email address.", 400);
+            $this->sendError("Vul alstublieft een geldig email adres in.", 400);
         }
 
         $user = $repo->findOneBy(["email" => $email]);
         if (!$user || !password_verify($data["pass"], $user->getPassword())) {
             $this->sendError(
-                "Email or password is incorrect. Please try again.",
+                "Email of wachtwoord is onjuist, probeer het opnieuw.",
                 401,
             );
         }
@@ -207,7 +207,7 @@ class UserController extends BaseController
 
         $this->sendResponse([
             "success" => true,
-            "message" => "Login successful! Welcome back.",
+            "message" => "Login succesvol! Welkom terug!.",
         ]);
     }
 
@@ -218,7 +218,7 @@ class UserController extends BaseController
         if (!isset($_SESSION["user_id"])) {
             $this->sendResponse([
                 "success" => false,
-                "message" => "You are not logged in.",
+                "message" => "Je bent niet ingelogd.",
             ]);
         }
 
@@ -231,7 +231,7 @@ class UserController extends BaseController
                 [
                     "success" => false,
                     "message" =>
-                        "Your session has expired. Please log in again.",
+                        "De sessie is verlopen. Log alstublieft opnieuw in.",
                 ],
                 401,
             );
@@ -239,7 +239,7 @@ class UserController extends BaseController
 
         $this->sendResponse([
             "success" => true,
-            "message" => "You are logged in.",
+            "message" => "Je bent ingelogd.",
             "user_id" => $user->getUserId(),
             "is_admin" => $user->isAdmin(),
         ]);
@@ -266,7 +266,7 @@ class UserController extends BaseController
 
         $this->sendResponse([
             "success" => true,
-            "message" => "You have been logged out successfully.",
+            "message" => "Je bent nu uitgelogd.",
         ]);
     }
 
