@@ -672,15 +672,11 @@
   z-index: 2;
 }
 
-.team-table tr:hover {
-    background: #f3f4f6;
-}
-
 .team-table tbody tr:nth-child(even) {
   background: #f9fafb;
 }
 
-.team-table tbody tr:hover {
+.team-table tbody tr:not(.team-extra-row):hover {
   background: #e0e7ff;
   transition: background 0.2s;
 }
@@ -693,6 +689,31 @@
   margin-right: 8px;
   vertical-align: middle;
   border: 2px solid #ffffffaa;
+}
+
+.team-extra-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.team-extra-block {
+  display: flex;
+  flex-direction: column;
+}
+
+.team-extra-title {
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.team-extra-content{
+  color: #4b5563;
+}
+
+.team-workers-list {
+  margin: 0;
+  padding-left: 18px;
 }
 
 @media (max-width: 768px) {

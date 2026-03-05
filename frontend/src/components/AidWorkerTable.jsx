@@ -13,6 +13,7 @@ export default function AidWorkersTable({ workers }) {
             <th>Naam</th>
             <th>Rol</th>
             <th>Team</th>
+            <th>Notitie</th>
           </tr>
         </thead>
         <tbody>
@@ -29,6 +30,7 @@ export default function AidWorkersTable({ workers }) {
               <td>{w.name}</td>
               <td>{w.role}</td>
               <td>{w.teamName || 'N/A'}</td>
+              <td>{w.note || 'N/A'}</td>
             </tr>
           ))}
         </tbody>

@@ -61,6 +61,7 @@ export default function TeamsTableContainer() {
         statusLabel: STATUSES[team.status]?.label || team.status,
         color: statusConfig[team.status]?.color || "#6B7280",
         note: team.description || team.note || "",
+        workers: team.workers || [],
       }));
 
       setTeams(mapped);

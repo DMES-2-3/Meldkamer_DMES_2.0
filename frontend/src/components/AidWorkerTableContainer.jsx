@@ -28,7 +28,7 @@ export default function AidWorkersTableContainer() {
           id: w.id,
           name: w.name,
           role: w.role || "N/A",
-          note: w.note || "",
+          note: w.description || "",
           status: w.status || "AVAILABLE",
           color: w.color || "#10B981",
           teamName: w.teamName || "N/A",
