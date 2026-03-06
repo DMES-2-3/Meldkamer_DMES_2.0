@@ -5,6 +5,7 @@ import { getAidWorkers } from "../services/reportsApi";
 const DUMMY_WORKERS = [
   {
     id: 1,
+    callNumber: "A-10",
     name: "John Doe",
     role: "Medic",
     note: "Experienced",
@@ -26,9 +27,10 @@ export default function AidWorkersTableContainer() {
 
         const mapped = (data || []).map((w) => ({
           id: w.id,
+          callNumber: w.callNumber,
           name: w.name,
           role: w.role || "N/A",
-          note: w.description || "",
+          note: w.note || "",
           status: w.status || "AVAILABLE",
           color: w.color || "#10B981",
           teamName: w.teamName || "N/A",
