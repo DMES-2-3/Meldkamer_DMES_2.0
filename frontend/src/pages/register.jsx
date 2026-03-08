@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "../login.css";
+import { useAuth } from "../contexts/AuthContext";
 
 function Register() {
   const navigate = useNavigate();
+  const { refreshSession } = useAuth();
   const [form, setForm] = useState({
     firstname: "",
     lastname: "",
@@ -45,8 +47,9 @@ function Register() {
           data.error || `Server error: ${res.status} ${res.statusText}`,
         ]);
       } else {
-        setMsg(data.message || "Registration successful!");
-        setTimeout(() => navigate("/login"), 1000);
+        setMsg(data.message || "Registratie geslaagd!");
+        await refreshSession();
+        setTimeout(() => navigate("/evenementen"), 1000);
       }
     } catch (err) {
       setErrors([`Network error: ${err.message}`]);
@@ -58,7 +61,7 @@ function Register() {
   return (
     <div className="login-page">
       <div className="form">
-        <h1>Registreer</h1>
+        <h1>Registreer Gebruiker</h1>
         {errors.map((e, i) => (
           <p key={i} className="error">
             {e}
@@ -88,7 +91,7 @@ function Register() {
             onChange={handleInputChange}
             disabled={loading}
           />
-          <label>Usernaam</label>
+          <label>Gebruikersnaam</label>
           <input
             type="text"
             name="username"
@@ -133,8 +136,8 @@ function Register() {
             {loading ? "Registreren..." : "Registreren"}
           </button>
         </form>
-        <p className="clickable" onClick={() => navigate("/")}>
-          Al een account? Inloggen
+        <p className="clickable" onClick={() => navigate("/evenementen")}>
+          Terug naar evenementen
         </p>
       </div>
     </div>

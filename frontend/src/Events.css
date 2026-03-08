@@ -20,6 +20,23 @@
     padding: 4px 0 4px;
 }
 
+.register-user-button {
+    color: #1e1b4b;
+    font-weight: 600;
+    font-size: 14px;
+    padding: 6px 10px;
+    border-radius: 4px;
+    border: 1px solid #1e1b4b;
+    margin-right: 8px;
+    transition:
+        background-color 0.15s,
+        color 0.15s;
+}
+
+.register-user-button:hover {
+    background-color: rgba(30, 27, 75, 0.08);
+}
+
 .logout-button {
     color: #dc2626;
     font-weight: 600;
