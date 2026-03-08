@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
+import { AuthProvider } from "./contexts/AuthContext";
 import { NotepadProvider } from "./contexts/NotepadContexts";
 import { getReports, getUnits } from "./services/reportsApi";
 
@@ -36,74 +37,78 @@ function App() {
   }, [reloadData]);
 
   return (
-    <NotepadProvider>
-      <BrowserRouter>
-        <Routes>
-          {/* Login and Register routes */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
+    <AuthProvider>
+      <NotepadProvider>
+        <BrowserRouter>
+          <Routes>
+            {/* Public routes */}
+            <Route path="/login" element={<Login />} />
 
-          {/* Default route redirects to login */}
-          <Route path="/" element={<Navigate to="/login" replace />} />
+            {/* Default route redirects to login */}
+            <Route path="/" element={<Navigate to="/login" replace />} />
 
-          {/* Protected "evenementen" route (no TopNav), from HEAD, protected */}
-          <Route
-            path="/evenementen"
-            element={<Protected Component={EventsPage} />}
-          />
+            {/* Admin-only register route */}
+            <Route
+              path="/register"
+              element={<Protected Component={Register} adminOnly />}
+            />
 
-          {/* All other routes WITH top navigation, from HEAD, protected */}
-          <Route
-            path="/*"
-            element={
-              <Protected
-                Component={() => (
-                  <div className="app-content">
-                    <TopNav />
-                    <Routes>
-                      <Route
-                        path="melding"
-                        element={<ReportScreen reloadData={reloadData} />}
-                      />
-                      <Route
-                        path="overzicht"
-                        element={
-                          <OverviewScreen
-                            reports={reports}
-                            units={units}
-                            reloadData={reloadData}
-                          />
-                        }
-                      />
-                      <Route path="eenheden" element={<UnitsPage />} />
-                      <Route
-                        path="rapportage"
-                        element={<ExportPage/>}
-                      />
-                      <Route
-                        path="dashboard"
-                        element={
-                          <Dashboard
-                            reports={reports}
-                            reloadData={reloadData}
-                            setReports={setReports}
-                          />
-                        }
-                      />
-                      {/* Redirect unknown sub-routes to a default page */}
-                      <Route
-                        path="*"
-                        element={<Navigate to="/evenementen" replace />}
-                      />
-                    </Routes>
-                  </div>
-                )}
-              />
-            }
-          />
-        </Routes>
-      </BrowserRouter>
-    </NotepadProvider>
+            {/* Protected "evenementen" route (no TopNav) */}
+            <Route
+              path="/evenementen"
+              element={<Protected Component={EventsPage} />}
+            />
+
+            {/* All other routes WITH top navigation */}
+            <Route
+              path="/*"
+              element={
+                <Protected
+                  Component={() => (
+                    <div className="app-content">
+                      <TopNav />
+                      <Routes>
+                        <Route
+                          path="melding"
+                          element={<ReportScreen reloadData={reloadData} />}
+                        />
+                        <Route
+                          path="overzicht"
+                          element={
+                            <OverviewScreen
+                              reports={reports}
+                              units={units}
+                              reloadData={reloadData}
+                            />
+                          }
+                        />
+                        <Route path="eenheden" element={<UnitsPage />} />
+                        <Route path="rapportage" element={<ExportPage />} />
+                        <Route
+                          path="dashboard"
+                          element={
+                            <Dashboard
+                              reports={reports}
+                              reloadData={reloadData}
+                              setReports={setReports}
+                            />
+                          }
+                        />
+                        {/* Redirect unknown sub-routes to a default page */}
+                        <Route
+                          path="*"
+                          element={<Navigate to="/evenementen" replace />}
+                        />
+                      </Routes>
+                    </div>
+                  )}
+                />
+              }
+            />
+          </Routes>
+        </BrowserRouter>
+      </NotepadProvider>
+    </AuthProvider>
   );
 }
 
