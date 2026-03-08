@@ -6,6 +6,7 @@ export default function MarkerModal({
   editingMarker,
   markers = [],
   localReports = [],
+  selectedEventId,
   onSave,
   onDelete,
   onEditMarker,
@@ -116,7 +117,7 @@ export default function MarkerModal({
                 >
                   <option value="">-- Selecteer Rapport --</option>
                   {localReports
-                    .filter((r) => r.id)
+                    .filter((r) => r.id && r.eventId === selectedEventId)
                     .map((report) => (
                       <option key={report.id} value={report.id}>
                         {report.event || report.description || `Report ${report.id}`}

@@ -594,6 +594,7 @@ export default function MapPanel({
         editingMarker={editingMarker}
         markers={currentMarkers}
         localReports={reports}
+        selectedEventId={selectedEventId}
         onSave={(updatedMarker) => {
           setMarkers((prev) =>
             prev.map((m) => (m.id === updatedMarker.id ? updatedMarker : m)),
