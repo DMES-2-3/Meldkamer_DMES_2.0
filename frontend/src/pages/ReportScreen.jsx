@@ -54,6 +54,10 @@ export default function ReportScreen({ reloadData }) {
   const [aidWorkers, setAidWorkers] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [formData, setFormData] = useState(DEFAULT_FORM_STATE);
+  const [currentTime, setCurrentTime] = useState(
+    initialReport?.Report?.Time || new Date().toTimeString().slice(0, 5)
+  );
+
   const { notes, setNotes, setActiveKey } = useNotepad();
 
   const reportId =
@@ -158,6 +162,18 @@ export default function ReportScreen({ reloadData }) {
     setFormData(base);
   }, [initialReport, selectedEvent, units]);
 
+  
+  useEffect(() => {
+    if (initialReport) return; 
+    const interval = setInterval(() => {
+      const now = new Date();
+      const hours = now.getHours().toString().padStart(2, "0");
+      const minutes = now.getMinutes().toString().padStart(2, "0");
+      setCurrentTime(`${hours}:${minutes}`);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [initialReport]);
+
   const handleChange = (field, value) =>
     setFormData((prev) => ({ ...prev, [field]: value }));
   const handleSITrapChange = (field, value) =>
@@ -249,7 +265,9 @@ export default function ReportScreen({ reloadData }) {
         }
       }
 
-      const savedResult = await saveReport(formData);
+      const payload = { ...formData, Time: currentTime };
+
+      const savedResult = await saveReport(payload);
 
       const newReportId =
         savedResult?.data?.id ??
@@ -364,8 +382,8 @@ export default function ReportScreen({ reloadData }) {
             <input
               type="time"
               className="time-input"
-              value={formData.Time}
-              onChange={(e) => handleChange("Time", e.target.value)}
+              value={currentTime}
+              onChange={(e) => setCurrentTime(e.target.value)}
             />
             <div className="input-group">
               <label>Melder</label>
