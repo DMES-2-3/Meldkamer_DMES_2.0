@@ -24,7 +24,6 @@ class AidTeam extends \App\Entity\AidTeam implements \Doctrine\ORM\Proxy\Interna
     private const LAZY_OBJECT_PROPERTY_SCOPES = [
         "\0".parent::class."\0".'aidTeamId' => [parent::class, 'aidTeamId', null],
         "\0".parent::class."\0".'aidTeamName' => [parent::class, 'aidTeamName', null],
-        "\0".parent::class."\0".'aidWorkers' => [parent::class, 'aidWorkers', null],
         "\0".parent::class."\0".'callNumber' => [parent::class, 'callNumber', null],
         "\0".parent::class."\0".'description' => [parent::class, 'description', null],
         "\0".parent::class."\0".'event' => [parent::class, 'event', null],
@@ -33,7 +32,6 @@ class AidTeam extends \App\Entity\AidTeam implements \Doctrine\ORM\Proxy\Interna
         "\0".parent::class."\0".'updatedAt' => [parent::class, 'updatedAt', null],
         'aidTeamId' => [parent::class, 'aidTeamId', null],
         'aidTeamName' => [parent::class, 'aidTeamName', null],
-        'aidWorkers' => [parent::class, 'aidWorkers', null],
         'callNumber' => [parent::class, 'callNumber', null],
         'description' => [parent::class, 'description', null],
         'event' => [parent::class, 'event', null],
