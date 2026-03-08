@@ -75,25 +75,25 @@ const OverviewTable = ({ reports = [], units = [], placeholderRows = 5, onRowCli
                 >
                   <button
                     className={`flag green ${
-                      (row.priority || "").toLowerCase() === "groen" ? "active" : ""
+                      (row.priority || "").toLowerCase() === "laag" ? "active" : ""
                     }`}
-                    onClick={() => onPriorityUpdate(row.raw, "Groen")}
+                    onClick={() => onPriorityUpdate(row.raw, "Laag")}
                   >
                     ⚑
                   </button>
                   <button
                     className={`flag orange ${
-                      (row.priority || "").toLowerCase() === "geel" ? "active" : ""
+                      (row.priority || "").toLowerCase() === "gemiddeld" ? "active" : ""
                     }`}
-                    onClick={() => onPriorityUpdate(row.raw, "Geel")}
+                    onClick={() => onPriorityUpdate(row.raw, "Gemiddeld")}
                   >
                     ⚑
                   </button>
                   <button
                     className={`flag red ${
-                      (row.priority || "").toLowerCase() === "rood" ? "active" : ""
+                      (row.priority || "").toLowerCase() === "hoog" ? "active" : ""
                     }`}
-                    onClick={() => onPriorityUpdate(row.raw, "Rood")}
+                    onClick={() => onPriorityUpdate(row.raw, "Hoog")}
                   >
                     ⚑
                   </button>

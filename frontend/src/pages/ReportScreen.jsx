@@ -18,7 +18,7 @@ const DEFAULT_FORM_STATE = {
   Note: "",
   Notepad: "",
   Team: "",
-  Prioriteit: "Groen",
+  Prioriteit: "Laag",
   Status: "Open",
   SITrap: {
     Gender: "",
@@ -54,7 +54,30 @@ export default function ReportScreen({ reloadData }) {
   const [aidWorkers, setAidWorkers] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [formData, setFormData] = useState(DEFAULT_FORM_STATE);
-  const { notes, setNotes } = useNotepad();
+  const { notes, setNotes, setActiveKey } = useNotepad();
+
+  const reportId =
+    formData.id ??
+    initialReport?.Report?.id ??
+    initialReport?.id ??
+    null;
+
+  const draftKey = React.useMemo(() => {
+    let k = sessionStorage.getItem("draft_report_notepad_key");
+    if (!k) {
+      k = `notepad:report:draft:${Date.now()}-${Math.random().toString(16).slice(2)}`;
+      sessionStorage.setItem("draft_report_notepad_key", k);
+    }
+    return k;
+  }, []);
+
+  useEffect(() => {
+    const key = reportId ? `notepad:report:${reportId}` : draftKey;
+    setActiveKey(key);
+
+    return () => setActiveKey(null);
+  }, [reportId, draftKey, setActiveKey]);
+    
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
@@ -228,6 +251,25 @@ export default function ReportScreen({ reloadData }) {
 
       const savedResult = await saveReport(formData);
 
+      const newReportId =
+        savedResult?.data?.id ??
+        savedResult?.data?.notificationId ??
+        savedResult?.id ??
+        savedResult?.notificationId ??
+        formData.id;
+
+      if (newReportId) {
+        const finalKey = `notepad:report:${newReportId}`;
+
+        const draftStored = localStorage.getItem(draftKey);
+        if (draftStored != null) {
+          localStorage.setItem(finalKey, draftStored);
+          localStorage.removeItem(draftKey);
+        }
+
+        sessionStorage.removeItem("draft_report_notepad_key");
+      }
+
       // If coming from PDF map, attach the new report ID to the pending marker
       if (fromPdfMap) {
         try {
@@ -319,7 +361,7 @@ export default function ReportScreen({ reloadData }) {
               type="time"
               className="time-input"
               value={formData.Time}
-              readOnly
+              onChange={(e) => handleChange("Time", e.target.value)}
             />
             <div className="input-group">
               <label>Melder</label>
@@ -372,20 +414,20 @@ export default function ReportScreen({ reloadData }) {
             <label>Prioriteit:</label>
             <div className="priority-flags">
               <button
-                className={`flag green ${formData.Prioriteit?.toLowerCase() === "groen" ? "active" : ""}`}
-                onClick={() => handleChange("Prioriteit", "Groen")}
+                className={`flag green ${formData.Prioriteit?.toLowerCase() === "laag" ? "active" : ""}`}
+                onClick={() => handleChange("Prioriteit", "Laag")}
               >
                 ⚑
               </button>
               <button
-                className={`flag orange ${formData.Prioriteit?.toLowerCase() === "geel" ? "active" : ""}`}
-                onClick={() => handleChange("Prioriteit", "Geel")}
+                className={`flag orange ${formData.Prioriteit?.toLowerCase() === "gemiddeld" ? "active" : ""}`}
+                onClick={() => handleChange("Prioriteit", "Gemiddeld")}
               >
                 ⚑
               </button>
               <button
-                className={`flag red ${formData.Prioriteit?.toLowerCase() === "rood" ? "active" : ""}`}
-                onClick={() => handleChange("Prioriteit", "Rood")}
+                className={`flag red ${formData.Prioriteit?.toLowerCase() === "hoog" ? "active" : ""}`}
+                onClick={() => handleChange("Prioriteit", "Hoog")}
               >
                 ⚑
               </button>
@@ -462,9 +504,11 @@ export default function ReportScreen({ reloadData }) {
           </div>
 
           <div className="section-block">
-            <div className="section-title">AVPU</div>
+            <div className="section-title">
+              <h3>AVPU</h3>
+            </div>
             <div className="checkbox-list">
-              {["Alert", "Spraakzaam", "Onbekwaam"].map((field) => (
+              {["Alert", "Verbal", "Pain", "Unresponsive"].map((field) => (
                 <label key={field}>
                   <input
                     type="checkbox"
@@ -478,8 +522,11 @@ export default function ReportScreen({ reloadData }) {
           </div>
 
           <div className="section-block">
-            <div className="section-title">Assistentie</div>
-            <div className="input-group">
+            <div className="section-title">
+              <h3>Assistentie</h3>
+            </div>
+            <div className="input-group"
+                  style={{ marginBottom: "12px" }}>
               <label>Optioneel extra team</label>
               <TeamSelect
                 units={units}
@@ -559,7 +606,7 @@ export default function ReportScreen({ reloadData }) {
         <div className="column-header">
           <label>Kladblok</label>
         </div>
-        <div className="column-content full-height">
+        <div className="column-content full-height notepad-column">
           <textarea
             className="notepad"
             placeholder="Schrijf notitie"

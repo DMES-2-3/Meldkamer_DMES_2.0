@@ -5,13 +5,13 @@ const PriorityDisplay = ({ priority }) => {
   let color;
 
   switch (priorityLower) {
-    case "rood":
+    case "hoog":
       color = "#DC2626"; 
       break;
-    case "geel":
+    case "gemiddeld":
       color = "#ffdf2cff"; 
       break;
-    case "groen":
+    case "laag":
       color = "#00A651"; 
       break;
     default:

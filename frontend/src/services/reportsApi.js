@@ -37,18 +37,18 @@ async function handleJsonResponse(res) {
 
 function mapPriorityToBackend(priority) {
   const map = {
-    Groen: "GREEN",
-    Geel: "ORANGE",
-    Rood: "RED",
+    Laag: "GREEN",
+    Gemiddeld: "ORANGE",
+    Hoog: "RED",
   };
   return map[priority] || null;
 }
 
 function mapStatusToBackend(status) {
   const map = {
-    Open: "REGISTERED",
-    "In behandeling": "NOTIFICATION",
-    Gesloten: "SIGNED_OUT",
+    Open: "NEW",
+    "In behandeling": "PENDING",
+    Gesloten: "CLOSED",
   };
   return map[status] || null;
 }
@@ -57,8 +57,8 @@ function mapGenderToBackend(gender) {
   const map = {
     Man: "MALE",
     Vrouw: "FEMALE",
+    X: "OTHER",
   };
-  // Backend does not support 'X', so we send null.
   return map[gender] || null;
 }
 
@@ -66,13 +66,13 @@ function mapReportFromServer(reportWrapper) {
   const report = reportWrapper.Report ?? reportWrapper;
   if (!report) return reportWrapper;
 
-  const priorityMap = { GREEN: "Groen", ORANGE: "Geel", RED: "Rood" };
+  const priorityMap = { GREEN: "Laag", ORANGE: "Gemiddeld", RED: "Hoog" };
   const statusMap = {
-    REGISTERED: "Open",
-    NOTIFICATION: "In behandeling",
-    SIGNED_OUT: "Gesloten",
+    NEW: "Open",
+    PENDING: "In behandeling",
+    CLOSED: "Gesloten",
   };
-  const genderMap = { MALE: "Man", FEMALE: "Vrouw" };
+  const genderMap = { MALE: "Man", FEMALE: "Vrouw", OTHER: "X" };
 
   const mappedReport = {
     ...report,

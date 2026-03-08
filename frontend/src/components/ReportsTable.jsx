@@ -1,7 +1,10 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import { getStatusColorForReport, getPriorityColor } from "../utils";
 
 export default function ReportsTable({ reports }) {
+  const navigate = useNavigate();
+
   if (!reports.length) return <p>Geen rapporten beschikbaar</p>;
 
   return (
@@ -23,9 +26,15 @@ export default function ReportsTable({ reports }) {
             <th>Aid Team</th>
           </tr>
         </thead>
+
         <tbody>
           {reports.map((r) => (
-            <tr key={r.id}>
+            <tr
+              key={r.id}
+              style={{ cursor: "pointer" }}
+              title="Open melding"
+              onClick={() => navigate("/melding", { state: { report: r } })}
+            >
               <td>{r.id}</td>
               <td>{r.Subject}</td>
               <td>{r.Location}</td>

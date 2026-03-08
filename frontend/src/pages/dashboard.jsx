@@ -6,20 +6,23 @@ import TeamsTableContainer from "../components/TeamsTableContainer";
 import AidWorkersTableContainer from "../components/AidWorkerTableContainer";
 import ReportsTableContainer from "../components/ReportsTableContainer";
 import FilterControls from "../components/FilterControls";
-import Legend from "../components/Legend";
+import FloatingNotepad from "../components/FloatingNotepad";
 import { MAPS, MAIN_TABS, REPORT_TABS } from "../utils";
 import "../Dashboard.css";
 
 export default function Dashboard({ reports, reloadData, setReports }) {
   const navigate = useNavigate();
   const location = useLocation();
+
   const [currentMap, setCurrentMap] = useState(MAPS[0].src);
   const [mapColorMode, setMapColorMode] = useState("priority"); // "priority" or "status"
   const [mainTab, setMainTab] = useState(MAIN_TABS.TEAMS);
   const [reportsTab, setReportsTab] = useState(REPORT_TABS.ALL);
   const [statusFilter, setStatusFilter] = useState("All");
   const [priorityFilter, setPriorityFilter] = useState("All");
+
   const [showKladblok, setShowKladblok] = useState(false);
+  const [kladblokContext, setKladblokContext] = useState(null);
   const [selectedEvent, setSelectedEvent] = useState(null);
 
   // Get selected event from localStorage
@@ -34,6 +37,24 @@ export default function Dashboard({ reports, reloadData, setReports }) {
       }
     }
   }, []);
+
+  const onOpenNotepad = () => 
+  {
+    const eventName = selectedEvent?.name;
+    if (!eventName) {
+      alert("Geen event geselecteerd.");
+      return;
+    }
+    setKladblokContext({ type: "event", eventName: selectedEvent.name });
+    setShowKladblok(true);
+  };
+
+  const onOpenReportNotepad = (reportId) => 
+  {
+    if (!reportId) return;
+    setKladblokContext({ type: "report", reportId });
+    setShowKladblok(true);
+  };
 
   useEffect(() => {
     window._reports = reports;
@@ -155,54 +176,51 @@ export default function Dashboard({ reports, reloadData, setReports }) {
                 justifyContent: "space-between",
                 alignItems: "center",
                 marginBottom: 12,
+                paddingRight: 8,
               }}
             >
-              <div className="subtabs">
-                {reportSubTabs.map((t) => (
-                  <button
-                    key={t.value}
-                    className={
-                      reportsTab === t.value ? "subtab active-subtab" : "subtab"
-                    }
-                    onClick={() => setReportsTab(t.value)}
-                  >
-                    {t.label}
-                  </button>
-                ))}
-              </div>
-              <button
-                className="btn-small"
-                style={{
-                  background: "#22c55e",
-                  color: "white",
-                  fontWeight: 500,
-                }}
-                onClick={() => navigate("/melding")}
-              >
-                + Nieuwe Melding
-              </button>
-            </div>
-
             <FilterControls
               statusFilter={statusFilter}
               priorityFilter={priorityFilter}
               onStatusChange={setStatusFilter}
               onPriorityChange={setPriorityFilter}
             />
+              <button
+                className="btn-small"
+                style={{
+                  background: "#14a84b",
+                  color: "white",
+                  fontWeight: 600,
+                  border: "none",
+                  borderRadius: 6,
+                  padding: "4px 10px",
+                  cursor: "pointer",
+                }}
+                onClick={() => navigate("/melding")}
+              >
+                Nieuwe Melding
+              </button>
+            </div>
 
             <ReportsTableContainer
               reportsTab={reportsTab}
               statusFilter={statusFilter}
               priorityFilter={priorityFilter}
+              onOpenReportNotepad={onOpenReportNotepad}
             />
           </>
         )}
 
-        <Legend
-          colorMode={mapColorMode}
-          setColorMode={setMapColorMode}
-          onOpenNotepad={() => setShowKladblok(true)}
-        />
+        <div className="legend-buttons">
+          <button className="btn-small" onClick={onOpenNotepad}>
+            Kladblok
+          </button>
+        </div>
+          <FloatingNotepad
+            open={showKladblok}
+            context={kladblokContext}
+            onClose={() => setShowKladblok(false)}
+          />
       </div>
     </div>
   );

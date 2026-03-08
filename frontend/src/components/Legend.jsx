@@ -6,7 +6,10 @@ import {
   LegendItem,
 } from "../utils";
 
-export default function Legend({ colorMode, setColorMode, onOpenNotepad }) {
+// Deze component toont een legenda met de betekenis van kleuren voor teams, hulpverleners en meldingen.
+// Deze component wordt momenteel niet gebruikt.
+
+export default function Legend({ colorMode, setColorMode}) {
   return (
     <div className="legend">
       <h3>Teams & Aid Workers – Status</h3>
@@ -36,15 +39,9 @@ export default function Legend({ colorMode, setColorMode, onOpenNotepad }) {
         Prioriteit
       </h3>
       <div className="legend-grid">
-        <LegendItem color={PRIORITY_COLORS.Green} label="Groen" />
-        <LegendItem color={PRIORITY_COLORS.Yellow} label="Geel" />
-        <LegendItem color={PRIORITY_COLORS.Red} label="Rood" />
-      </div>
-
-      <div className="legend-buttons">
-        <button className="btn-small" onClick={onOpenNotepad}>
-          Kladblok
-        </button>
+        <LegendItem color={PRIORITY_COLORS.green} label="Laag" />
+        <LegendItem color={PRIORITY_COLORS.orange} label="Gemiddeld" />
+        <LegendItem color={PRIORITY_COLORS.red} label="Hoog" />
       </div>
     </div>
   );

@@ -568,6 +568,7 @@
 .dashboard-right {
     flex-grow: 1;
     padding: 16px;
+    height: 100%;
     background: white;
     border: 1px solid var(--color-border);
     border-radius: 8px;
@@ -926,11 +927,23 @@
     }
 }
 
-.legend .legend-buttons .btn-small {
+.legend-buttons {
+    margin-top: auto;
+    display: flex;
+    justify-content: flex-end;
+    gap: 16px;
+    padding-top: 12px;
+    border-radius: 8px;
+}
+
+.btn-small {
     background-color: #1e1b4b;
     padding: 5px 10px;
     color: white;
     border-radius: 5px;
     font-size: 13px; 
     border: none; 
+    gap: 6px;
+    padding: 8px 14px;
+    border-radius: 8px;
 }

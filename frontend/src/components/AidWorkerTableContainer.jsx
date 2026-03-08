@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import AidWorkersTable from "./AidWorkerTable";
+import { getAidWorkers } from "../services/reportsApi";
 
 const DUMMY_WORKERS = [
   {
@@ -20,22 +21,10 @@ export default function AidWorkersTableContainer() {
 
   useEffect(() => {
     const fetchWorkers = async () => {
-      const API_URL = "http://localhost:8080/src/api/v1/aidworker";
       try {
-        const res = await fetch(API_URL);
-        if (!res.ok) throw new Error(`HTTP error! Status: ${res.status}`);
+        const data = await getAidWorkers();
 
-        const text = await res.text();
-        let data = JSON.parse(text);
-
-        if (data && typeof data === "object" && Array.isArray(data.data)) {
-          data = data.data;
-        }
-
-        if (!Array.isArray(data))
-          throw new Error("API response is not an array");
-
-        const mapped = data.map((w) => ({
+        const mapped = (data || []).map((w) => ({
           id: w.id,
           name: w.name,
           role: w.role || "N/A",
