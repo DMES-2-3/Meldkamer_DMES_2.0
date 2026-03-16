@@ -3,7 +3,7 @@ import React, { useState } from "react";
 export default function AidWorkersTable({ workers }) {
   const [selectedWorker, setSelectedWorker] = useState(null);
 
-  if (!workers.length) return <p>Geen aid workers beschikbaar</p>;
+  if (!workers.length) return <p>Geen hulpverleners beschikbaar</p>;
 
   return (
     <>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react"; 
 import AidWorkersTable from "./AidWorkerTable";
 import { getAidWorkers } from "../services/reportsApi";
 
@@ -12,37 +12,37 @@ const DUMMY_WORKERS = [
     status: "AVAILABLE",
     color: "#10B981",
     teamName: "Alpha Team",
+    eventId: 1, 
   },
 ];
 
-export default function AidWorkersTableContainer() {
+export default function AidWorkersTableContainer({ selectedEventId }) 
+{
+  const [allWorkers, setAllWorkers] = useState([]);
   const [workers, setWorkers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    const fetchWorkers = async () => {
-      try {
+  // Haal alle workers op
+  useEffect(() => 
+  {
+    const fetchWorkers = async () => 
+    {
+      setLoading(true);
+      try 
+      {
         const data = await getAidWorkers();
-
-        const mapped = (data || []).map((w) => ({
-          id: w.id,
-          callNumber: w.callNumber,
-          name: w.name,
-          role: w.role || "N/A",
-          note: w.note || "",
-          status: w.status || "AVAILABLE",
-          color: w.color || "#10B981",
-          teamName: w.teamName || "N/A",
-        }));
-
-        setWorkers(mapped);
+        setAllWorkers(data || []);
         setError(null);
-      } catch (err) {
+      } 
+      catch (err) 
+      {
         console.error("Failed to fetch aid workers:", err);
         setError(err.message);
-        setWorkers(DUMMY_WORKERS);
-      } finally {
+        setAllWorkers(DUMMY_WORKERS);
+      } 
+      finally 
+      {
         setLoading(false);
       }
     };
@@ -50,9 +50,26 @@ export default function AidWorkersTableContainer() {
     fetchWorkers();
   }, []);
 
-  if (loading) return <p>Aid workers laden...</p>;
+  // Filter op geselecteerd evenement
+  useEffect(() => 
+  {
+    if (!selectedEventId) return;
+    const filtered = allWorkers.filter(w => w.eventId === selectedEventId);
+    setWorkers(filtered.map(w => ({
+      id: w.id,
+      callNumber: w.callNumber,
+      name: w.name,
+      role: w.role || "N/A",
+      note: w.note || "",
+      status: w.status || "AVAILABLE",
+      color: w.color || "#10B981",
+      teamName: w.teamName || "N/A",
+    })));
+  }, [allWorkers, selectedEventId]);
+
+  if (loading) return <p>Hulpverleners laden...</p>;
   if (error) return <p style={{ color: "red" }}>Error: {error}</p>;
-  if (!workers.length) return <p>Geen aid workers beschikbaar</p>;
+  if (!workers.length) return <p>Geen hulpverleners beschikbaar voor dit evenement</p>;
 
   return <AidWorkersTable workers={workers} />;
 }
