@@ -12,34 +12,33 @@ const DUMMY_WORKERS = [
     status: "AVAILABLE",
     color: "#10B981",
     teamName: "Alpha Team",
-    eventId: 1, 
   },
 ];
 
 export default function AidWorkersTableContainer({ selectedEventId }) 
 {
-  const [allWorkers, setAllWorkers] = useState([]);
   const [workers, setWorkers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Haal alle workers op
   useEffect(() => 
   {
+    if (!selectedEventId) return;
+
     const fetchWorkers = async () => 
     {
       setLoading(true);
       try 
       {
-        const data = await getAidWorkers();
-        setAllWorkers(data || []);
+        const data = await getAidWorkers({ eventId: selectedEventId });
+        setWorkers(data || []);
         setError(null);
       } 
       catch (err) 
       {
         console.error("Failed to fetch aid workers:", err);
         setError(err.message);
-        setAllWorkers(DUMMY_WORKERS);
+        setWorkers(DUMMY_WORKERS);
       } 
       finally 
       {
@@ -48,24 +47,7 @@ export default function AidWorkersTableContainer({ selectedEventId })
     };
 
     fetchWorkers();
-  }, []);
-
-  // Filter op geselecteerd evenement
-  useEffect(() => 
-  {
-    if (!selectedEventId) return;
-    const filtered = allWorkers.filter(w => w.eventId === selectedEventId);
-    setWorkers(filtered.map(w => ({
-      id: w.id,
-      callNumber: w.callNumber,
-      name: w.name,
-      role: w.role || "N/A",
-      note: w.note || "",
-      status: w.status || "AVAILABLE",
-      color: w.color || "#10B981",
-      teamName: w.teamName || "N/A",
-    })));
-  }, [allWorkers, selectedEventId]);
+  }, [selectedEventId]);
 
   if (loading) return <p>Hulpverleners laden...</p>;
   if (error) return <p style={{ color: "red" }}>Error: {error}</p>;
