@@ -7,7 +7,7 @@ import AidWorkersTableContainer from "../components/AidWorkerTableContainer";
 import ReportsTableContainer from "../components/ReportsTableContainer";
 import FilterControls from "../components/FilterControls";
 import FloatingNotepad from "../components/FloatingNotepad";
-import { MAPS, MAIN_TABS, REPORT_TABS } from "../utils";
+import { MAPS, MAIN_TABS, REPORT_TABS } from "../utils/utils";
 import "../Dashboard.css";
 
 export default function Dashboard({ reports, reloadData, setReports }) {

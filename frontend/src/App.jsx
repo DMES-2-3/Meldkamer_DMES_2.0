@@ -16,6 +16,7 @@ import Register from "./pages/register";
 import ReportScreen from "./pages/ReportScreen";
 import UnitsPage from "./pages/UnitsPage";
 import ExportPage from "./pages/Export";
+import MapPopoutScreen from "./pages/mapPopoutScreen";
 
 function App() {
   const [reports, setReports] = useState([]);
@@ -57,6 +58,18 @@ function App() {
             <Route
               path="/evenementen"
               element={<Protected Component={EventsPage} />}
+            />
+
+            {/* Map Pop-out route */}
+            <Route
+              path="/map-popout"
+              element={
+                <MapPopoutScreen
+                  reports={reports}
+                  reloadData={reloadData}
+                  setReports={setReports}
+                />
+              }
             />
 
             {/* All other routes WITH top navigation */}

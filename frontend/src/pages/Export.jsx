@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { getSelectedEvent } from "../utils";
+import { getSelectedEvent } from "../utils/utils";
 import "../Export.css";
 
 const ExportPage = ({ title = "Export" }) => {

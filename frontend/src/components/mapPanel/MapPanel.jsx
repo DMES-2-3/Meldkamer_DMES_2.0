@@ -1,10 +1,16 @@
 import React, { useState, useRef, useEffect } from "react";
+import {
+  getStoredMapState,
+  saveStoredMapState,
+  createMapSyncChannel,
+  broadcastMapState,
+} from "../../utils/mapSync";
 import { useNavigate } from "react-router-dom";
 import { Document, Page, pdfjs } from "react-pdf";
 import GoogleMapsPanel from "../GoogleMapsPanel";
 import MapModal from "./MapModal";
 import MarkerModal from "./MarkerModal";
-import { getPriorityColor } from "../../utils";
+import { getPriorityColor } from "../../utils/utils";
 
 pdfjs.GlobalWorkerOptions.workerSrc =
   "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
@@ -26,6 +32,7 @@ export default function MapPanel({
   updateReportLocation,
   colorMode = "priority",
   initialMapType = "PDF",
+  isPopout = false,
 }) {
   const navigate = useNavigate();
   const wrapperRef = useRef(null);
@@ -34,22 +41,14 @@ export default function MapPanel({
 
   const [maps, setMaps] = useState(initialMaps);
   const [reports, setReports] = useState([]);
-  const [currentMapId, setCurrentMapId] = useState(
-    () => JSON.parse(sessionStorage.getItem("currentMapId")) || null,
-  );
-  const [pageNumber, setPageNumber] = useState(
-    () => JSON.parse(sessionStorage.getItem("pageNumber")) || 1,
-  );
+  const sharedState = getStoredMapState();
+
+  const [currentMapId, setCurrentMapId] = useState(sharedState.currentMapId || null);
+  const [pageNumber, setPageNumber] = useState(sharedState.pageNumber || 1);
   const [numPages, setNumPages] = useState(null);
-  const [zoom, setZoom] = useState(
-    () => JSON.parse(sessionStorage.getItem("zoom")) || 1,
-  );
-  const [panPosition, setPanPosition] = useState(
-    () => JSON.parse(sessionStorage.getItem("panPosition")) || { x: 0, y: 0 },
-  );
-  const [markers, setMarkers] = useState(
-    () => JSON.parse(sessionStorage.getItem("markers")) || [],
-  );
+  const [zoom, setZoom] = useState(sharedState.zoom || 1);
+  const [panPosition, setPanPosition] = useState(sharedState.panPosition || { x: 0, y: 0 });
+  const [markers, setMarkers] = useState(sharedState.markers || []);
 
   const [showMapModal, setShowMapModal] = useState(false);
   const [showMarkerModal, setShowMarkerModal] = useState(false);
@@ -153,19 +152,23 @@ export default function MapPanel({
   }, []);
 
   useEffect(() => {
-    sessionStorage.setItem("currentMapId", JSON.stringify(currentMapId));
+    broadcastMapState({ currentMapId });
   }, [currentMapId]);
+
   useEffect(() => {
-    sessionStorage.setItem("pageNumber", JSON.stringify(pageNumber));
+    broadcastMapState({ pageNumber });
   }, [pageNumber]);
+
   useEffect(() => {
-    sessionStorage.setItem("markers", JSON.stringify(markers));
+    broadcastMapState({ markers });
   }, [markers]);
+
   useEffect(() => {
-    sessionStorage.setItem("zoom", JSON.stringify(zoom));
+    broadcastMapState({ zoom });
   }, [zoom]);
+
   useEffect(() => {
-    sessionStorage.setItem("panPosition", JSON.stringify(panPosition));
+    broadcastMapState({ panPosition });
   }, [panPosition]);
 
   useEffect(() => {
@@ -188,6 +191,43 @@ export default function MapPanel({
     if (report)
       setTempMarkerLabel(getShortLabel(report.description || report.event, 25));
   }, [tempMarkerReportId, reports]);
+
+  useEffect(() => {
+    const channel = createMapSyncChannel();
+
+    const applyState = (next) => {
+      if (!next) return;
+
+      if (next.currentMapId !== undefined) setCurrentMapId(next.currentMapId);
+      if (next.pageNumber !== undefined) setPageNumber(next.pageNumber);
+      if (next.zoom !== undefined) setZoom(next.zoom);
+      if (next.panPosition !== undefined) setPanPosition(next.panPosition);
+      if (next.markers !== undefined) setMarkers(next.markers);
+    };
+
+    const onStorage = (e) => {
+      if (e.key === "shared_map_state" && e.newValue) {
+        try {
+          applyState(JSON.parse(e.newValue));
+        } catch (err) {
+          console.error("Failed to parse shared_map_state", err);
+        }
+      }
+    };
+
+    if (channel) {
+      channel.onmessage = (event) => {
+        applyState(event.data);
+      };
+    }
+
+    window.addEventListener("storage", onStorage);
+
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      if (channel) channel.close();
+    };
+  }, []);
 
   const fetchMapsForEvent = async (eventId) => {
     if (!eventId) return;
@@ -366,6 +406,16 @@ export default function MapPanel({
     resetZoom();
     setShowMapModal(false);
     if (onMapSelect) onMapSelect(map.mapId);
+  };
+
+    const openMapPopout = () => {
+    const url = `${window.location.origin}/map-popout`;
+
+    window.open(
+      url,
+      "MapPopoutWindow",
+      "width=1400,height=900,left=100,top=100,resizable=yes,scrollbars=yes"
+    );
   };
 
   const handleFileUpload = async (e) => {
@@ -558,9 +608,13 @@ export default function MapPanel({
             >
               {uploading ? "Uploaden..." : "Upload"}
             </button>
+            <button
+              onClick={openMapPopout}
+            >
+              Pop-out
+            </button>
             <span className="zoom-percentage">{Math.round(zoom * 100)}%</span>
           </div>
-
           <input
             ref={fileInputRef}
             type="file"
