@@ -7,7 +7,7 @@ const DUMMY_WORKERS = [
     id: 1,
     callNumber: "A-10",
     name: "John Doe",
-    role: "Medic",
+    workerType: "Medic",
     note: "Experienced",
     status: "AVAILABLE",
     color: "#10B981",

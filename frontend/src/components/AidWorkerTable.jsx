@@ -14,7 +14,7 @@ export default function AidWorkersTable({ workers }) {
               <th>Status</th>
               <th>Roepnummer</th>
               <th>Naam</th>
-              <th>Rol</th>
+              <th>Type</th>
               <th>Team</th>
             </tr>
           </thead>
@@ -30,7 +30,7 @@ export default function AidWorkersTable({ workers }) {
                 </td>
                 <td>{w.callNumber || w.id}</td>
                 <td>{w.name}</td>
-                <td>{w.role}</td>
+                <td>{w.workerType || "N/A"}</td>
                 <td>{w.teamName || "N/A"}</td>
               </tr>
             ))}
