@@ -119,8 +119,16 @@ class NotificationController extends BaseController implements IController
             );
 
             // Set timestamp
-            $dt = new DateTime();
-            $notification->setTime($dt);
+            if (!empty($input["Time"])) {
+                $dt = DateTime::createFromFormat("H:i", $input["Time"]);
+                if ($dt === false) {
+                    $this->sendError("Invalid time format, expected HH:mm", 400);
+                    return;
+                }
+                $notification->setTime($dt);
+            } else {
+                $notification->setTime(new DateTime());
+            }
 
             // Setup SITRAP
             if (!empty($input["SITrap"])) {
@@ -252,6 +260,15 @@ class NotificationController extends BaseController implements IController
 
         if (array_key_exists("ReportedBy", $input)) {
             $notification->setReportedBy($input["ReportedBy"]);
+        }
+
+        if (isset($input["Time"])) {
+            $dt = DateTime::createFromFormat("H:i", $input["Time"]);
+            if ($dt === false) {
+                $this->sendError("Invalid time format, expected HH:mm", 400);
+                return;
+            }
+            $notification->setTime($dt);
         }
     }
 

@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { saveReport } from "../services/reportsApi";
 import MapPanel from "../components/mapPanel/MapPanel";
+import Legend from "../components/Legend";
 import TeamsTableContainer from "../components/TeamsTableContainer";
 import AidWorkersTableContainer from "../components/AidWorkerTableContainer";
 import ReportsTableContainer from "../components/ReportsTableContainer";
@@ -212,6 +213,12 @@ export default function Dashboard({ reports, reloadData, setReports }) {
         )}
 
         <div className="legend-buttons">
+          <Legend
+            colorMode={mapColorMode}
+            setColorMode={setMapColorMode}
+          />
+        </div>
+        <div className="notepad-button">
           <button className="btn-small" onClick={onOpenNotepad}>
             Kladblok
           </button>
