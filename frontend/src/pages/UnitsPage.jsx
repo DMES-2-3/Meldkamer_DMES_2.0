@@ -547,6 +547,14 @@ function WorkersTab({ eventId }) {
         <span className={`up-status-pill up-status-pill--${w.status?.toLowerCase()}`}>
           {statusLabel(w.status)}
         </span>
+        <span className="up-td-muted" style={{ fontSize: '12px' }}>
+          {w.updatedAt
+            ? new Date(w.updatedAt).toLocaleTimeString("nl-NL", {
+                hour: "2-digit",
+                minute: "2-digit",
+              })
+            : ""}
+        </span>
       </div>
       {w.note && <div className="up-td-note">{w.note}</div>}
     </div>
