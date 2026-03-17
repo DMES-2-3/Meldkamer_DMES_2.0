@@ -570,58 +570,61 @@ export default function MapPanel({
             </div>
           )}
 
-          <div className="map-buttons">
-            <button
-              disabled={pageNumber <= 1}
-              onClick={() => setPageNumber((p) => p - 1)}
-            >
-              Vorige
-            </button>
-            <button
-              disabled={!numPages || pageNumber >= numPages}
-              onClick={() => setPageNumber((p) => p + 1)}
-            >
-              Volgende
-            </button>
-            <button onClick={zoomIn}>Zoom +</button>
-            <button onClick={zoomOut}>Zoom -</button>
-            <button onClick={resetZoom}>Reset</button>
-            <button
-              className={isAddingMarker ? "btn-marker-active" : ""}
-              onClick={() => setIsAddingMarker(!isAddingMarker)}
-              disabled={!currentMapId || !currentMap?.hasFile}
-            >
-              {isAddingMarker ? "Annuleren" : "Voeg Marker toe"}
-            </button>
-            <button
-              onClick={() => {
-                setEditingMarker(null);
-                setShowMarkerModal(true);
-              }}
-            >
-              Markers ({currentMarkers.length})
-            </button>
-            <button onClick={() => setShowMapModal(true)}>Maps</button>
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploading}
-            >
-              {uploading ? "Uploaden..." : "Upload"}
-            </button>
-            <button
-              onClick={openMapPopout}
-            >
-              Pop-out
-            </button>
-            <span className="zoom-percentage">{Math.round(zoom * 100)}%</span>
-          </div>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="application/pdf"
-            onChange={handleFileUpload}
-            style={{ display: "none" }}
-          />
+          {!isPopout && (
+            <>
+              <div className="map-buttons">
+                <button
+                  disabled={pageNumber <= 1}
+                  onClick={() => setPageNumber((p) => p - 1)}
+                >
+                  Vorige
+                </button>
+                <button
+                  disabled={!numPages || pageNumber >= numPages}
+                  onClick={() => setPageNumber((p) => p + 1)}
+                >
+                  Volgende
+                </button>
+                <button onClick={zoomIn}>Zoom +</button>
+                <button onClick={zoomOut}>Zoom -</button>
+                <button onClick={resetZoom}>Reset</button>
+                <button
+                  className={isAddingMarker ? "btn-marker-active" : ""}
+                  onClick={() => setIsAddingMarker(!isAddingMarker)}
+                  disabled={!currentMapId || !currentMap?.hasFile}
+                >
+                  {isAddingMarker ? "Annuleren" : "Voeg Marker toe"}
+                </button>
+                <button
+                  onClick={() => {
+                    setEditingMarker(null);
+                    setShowMarkerModal(true);
+                  }}
+                >
+                  Markers ({currentMarkers.length})
+                </button>
+                <button onClick={() => setShowMapModal(true)}>Maps</button>
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                >
+                  {uploading ? "Uploaden..." : "Upload"}
+                </button>
+                <button onClick={openMapPopout}>Pop-out</button>
+                <span className="zoom-percentage">
+                  {Math.round(zoom * 100)}%
+                </span>
+              </div>
+
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="application/pdf"
+                onChange={handleFileUpload}
+                style={{ display: "none" }}
+              />
+            </>
+          )}
         </div>
       )}
 
