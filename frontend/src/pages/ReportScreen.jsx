@@ -54,6 +54,7 @@ export default function ReportScreen({ reloadData }) {
   const [aidWorkers, setAidWorkers] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [formData, setFormData] = useState(DEFAULT_FORM_STATE);
+  const [isSaving, setIsSaving] = useState(false);
   const [currentTime, setCurrentTime] = useState(
     initialReport?.Report?.Time || new Date().toTimeString().slice(0, 5)
   );
@@ -203,6 +204,10 @@ export default function ReportScreen({ reloadData }) {
   };
 
   const handleSave = async () => {
+    if (isSaving) return;
+
+    setIsSaving(true);
+
     try {
       const originalTeamName = originalReportData.current?.Team;
       const newTeamName = formData.Team;
@@ -288,19 +293,18 @@ export default function ReportScreen({ reloadData }) {
         sessionStorage.removeItem("draft_report_notepad_key");
       }
 
-      // If coming from PDF map, attach the new report ID to the pending marker
       if (fromPdfMap) {
         try {
           const stored = sessionStorage.getItem("pendingPdfMarker");
           if (stored) {
             const pending = JSON.parse(stored);
-            // Extract report ID from the saved result
             const newReportId =
               savedResult?.data?.id ??
               savedResult?.data?.notificationId ??
               savedResult?.id ??
               savedResult?.notificationId ??
               formData.id;
+
             if (newReportId) {
               const shortLabel = formData.Note || formData.Subject || "Marker";
               pending.reportId = newReportId.toString();
@@ -324,6 +328,7 @@ export default function ReportScreen({ reloadData }) {
     } catch (err) {
       console.error("Failed to save report:", err);
       alert(`Opslaan mislukt: ${err.message}`);
+      setIsSaving(false);
     }
   };
 
@@ -476,15 +481,15 @@ export default function ReportScreen({ reloadData }) {
           </div>
 
           <div className="button-row">
-            <button className="btn-save" onClick={handleSave}>
+            <button className="btn-save" onClick={handleSave} disabled={isSaving}>
               Opslaan
             </button>
             {formData.id && (
-              <button className="btn-delete" onClick={handleDelete}>
+              <button className="btn-delete" onClick={handleDelete} disabled={isSaving}>
                 Verwijderen
               </button>
             )}
-            <button className="btn-cancel" onClick={handleCancel}>
+            <button className="btn-cancel" onClick={handleCancel} disabled={isSaving}>
               Annuleren
             </button>
           </div>
