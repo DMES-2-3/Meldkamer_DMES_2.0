@@ -1,8 +1,7 @@
 const API_BASE_URL =
   (typeof import.meta !== "undefined" &&
     import.meta.env &&
-    import.meta.env.VITE_API_BASE_URL) ||
-  "http://localhost:8080"; // PHP server base URL
+    import.meta.env.VITE_API_BASE_URL) || ""; // PHP server base URL
 
 function apiUrl(path = "") {
   const base = API_BASE_URL.replace(/\/+$/, "");

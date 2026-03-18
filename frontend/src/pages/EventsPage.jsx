@@ -9,11 +9,10 @@ import {
 import "../Events.css";
 import dmesLogo from "../assets/logos/DMES_Vierkant_Logo.png";
 import { useAuth } from "../contexts/AuthContext";
+import { API_BASE_URL } from "../../config/api";
 
 export default function EventsPage() {
 
-  const API_BASE =
-  process.env.REACT_APP_API_URL || import.meta.env.VITE_API_URL;
   const { user, clearUser } = useAuth();
   const [events, setEvents] = useState([]);
 
@@ -89,7 +88,7 @@ export default function EventsPage() {
 
   const handleLogout = async () => {
     try {
-      const res = await fetch(`${API_BASE}/v1/user/logout`, {
+      const res = await fetch(`${API_BASE_URL}/v1/user/logout`, {
         method: "DELETE",
         credentials: "include",
         headers: {

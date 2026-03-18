@@ -5,14 +5,13 @@ import GoogleMapsPanel from "../GoogleMapsPanel";
 import MapModal from "./MapModal";
 import MarkerModal from "./MarkerModal";
 import { getPriorityColor } from "../../utils";
+import { API_BASE_URL } from "../../config/api";
 
 pdfjs.GlobalWorkerOptions.workerSrc =
   "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 
-const API_BASE =
-  process.env.REACT_APP_API_URL || import.meta.env.VITE_API_URL;
-const MAPS_URL = `${API_BASE}/v1/maps`;
-const NOTIFICATIONS_URL = `${API_BASE}/v1/notification`;
+const MAPS_URL = `${API_BASE_URL}/v1/maps`;
+const NOTIFICATIONS_URL = `${API_BASE_URL}/v1/notification`;
 const ZOOM_LIMITS = { min: 0.25, max: 4 };
 const ZOOM_STEP = 1.1;
 const WHEEL_SENSITIVITY = 0.0015;

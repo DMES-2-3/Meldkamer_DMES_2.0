@@ -3,10 +3,9 @@ import { useNavigate } from "react-router-dom";
 import "../login.css";
 import logo from "../assets/logo/DMES_Vierkant_Logo.png";
 import { useAuth } from "../contexts/AuthContext";
+import { API_BASE_URL } from "../config/api";
 
 function Login() {
-  const API_BASE =
-  process.env.REACT_APP_API_URL || import.meta.env.VITE_API_URL;
   const navigate = useNavigate();
   const { user, loading, refreshSession } = useAuth();
   const [form, setForm] = useState({ email: "", pass: "" });
@@ -33,7 +32,7 @@ function Login() {
     setMsg("");
 
     try {
-      const res = await fetch(`${API_BASE}/v1/user/login`, {
+      const res = await fetch(`${API_BASE_URL}/v1/user/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
