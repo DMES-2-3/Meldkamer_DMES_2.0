@@ -73,6 +73,12 @@ function Register() {
             e.preventDefault();
             registerSubmit();
           }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              registerSubmit();
+            }
+          }}
         >
           <label>Voornaam</label>
           <input

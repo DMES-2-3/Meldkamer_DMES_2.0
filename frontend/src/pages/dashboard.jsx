@@ -62,6 +62,22 @@ export default function Dashboard({ reports, reloadData, setReports }) {
     console.log("Dashboard reports: ", reports);
   }, [reports]);
 
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Alt + N om een nieuwe melding te maken
+      if (e.altKey && e.key.toLowerCase() === 'n') {
+        e.preventDefault();
+        if (document.activeElement instanceof HTMLElement) {
+          document.activeElement.blur();
+        }
+        navigate("/melding");
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [navigate]);
+
   const mapPanelRef = useRef(null);
   const [isResizing, setIsResizing] = useState(false);
 

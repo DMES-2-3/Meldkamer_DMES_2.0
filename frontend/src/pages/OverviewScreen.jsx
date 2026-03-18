@@ -12,6 +12,22 @@ export default function OverviewScreen() {
   const [loading, setLoading] = useState(true);
   const [selectedEvent, setSelectedEvent] = useState(null);
 
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Alt + N om een nieuwe melding te maken
+      if (e.altKey && e.key.toLowerCase() === 'n') {
+        e.preventDefault();
+        if (document.activeElement instanceof HTMLElement) {
+          document.activeElement.blur();
+        }
+        navigate("/melding");
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [navigate]);
+
   const reloadData = useCallback(async () => {
     setLoading(true);
     try {

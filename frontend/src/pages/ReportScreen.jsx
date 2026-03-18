@@ -45,6 +45,29 @@ const DEFAULT_FORM_STATE = {
 export default function ReportScreen({ reloadData }) {
   const location = useLocation();
   const navigate = useNavigate();
+
+  const subjectRef = React.useRef(null);
+  const locationRef = React.useRef(null);
+  const noteRef = React.useRef(null);
+  const eventRef = React.useRef(null);
+  const conditionRef = React.useRef(null);
+  const notepadRef = React.useRef(null);
+
+  React.useEffect(() => {
+    const handleGlobalEnter = (e) => {
+      // Als je enter drukt en je zit nog niet in een specifiek invoerveld (bijv. op de body)
+      const activeTag = document.activeElement?.tagName;
+      if (
+        e.key === "Enter" && !e.ctrlKey &&
+        (!activeTag || !["INPUT", "TEXTAREA", "SELECT", "BUTTON", "A"].includes(activeTag))
+      ) {
+        e.preventDefault();
+        subjectRef.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", handleGlobalEnter);
+    return () => window.removeEventListener("keydown", handleGlobalEnter);
+  }, []);
   const initialReport = location.state?.report;
   const fromGoogleMaps = location.state?.from === "google-maps";
   const fromPdfMap = location.state?.from === "pdf-map";
@@ -348,6 +371,17 @@ export default function ReportScreen({ reloadData }) {
     (u) => u.eventId === selectedEvent?.id
   );
 
+  React.useEffect(() => {
+    const handleGlobalSave = (e) => {
+      if (e.ctrlKey && e.key === "Enter") {
+        e.preventDefault();
+        handleSave();
+      }
+    };
+    window.addEventListener("keydown", handleGlobalSave);
+    return () => window.removeEventListener("keydown", handleGlobalSave);
+  });
+
   return (
     <div className="report-screen">
       {/* Melding Column */}
@@ -375,6 +409,12 @@ export default function ReportScreen({ reloadData }) {
                 placeholder="Naam van melder"
                 value={formData.ReportedBy}
                 onChange={(e) => handleChange("ReportedBy", e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    subjectRef.current?.focus();
+                  }
+                }}
               />
             </div>
           </div>
@@ -393,8 +433,15 @@ export default function ReportScreen({ reloadData }) {
             <label>Onderwerp</label>
             <input
               type="text"
+              ref={subjectRef}
               value={formData.Subject}
               onChange={(e) => handleChange("Subject", e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  locationRef.current?.focus();
+                }
+              }}
             />
           </div>
 
@@ -402,16 +449,30 @@ export default function ReportScreen({ reloadData }) {
             <label>Locatie</label>
             <input
               type="text"
+              ref={locationRef}
               value={formData.Location}
               onChange={(e) => handleChange("Location", e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  noteRef.current?.focus();
+                }
+              }}
             />
           </div>
 
           <div className="input-group full-height">
             <label>Beschrijving</label>
             <textarea
+              ref={noteRef}
               value={formData.Note}
               onChange={(e) => handleChange("Note", e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  eventRef.current?.focus();
+                }
+              }}
             />
           </div>
 
@@ -495,16 +556,30 @@ export default function ReportScreen({ reloadData }) {
           <div className="input-group">
             <label>Gebeurtenis of ongevalsmechanisme</label>
             <textarea
+              ref={eventRef}
               value={formData.SITrap.Event}
               onChange={(e) => handleSITrapChange("Event", e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  conditionRef.current?.focus();
+                }
+              }}
             />
           </div>
 
           <div className="input-group">
             <label>Aandoeningen en letsels</label>
             <textarea
+              ref={conditionRef}
               value={formData.SITrap.Condition}
               onChange={(e) => handleSITrapChange("Condition", e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  notepadRef.current?.focus();
+                }
+              }}
             />
           </div>
 
@@ -613,6 +688,7 @@ export default function ReportScreen({ reloadData }) {
         </div>
         <div className="column-content full-height notepad-column">
           <textarea
+            ref={notepadRef}
             className="notepad"
             placeholder="Schrijf notitie"
             value={notes}
