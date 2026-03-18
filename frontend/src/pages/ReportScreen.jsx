@@ -356,6 +356,10 @@ export default function ReportScreen({ reloadData }) {
     (u) => u.eventId === selectedEvent?.id
   );
 
+  const availableUnitsForEvent = unitsForEvent.filter(
+    (u) => u.status === "AVAILABLE"
+  );
+
   return (
     <div className="report-screen">
       {/* Melding Column */}
@@ -449,7 +453,7 @@ export default function ReportScreen({ reloadData }) {
 
           <div className="input-group">
             <TeamSelect
-              units={unitsForEvent}
+              units={availableUnitsForEvent}
               value={formData.Team}
               onChange={(val) => handleChange("Team", val)}
             />
@@ -542,7 +546,7 @@ export default function ReportScreen({ reloadData }) {
                   style={{ marginBottom: "12px" }}>
               <label>Optioneel extra team</label>
               <TeamSelect
-                units={unitsForEvent}
+                units={availableUnitsForEvent}
                 value={formData.Assistance.Team}
                 onChange={(val) => handleAssistanceChange("Team", val)}
               />
