@@ -9,7 +9,7 @@ import {
 import "../Events.css";
 import dmesLogo from "../assets/logos/DMES_Vierkant_Logo.png";
 import { useAuth } from "../contexts/AuthContext";
-import { API_BASE_URL } from "../../config/api";
+import { API_BASE_URL } from "../config/api";
 
 export default function EventsPage() {
 
