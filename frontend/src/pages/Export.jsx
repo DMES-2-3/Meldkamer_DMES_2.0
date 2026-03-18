@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { getSelectedEvent } from "../utils";
-import { API_BASE_URL } from "../config/api";
+import { apiUrl } from "../config/api";
 import "../Export.css";
 
 const ExportPage = ({ title = "Export" }) => {
@@ -26,7 +26,7 @@ const ExportPage = ({ title = "Export" }) => {
         try {
             const form = document.createElement("form");
             form.method = "POST";
-            form.action = `${API_BASE_URL}/export/export.php`;
+            form.action = `${apiUrl("/export/export.php")}`;
 
             const input = document.createElement("input");
             input.type = "hidden";

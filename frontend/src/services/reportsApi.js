@@ -1,12 +1,12 @@
-const API_BASE_URL =
-  (typeof import.meta !== "undefined" &&
-    import.meta.env &&
-    import.meta.env.VITE_API_BASE_URL) || ""; // PHP server base URL
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL?.replace(/\/+$/, "") || "";
+
+if (!API_BASE_URL) {
+  throw new Error("REACT_APP_API_BASE_URL is not defined");
+}
 
 function apiUrl(path = "") {
-  const base = API_BASE_URL.replace(/\/+$/, "");
   const suffix = String(path || "").replace(/^\/+/, "");
-  return suffix ? `${base}/${suffix}` : base;
+  return `${API_BASE_URL}/${suffix}`;
 }
 
 async function handleJsonResponse(res) {

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { apiUrl } from "../config/api";
 import "../login.css";
 import { useAuth } from "../contexts/AuthContext";
 
@@ -32,7 +33,7 @@ function Register() {
     setMsg("");
 
     try {
-      const res = await fetch(`${API_BASE}/v1/user/register`, {
+      const res = await fetch(`${apiUrl("/v1/user/register")}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
