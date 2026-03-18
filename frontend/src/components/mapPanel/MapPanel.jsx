@@ -5,7 +5,7 @@ import GoogleMapsPanel from "../GoogleMapsPanel";
 import MapModal from "./MapModal";
 import MarkerModal from "./MarkerModal";
 import { getPriorityColor } from "../../utils";
-import { apiUrl } from "../config/api";
+import { apiUrl } from "../../config/api";
 
 pdfjs.GlobalWorkerOptions.workerSrc =
   "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
