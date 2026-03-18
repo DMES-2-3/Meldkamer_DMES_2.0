@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { apiUrl } from "../config/api";
 
 const AuthContext = createContext(null);
 
@@ -8,7 +9,7 @@ export function AuthProvider({ children }) {
 
   const refreshSession = useCallback(async () => {
     try {
-      const res = await fetch("http://localhost:8080/src/api/v1/user/session", {
+      const res = await fetch(apiUrl("/v1/user/session"), {
         credentials: "include",
       });
       const data = await res.json();
