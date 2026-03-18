@@ -4,6 +4,8 @@ import "../login.css";
 import { useAuth } from "../contexts/AuthContext";
 
 function Register() {
+  const API_BASE =
+  process.env.REACT_APP_API_URL || import.meta.env.VITE_API_URL;
   const navigate = useNavigate();
   const { refreshSession } = useAuth();
   const [form, setForm] = useState({
@@ -30,9 +32,7 @@ function Register() {
     setMsg("");
 
     try {
-      const res = await fetch(
-        "http://localhost:8080/src/api/v1/user/register",
-        {
+      const res = await fetch(`${API_BASE}/v1/user/register`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",

@@ -4,6 +4,8 @@ import { getSelectedEvent } from "../utils";
 import "../Export.css";
 
 const ExportPage = ({ title = "Export" }) => {
+    const API_BASE =
+        process.env.REACT_APP_API_URL || import.meta.env.VITE_API_URL;
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
