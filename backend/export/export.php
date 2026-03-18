@@ -72,12 +72,15 @@ $notificationsQuery = "
         ass.basicCareVPK,
 
         s.injury AS sitrapInjury,
-        s.description AS sitrapDescription
+        s.description AS sitrapDescription,
+
+        t.aidTeamName AS teamName
 
     FROM Notification n
     LEFT JOIN AVPU a ON n.FK_AVPU = a.AVPUId
     LEFT JOIN Assistance ass ON n.FK_Assistance = ass.assistanceId
     LEFT JOIN SITRAP s ON n.FK_SITRAP = s.SITRAPId
+    LEFT JOIN AidTeam t ON n.FK_AidTeam = t.aidTeamId
     WHERE n.FK_event = :eventId
     ORDER BY n.time ASC
 ";
@@ -98,9 +101,10 @@ foreach ($notifications as &$row) {
         $row['time'] = date('d-m-Y H:i:s', strtotime($row['time']));
     }
 
-    // STATUS vertalen (database: REGISTERED, NOTIFICATION, SIGNED_OUT)
+    // STATUS vertalen (database: REGISTERED/NEW, NOTIFICATION, SIGNED_OUT)
     $statusMap = [
         'REGISTERED'   => 'Open',
+        'NEW'        => 'Open',
         'NOTIFICATION' => 'In behandeling',
         'SIGNED_OUT'   => 'Gesloten'
     ];
@@ -213,7 +217,8 @@ if (!empty($notifications)) {
         'description' => 'Beschrijving',
         'AVPU' => 'Bewustzijn (AVPU)',
         'Assistance' => 'Assistentie',
-        'SITRAP' => 'Situatierapport'
+        'SITRAP' => 'Situatierapport',
+        'teamName' => 'Team'
     ];
 
     $headerRow = [];
