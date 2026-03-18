@@ -183,7 +183,7 @@ export default function Dashboard({ reports, reloadData, setReports }) {
 
         {/* Tab content */}
         {mainTab === MAIN_TABS.TEAMS && <TeamsTableContainer />}
-        {mainTab === MAIN_TABS.AIDWORKERS && <AidWorkersTableContainer />}
+        {mainTab === MAIN_TABS.AIDWORKERS && <AidWorkersTableContainer selectedEventId={selectedEvent?.id} />}
         {mainTab === MAIN_TABS.REPORTS && (
           <>
             {/* Subtabs and filters */}

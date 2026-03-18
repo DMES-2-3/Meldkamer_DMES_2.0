@@ -7,12 +7,11 @@ import {
 } from "../utils";
 
 // Deze component toont een legenda met de betekenis van kleuren voor teams, hulpverleners en meldingen.
-// Deze component wordt momenteel niet gebruikt.
 
 export default function Legend({ colorMode, setColorMode}) {
   return (
     <div className="legend">
-      <h3>Teams & Aid Workers – Status</h3>
+      <h3>Teams & Hulpverleners – Status</h3>
       <div className="legend-grid">
         <LegendItem color={TEAM_STATUS_COLORS.available} label="Beschikbaar" />
         <LegendItem color={TEAM_STATUS_COLORS.active} label="Actief" />
