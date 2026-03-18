@@ -237,22 +237,21 @@ export async function deleteReport(id) {
 
 // ---- Units / Aid workers --------------------------------------------------
 
-export async function getAidWorkers() {
-  const res = await fetch(apiUrl("src/api/v1/aidworker"), {
+export async function getAidWorkers({ eventId } = {}) {
+  let url = "src/api/v1/aidworker";
+  if (eventId) {
+    url += `?eventId=${encodeURIComponent(eventId)}`;
+  }
+
+  const res = await fetch(apiUrl(url), {
     method: "GET",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
   });
 
   const response = await handleJsonResponse(res);
-
-  // Handle wrapped response from backend: {"success": true, "data": [...]}
   const data = response && response.data ? response.data : response;
-
-  if (!Array.isArray(data)) {
-    return [];
-  }
-
+  if (!Array.isArray(data)) return [];
   return data;
 }
 

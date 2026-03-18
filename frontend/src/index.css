@@ -461,6 +461,21 @@ button {
     background-color: #d1d5db;
 }
 
+.btn-save:disabled {
+    opacity: 0.7;
+    cursor: wait;
+}
+
+.btn-cancel:disabled {
+    opacity: 0.7;
+    cursor: wait;
+}
+
+.btn-cancel {
+    background-color: #e5e7eb;
+    color: #374151;
+}
+
 .btn-delete {
     flex: 1;
     padding: 10px;
