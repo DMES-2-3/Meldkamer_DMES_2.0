@@ -173,7 +173,7 @@ CREATE TABLE `SITRAP` (
 
 CREATE TABLE `user` (
   `userId` int NOT NULL,
-  `email` VARCHAR(255) NOT NULL AFTER userId,
+  `email` VARCHAR(255) NOT NULL,
   `username` varchar(20) NOT NULL,
   `password` varchar(255) NOT NULL,
   `firstname` varchar(255) NOT NULL,
