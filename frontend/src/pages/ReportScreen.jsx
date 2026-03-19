@@ -49,6 +49,8 @@ export default function ReportScreen({ reloadData }) {
   const subjectRef = React.useRef(null);
   const locationRef = React.useRef(null);
   const noteRef = React.useRef(null);
+  const teamRef = React.useRef(null);
+  const genderRef = React.useRef(null);
   const eventRef = React.useRef(null);
   const conditionRef = React.useRef(null);
   const notepadRef = React.useRef(null);
@@ -481,7 +483,9 @@ export default function ReportScreen({ reloadData }) {
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();
-                  eventRef.current?.focus();
+                  const teamInput = teamRef.current?.querySelector('input, select');
+                  if (teamInput) teamInput.focus();
+                  else teamRef.current?.focus();
                 }
               }}
             />
@@ -511,12 +515,19 @@ export default function ReportScreen({ reloadData }) {
             </div>
           </div>
 
-          <div className="input-group">
-            <TeamSelect
-              units={availableUnitsForEvent}
-              value={formData.Team}
-              onChange={(val) => handleChange("Team", val)}
-            />
+          <div className="input-group" ref={teamRef} tabIndex={-1}>
+            <div onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                genderRef.current?.focus();
+              }
+            }}>
+              <TeamSelect
+                units={availableUnitsForEvent}
+                value={formData.Team}
+                onChange={(val) => handleChange("Team", val)}
+              />
+            </div>
           </div>
 
           <div className="input-group">
@@ -554,8 +565,15 @@ export default function ReportScreen({ reloadData }) {
         <div className="column-content">
           <div className="input-group">
             <select
+              ref={genderRef}
               value={formData.SITrap.Gender}
               onChange={(e) => handleSITrapChange("Gender", e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  eventRef.current?.focus();
+                }
+              }}
             >
               <option value="">Man / vrouw</option>
               <option value="Man">Man</option>
