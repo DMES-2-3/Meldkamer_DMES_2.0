@@ -97,8 +97,12 @@ export const getStatusColorForReport = getReportStatusColor;
 export const getPriorityColor = (priority) =>
   PRIORITY_COLORS[normalizePriority(priority)] || PRIORITY_COLORS.default;
 
-export const LegendItem = ({ color, label }) => (
-  <div className="legend-item">
+export const LegendItem = ({ color, label, onClick, active }) => (
+  <div
+    className={`legend-item ${active ? "active" : ""}`}
+    style={{ cursor: "pointer" }}
+    onClick={onClick}
+  >
     <span className="legend-dot" style={{ backgroundColor: color }} />
     <span>{label}</span>
   </div>

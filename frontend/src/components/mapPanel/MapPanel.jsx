@@ -25,6 +25,7 @@ export default function MapPanel({
   reports: dashboardReports = [],
   updateReportLocation,
   colorMode = "priority",
+  activeLegendFilters,
   initialMapType = "PDF",
 }) {
   const navigate = useNavigate();
@@ -72,6 +73,23 @@ export default function MapPanel({
   const currentMarkers = markers.filter(
     (m) => m.mapId === currentMapId && m.page === pageNumber,
   );
+
+  const filteredPdfMarkers = currentMarkers.filter((marker) => {
+    if (!marker.reportId) return true;
+
+    const report = reports.find(r => r.id.toString() === marker.reportId.toString());
+    if (!report) return true;
+
+    const matchesStatus =
+      !activeLegendFilters?.status?.length ||
+      activeLegendFilters.status.includes(normalizeReportStatus(report.status || report.Status));
+
+    const matchesPriority =
+      !activeLegendFilters?.priority?.length ||
+      activeLegendFilters.priority.includes(normalizePriority(report.priority || report.Prioriteit));
+
+    return matchesStatus && matchesPriority;
+  });
 
   const fetchReports = async () => {
     try {
@@ -461,6 +479,7 @@ export default function MapPanel({
           reports={dashboardReports}
           onMarkerDragEnd={updateReportLocation}
           colorMode={colorMode}
+          activeLegendFilters={activeLegendFilters}
         />
       ) : (
         <div
@@ -497,7 +516,7 @@ export default function MapPanel({
                   renderAnnotationLayer={false}
                   renderTextLayer={false}
                 />
-                {currentMarkers.map((marker) => (
+                {filteredPdfMarkers.map((marker) => (
                   <div
                     key={marker.id}
                     style={{

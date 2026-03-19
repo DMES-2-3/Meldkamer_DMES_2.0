@@ -18,6 +18,7 @@ export default function GoogleMapsPanel({
   reports,
   onMarkerDragEnd,
   colorMode,
+  activeLegendFilters
 }) {
   const navigate = useNavigate();
 
@@ -88,6 +89,18 @@ export default function GoogleMapsPanel({
     setMarkers(newMarkers);
   }, [reports, selectedEvent]);
 
+  const filteredMarkers = markers.filter((m) => {
+    const matchesStatus =
+      !activeLegendFilters?.status?.length ||
+      activeLegendFilters.status.includes(m.status);
+
+    const matchesPriority =
+      !activeLegendFilters?.priority?.length ||
+      activeLegendFilters.priority.includes(m.priority);
+
+    return matchesStatus && matchesPriority;
+  });
+
   // if (loadError) {
   //   return (
   //     <div className="map-error">
@@ -157,7 +170,7 @@ export default function GoogleMapsPanel({
           }
         }}
       >
-        {markers.map((m) => {
+        {filteredMarkers.map((m) => {
           let color = PRIORITY_COLORS.default;
 
           if (colorMode === "priority" && m.priority) {

@@ -22,6 +22,11 @@ export default function Dashboard({ reports, reloadData, setReports }) {
   const [statusFilter, setStatusFilter] = useState("All");
   const [priorityFilter, setPriorityFilter] = useState("All");
 
+  const [activeLegendFilters, setActiveLegendFilters] = useState({
+    status: [],
+    priority: [],
+  });
+
   const [showKladblok, setShowKladblok] = useState(false);
   const [kladblokContext, setKladblokContext] = useState(null);
   const [selectedEvent, setSelectedEvent] = useState(null);
@@ -146,6 +151,7 @@ export default function Dashboard({ reports, reloadData, setReports }) {
           reports={reports}
           updateReportLocation={updateReportLocation}
           colorMode={mapColorMode}
+          activeLegendFilters={activeLegendFilters}
           initialMapType={location.state?.openMapType}
         />
         <div className="resize-handle" onMouseDown={startResize} />
@@ -216,6 +222,8 @@ export default function Dashboard({ reports, reloadData, setReports }) {
           <Legend
             colorMode={mapColorMode}
             setColorMode={setMapColorMode}
+            activeLegendFilters={activeLegendFilters}
+            setActiveLegendFilters={setActiveLegendFilters}
           />
         </div>
         <div className="notepad-button">
