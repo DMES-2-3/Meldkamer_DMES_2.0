@@ -88,7 +88,7 @@ export default function EventsPage() {
 
   const handleLogout = async () => {
     try {
-      const res = await fetch(`${apiUrl("/v1/user/logout")}`, {
+      const res = await fetch(`${apiUrl("src/api/v1/user/logout")}`, {
         method: "DELETE",
         credentials: "include",
         headers: {
