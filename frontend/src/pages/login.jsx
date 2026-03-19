@@ -32,7 +32,7 @@ function Login() {
     setMsg("");
 
     try {
-      const res = await fetch(`${apiUrl("/v1/user/login")}`, {
+      const res = await fetch(`${apiUrl("src/api/v1/user/login")}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",

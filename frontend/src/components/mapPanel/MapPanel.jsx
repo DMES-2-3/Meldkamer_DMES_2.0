@@ -10,8 +10,8 @@ import { apiUrl } from "../../config/api";
 pdfjs.GlobalWorkerOptions.workerSrc =
   "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 
-const MAPS_URL = apiUrl("/v1/maps");
-const NOTIFICATIONS_URL = apiUrl("/v1/notification");
+const MAPS_URL = apiUrl("src/api/v1/maps");
+const NOTIFICATIONS_URL = apiUrl("src/api/v1/notification");
 const ZOOM_LIMITS = { min: 0.25, max: 4 };
 const ZOOM_STEP = 1.1;
 const WHEEL_SENSITIVITY = 0.0015;

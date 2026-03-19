@@ -33,7 +33,7 @@ function Register() {
     setMsg("");
 
     try {
-      const res = await fetch(`${apiUrl("/v1/user/register")}`, {
+      const res = await fetch(`${apiUrl("src/api/v1/user/register")}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
