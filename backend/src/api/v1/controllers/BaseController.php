@@ -12,11 +12,8 @@ class BaseController
     {
         $this->entityManager = $entityManager;
 
-        $this->uploadsDir = rtrim(__DIR__ . "/../../../../../uploads", "/") . "/";
-        if (
-            !is_dir($this->uploadsDir) &&
-            !mkdir($this->uploadsDir, 0777, true)
-        ) {
+        $this->uploadsDir = "/var/www/html/uploads/";
+        if (!is_dir($this->uploadsDir) && !mkdir($this->uploadsDir, 0775, true)) {
             $this->sendError("Cannot create uploads directory", 500);
         }
 
