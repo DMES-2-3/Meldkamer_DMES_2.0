@@ -10,8 +10,8 @@ import { apiUrl } from "../../config/api";
 pdfjs.GlobalWorkerOptions.workerSrc =
   "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 
-const MAPS_URL = apiUrl("src/api/v1/maps");
-const NOTIFICATIONS_URL = apiUrl("src/api/v1/notification");
+const MAPS_URL = apiUrl("/src/api/v1/maps");
+const NOTIFICATIONS_URL = apiUrl("/src/api/v1/notification");
 const ZOOM_LIMITS = { min: 0.25, max: 4 };
 const ZOOM_STEP = 1.1;
 const WHEEL_SENSITIVITY = 0.0015;
@@ -379,22 +379,41 @@ export default function MapPanel({
     formData.append("eventId", selectedEventId);
 
     try {
-      const res = await fetch(MAPS_URL, { method: "POST", body: formData });
-      const data = await res.json();
-      if (!res.ok)
-        setMessage({ type: "error", text: data.error || "Upload failed" });
-      else {
-        setMessage({ type: "success", text: "Upload successful!" });
-        const newMap = data.data;
-        const updatedMaps = [...maps, newMap];
-        setMaps(updatedMaps);
-        onMapsUpdate(updatedMaps);
-        setCurrentMapId(newMap.mapId);
-        setPageNumber(1);
+      const res = await fetch(MAPS_URL, {
+        method: "POST",
+        body: formData,
+      });
+
+      const text = await res.text();
+      let data = {};
+
+      try {
+        data = text ? JSON.parse(text) : {};
+      } catch {
+        throw new Error(`Invalid response: ${text.substring(0, 200)}`);
       }
+
+      if (!res.ok) {
+        setMessage({
+          type: "error",
+          text: data.error || "Upload failed",
+        });
+        return;
+      }
+
+      const newMap = data.data;
+      const updatedMaps = [...maps, newMap];
+      setMaps(updatedMaps);
+      onMapsUpdate(updatedMaps);
+      setCurrentMapId(newMap.mapId);
+      setPageNumber(1);
+      setMessage({ type: "success", text: "Upload successful!" });
     } catch (err) {
       console.error(err);
-      setMessage({ type: "error", text: "Upload failed" });
+      setMessage({
+        type: "error",
+        text: err.message || "Upload failed",
+      });
     } finally {
       setUploading(false);
       e.target.value = "";
@@ -472,7 +491,7 @@ export default function MapPanel({
         >
           {currentMapId && currentMap?.hasFile ? (
             <Document
-              file={`${MAPS_URL}/${currentMapId}/file`}
+              file={apiUrl(`/src/api/v1/maps/${currentMapId}/file`)}
               onLoadSuccess={({ numPages }) => setNumPages(numPages)}
             >
               <div

@@ -12,7 +12,7 @@ class BaseController
     {
         $this->entityManager = $entityManager;
 
-        $this->uploadsDir = __DIR__ . "/../../../../uploads/";
+        $this->uploadsDir = rtrim(__DIR__ . "/../../../../../uploads", "/") . "/";
         if (
             !is_dir($this->uploadsDir) &&
             !mkdir($this->uploadsDir, 0777, true)
