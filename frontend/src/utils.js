@@ -44,6 +44,13 @@ export const PRIORITY_COLORS = {
   default: "#d1d5db",
 };
 
+export const STATUS_NL = {
+  available: "Beschikbaar",
+  notification: "Melding",
+  wait: "Wacht",
+  unavailable: "Niet beschikbaar",
+};
+
 export const normalizeTeamStatus = (status) => {
   if (!status) return "available";
   const s = status.toString().toLowerCase();

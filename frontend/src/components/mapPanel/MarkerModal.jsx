@@ -83,8 +83,8 @@ export default function MarkerModal({
                 >
                   <strong>{marker.label}</strong>
                   {report && (
-                    <span style={{ marginLeft: 8, fontSize: 12, opacity: 0.7 }}>
-                      ({report.event || report.description || `Report ${marker.reportId}`})
+                    <span className="ellipsis" style={{ marginLeft: 8, fontSize: 12, opacity: 0.7 }}>
+                      ({report.event || report.description || `Melding ${marker.reportId}`})
                     </span>
                   )}
                 </div>
@@ -109,13 +109,13 @@ export default function MarkerModal({
               </div>
 
               <div className="report-details-row">
-                <span className="label">Gelinkt Rapport:</span>
+                <span className="label">Gekoppelde melding:</span>
                 <select
                   className="form-input"
                   value={linkedReportId || ""}
                   onChange={(e) => setLinkedReportId(e.target.value)}
                 >
-                  <option value="">-- Selecteer Rapport --</option>
+                  <option value="">-- Selecteer melding --</option>
                   {localReports
                     .filter((r) => r.id && r.eventId === selectedEventId)
                     .map((report) => (
@@ -129,10 +129,11 @@ export default function MarkerModal({
               {linkedReport && (
                 <div className="report-details" style={{ marginTop: 12 }}>
                   <div>
-                    <b>Event:</b> {linkedReport.event}
+                    <b>Evenement:</b> {linkedReport.event}
                   </div>
                   <div>
-                    <b>Beschrijving:</b> {linkedReport.description || "-"}
+                    <b>Beschrijving:</b>{" "}
+                    <span className="ellipsis">{linkedReport.description || "-"}</span>
                   </div>
                   <div>
                     <b>Status:</b> {linkedReport.status || "-"}
@@ -152,7 +153,7 @@ export default function MarkerModal({
                 className="btn-delete"
                 onClick={() => onDelete(editingMarker.id)}
               >
-                Verwijder
+                Verwijderen
               </button>
               <button
                 className="btn-cancel"

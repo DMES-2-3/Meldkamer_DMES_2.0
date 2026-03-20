@@ -27,7 +27,7 @@ export default function Legend({ colorMode, setColorMode}) {
       </h3>
       <div className="legend-grid">
         <LegendItem color={REPORT_STATUS_COLORS.open} label="Open" />
-        <LegendItem color={REPORT_STATUS_COLORS["in progress"]} label="In Progressie" />
+        <LegendItem color={REPORT_STATUS_COLORS["in progress"]} label="In behandeling" />
         <LegendItem color={REPORT_STATUS_COLORS.closed} label="Gesloten" />
       </div>
 

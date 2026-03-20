@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { STATUS_NL } from "../utils";
 
 export default function AidWorkersTable({ workers }) {
   const [selectedWorker, setSelectedWorker] = useState(null);
@@ -19,21 +20,25 @@ export default function AidWorkersTable({ workers }) {
             </tr>
           </thead>
           <tbody>
-            {workers.map(w => (
-              <tr key={w.id} onClick={() => setSelectedWorker(w)} className="clickable-row">
-                <td>
-                  <span
-                    className="status-dot"
-                    style={{ backgroundColor: w.color }}
-                  />
-                  {w.status}
-                </td>
-                <td>{w.callNumber || w.id}</td>
-                <td>{w.name}</td>
-                <td>{w.workerType || "N/A"}</td>
-                <td>{w.teamName || "N/A"}</td>
-              </tr>
-            ))}
+            {workers.map(w => {
+              const normalizedStatus = w.status.toLowerCase();
+
+              return (
+                <tr key={w.id} onClick={() => setSelectedWorker(w)} className="clickable-row">
+                  <td>
+                    <span
+                      className="status-dot"
+                      style={{ backgroundColor: w.color }}
+                    />
+                    {STATUS_NL[normalizedStatus] || w.status}
+                  </td>
+                  <td>{w.callNumber || w.id}</td>
+                  <td>{w.name}</td>
+                  <td>{w.workerType || "N/A"}</td>
+                  <td>{w.teamName || "N/A"}</td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

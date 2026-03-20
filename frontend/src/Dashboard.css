@@ -398,6 +398,16 @@
 .marker-list-item:hover {
     background: #e0e0e0;
 }
+
+.ellipsis {
+    display: inline-block;    
+    max-width: 200px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    vertical-align: bottom;  
+}
+
 .marker-edit-form button:hover {
     background: #2e2a7a;
 }
