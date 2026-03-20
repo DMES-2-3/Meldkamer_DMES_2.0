@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Document, Page, pdfjs } from "react-pdf";
 import GoogleMapsPanel from "../GoogleMapsPanel";
@@ -55,7 +55,7 @@ export default function MapPanel({
   const [showMapModal, setShowMapModal] = useState(false);
   const [showMarkerModal, setShowMarkerModal] = useState(false);
   const [editingMarker, setEditingMarker] = useState(null);
-  const [tempMarkerLabel, setTempMarkerLabel] = useState("");
+  const [, setTempMarkerLabel] = useState("");
   const [tempMarkerReportId, setTempMarkerReportId] = useState("");
   const [selectedMarkerId, setSelectedMarkerId] = useState(null);
 
@@ -127,7 +127,7 @@ export default function MapPanel({
       setCurrentMapId(null);
     }
     fetchReports();
-  }, [initialMaps, selectedEventId]);
+  }, [initialMaps, selectedEventId, currentMapId]);
 
   // Check for a completed pending PDF marker (coming back from ReportScreen)
   useEffect(() => {
@@ -190,21 +190,6 @@ export default function MapPanel({
       setTempMarkerLabel(getShortLabel(report.description || report.event, 25));
   }, [tempMarkerReportId, reports]);
 
-  useEffect(() => {
-    const el = wrapperRef.current;
-    if (!el) return;
-
-    const wheelListener = (e) => {
-      handleWheel(e);
-    };
-
-    el.addEventListener("wheel", wheelListener, { passive: false });
-
-    return () => {
-      el.removeEventListener("wheel", wheelListener);
-    };
-  }, [zoom, panPosition]);
-
   const fetchMapsForEvent = async (eventId) => {
     if (!eventId) return;
     try {
@@ -221,14 +206,16 @@ export default function MapPanel({
     }
   };
 
-  const handleWheel = (e) => {
+  const handleWheel = useCallback((e) => {
     e.preventDefault();
+
     const rect = wrapperRef.current?.getBoundingClientRect();
     if (!rect) return;
 
     const offsetX = e.clientX - rect.left;
     const offsetY = e.clientY - rect.top;
     const prevZoom = zoom;
+
     const newZoom = Math.min(
       Math.max(zoom * (1 - e.deltaY * WHEEL_SENSITIVITY), ZOOM_LIMITS.min),
       ZOOM_LIMITS.max,
@@ -239,7 +226,18 @@ export default function MapPanel({
 
     setZoom(newZoom);
     setPanPosition({ x: panPosition.x - dx, y: panPosition.y - dy });
-  };
+  }, [zoom, panPosition]);
+
+    useEffect(() => {
+    const el = wrapperRef.current;
+    if (!el) return;
+
+    el.addEventListener("wheel", handleWheel, { passive: false });
+
+    return () => {
+      el.removeEventListener("wheel", handleWheel);
+    };
+  }, [handleWheel]);
 
   const zoomIn = () => setZoom((z) => Math.min(z * ZOOM_STEP, ZOOM_LIMITS.max));
   const zoomOut = () =>
@@ -361,20 +359,6 @@ export default function MapPanel({
     setShowMarkerModal(true);
   };
 
-  const saveMarker = (updatedMarker) => {
-    setMarkers((prev) =>
-      prev.map((m) => (m.id === updatedMarker.id ? updatedMarker : m)),
-    );
-    setEditingMarker(null);
-    setShowMarkerModal(false);
-  };
-
-  const deleteMarker = (markerId) => {
-    setMarkers((prev) => prev.filter((m) => m.id !== markerId));
-    setEditingMarker(null);
-    setShowMarkerModal(false);
-  };
-
   const handleMapSelect = (map) => {
     if (currentMapId === map.mapId) return setShowMapModal(false);
     setCurrentMapId(map.mapId);
@@ -491,7 +475,6 @@ export default function MapPanel({
         <div
           ref={wrapperRef}
           className="map-wrapper"
-          onWheel={handleWheel}
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}

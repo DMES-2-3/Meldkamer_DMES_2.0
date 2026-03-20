@@ -1,4 +1,4 @@
-export function PdfViewer({ fileUrl, pageNumber, zoom, pan, markers, onMarkerMouseDown }) {
+export function PdfViewer({ fileUrl, pageNumber, zoom, pan, markers, onMarkerMouseDown, Document, Page, Marker }) {
   return (
     <Document file={fileUrl}>
       <div style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})` }}>

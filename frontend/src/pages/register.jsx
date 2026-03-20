@@ -5,8 +5,6 @@ import "../login.css";
 import { useAuth } from "../contexts/AuthContext";
 
 function Register() {
-  const API_BASE =
-  process.env.REACT_APP_API_URL || import.meta.env.VITE_API_URL;
   const navigate = useNavigate();
   const { refreshSession } = useAuth();
   const [form, setForm] = useState({

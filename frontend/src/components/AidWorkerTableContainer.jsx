@@ -2,19 +2,6 @@ import React, { useState, useEffect } from "react";
 import AidWorkersTable from "./AidWorkerTable";
 import { getAidWorkers } from "../services/reportsApi";
 
-const DUMMY_WORKERS = [
-  {
-    id: 1,
-    callNumber: "A-10",
-    name: "John Doe",
-    role: "Medic",
-    note: "Experienced",
-    status: "AVAILABLE",
-    color: "#10B981",
-    teamName: "Alpha Team",
-  },
-];
-
 export default function AidWorkersTableContainer() {
   const [workers, setWorkers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -41,7 +28,6 @@ export default function AidWorkersTableContainer() {
       } catch (err) {
         console.error("Failed to fetch aid workers:", err);
         setError(err.message);
-        setWorkers(DUMMY_WORKERS);
       } finally {
         setLoading(false);
       }
@@ -50,9 +36,9 @@ export default function AidWorkersTableContainer() {
     fetchWorkers();
   }, []);
 
-  if (loading) return <p>Aid workers laden...</p>;
+  if (loading) return <p>Hulpverleners laden...</p>;
   if (error) return <p style={{ color: "red" }}>Error: {error}</p>;
-  if (!workers.length) return <p>Geen aid workers beschikbaar</p>;
+  if (!workers.length) return <p>Geen hulpverleners beschikbaar</p>;
 
   return <AidWorkersTable workers={workers} />;
 }
