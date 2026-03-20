@@ -43,6 +43,8 @@ export default function OverviewScreen() {
     }));
   }, [units]);
 
+  const availableUnits = useMemo(() => mappedUnits.filter(u => u.status === "AVAILABLE"), [mappedUnits]);
+
   useEffect(() => {
     const stored = localStorage.getItem("selected_event");
     if (!stored) {
@@ -214,7 +216,7 @@ export default function OverviewScreen() {
       <Section title="Nieuwe meldingen" color="#00A651">
         <OverviewTable
           reports={newReports}
-          units={mappedUnits}
+          units={availableUnits}
           placeholderRows={5}
           onRowClick={handleReportClick}
           onStatusUpdate={handleStatusUpdate}
@@ -226,7 +228,7 @@ export default function OverviewScreen() {
       <Section title="Lopende meldingen" color="#F7941D">
         <OverviewTable
           reports={inProgressReports}
-          units={mappedUnits}
+          units={availableUnits}
           placeholderRows={5}
           onRowClick={handleReportClick}
           onStatusUpdate={handleStatusUpdate}
@@ -238,7 +240,7 @@ export default function OverviewScreen() {
       <Section title="Gesloten meldingen" color="#9B9B9B">
         <OverviewTable
           reports={closedReports}
-          units={mappedUnits}
+          units={availableUnits}
           placeholderRows={5}
           onRowClick={handleReportClick}
           onStatusUpdate={handleStatusUpdate}
