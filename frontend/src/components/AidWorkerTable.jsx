@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { STATUS_NL } from "../utils";
+import { STATUS_TRANSLATIONS } from "../utils";
 
 export default function AidWorkersTable({ workers }) {
   const [selectedWorker, setSelectedWorker] = useState(null);
@@ -30,7 +30,7 @@ export default function AidWorkersTable({ workers }) {
                       className="status-dot"
                       style={{ backgroundColor: w.color }}
                     />
-                    {STATUS_NL[normalizedStatus] || w.status}
+                    {STATUS_TRANSLATIONS[normalizedStatus] || w.status}
                   </td>
                   <td>{w.callNumber || w.id}</td>
                   <td>{w.name}</td>

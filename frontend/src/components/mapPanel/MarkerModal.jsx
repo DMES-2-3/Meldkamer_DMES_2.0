@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { STATUS_TRANSLATIONS, PRIORITY_TRANSLATIONS } from "../../utils";
 
 export default function MarkerModal({
   show,
@@ -136,10 +137,16 @@ export default function MarkerModal({
                     <span className="ellipsis">{linkedReport.description || "-"}</span>
                   </div>
                   <div>
-                    <b>Status:</b> {linkedReport.status || "-"}
+                    <b>Status:</b> 
+                    {linkedReport.status
+                      ? STATUS_TRANSLATIONS[linkedReport.status.toLowerCase()] || linkedReport.status
+                      : "-"}
                   </div>
                   <div>
-                    <b>Prioriteit:</b> {linkedReport.priority || "-"}
+                    <b>Prioriteit:</b>
+                    {linkedReport.priority
+                      ? PRIORITY_TRANSLATIONS[linkedReport.priority.toLowerCase()] || linkedReport.priority
+                      : "-"}
                   </div>
                 </div>
               )}
