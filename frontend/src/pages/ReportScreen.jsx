@@ -330,18 +330,6 @@ export default function ReportScreen({ reloadData }) {
       return;
     try {
       if (formData.id) {
-        // Release the team associated with the report
-        const teamName = formData.Team;
-        if (teamName) {
-          const team = units.find((u) => u.name === teamName);
-          if (team) {
-            const payload = { ...team, status: "AVAILABLE" };
-            delete payload.id;
-            delete payload.name;
-            await updateUnit(team.id, payload);
-          }
-        }
-
         await deleteReport(formData.id);
         if (reloadData) await reloadData();
       }
