@@ -1,10 +1,10 @@
 const API_BASE_URL =
-  process.env.REACT_APP_API_URL || import.meta.env.VITE_API_URL;
+  process.env.REACT_APP_API_BASE_URL?.replace(/\/+$/, "") ||
+  "http://46.224.225.189:8080";
 
 function apiUrl(path = "") {
-  const base = API_BASE_URL.replace(/\/+$/, "");
   const suffix = String(path || "").replace(/^\/+/, "");
-  return suffix ? `${base}/${suffix}` : base;
+  return `${API_BASE_URL}/${suffix}`;
 }
 
 const getTeamEndpoint = (path = "") => apiUrl(`/src/api/v1/aidteam${path}`);
