@@ -2,20 +2,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { STATUSES } from "../constants";
 import TeamsTable from "./TeamsTable";
-
-const API_BASE =
-  process.env.REACT_APP_API_URL || import.meta.env.VITE_API_URL;
-
-const DUMMY_TEAMS = [
-  {
-    id: 1,
-    name: "Alpha Team",
-    role: "N/A",
-    note: "Test note",
-    status: "AVAILABLE",
-    color: "#10B981",
-  },
-];
+import { apiUrl } from "../config/api";
 
 export default function TeamsTableContainer() {
   const navigate = useNavigate();
@@ -25,7 +12,7 @@ export default function TeamsTableContainer() {
   const [selectedEvent, setSelectedEvent] = useState(null);
 
   const fetchTeams = useCallback(async () => {
-    const API_URL = `${API_BASE}/v1`;
+    const API_URL = `${apiUrl()}/v1`;
     try {
       const eventId = selectedEvent?.id;
       const url = eventId
@@ -72,7 +59,6 @@ export default function TeamsTableContainer() {
     } catch (err) {
       console.error("Failed to fetch teams:", err);
       setError(err.message);
-      setTeams(DUMMY_TEAMS);
     } finally {
       setLoading(false);
     }
