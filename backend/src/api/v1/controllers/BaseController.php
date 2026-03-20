@@ -22,12 +22,11 @@ class BaseController
 
     protected function setupHeaders()
     {
-        // CORS headers are already set in .htaccess, but we can add additional headers here if needed
         header("Content-Type: application/json; charset=utf-8");
 
-        // Ensure we're outputting JSON even on errors
         ini_set("display_errors", 0);
         ini_set("display_startup_errors", 0);
+        error_reporting(E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED & ~E_NOTICE & ~E_WARNING);
     }
 
     protected function sendResponse($data, $statusCode = 200)
