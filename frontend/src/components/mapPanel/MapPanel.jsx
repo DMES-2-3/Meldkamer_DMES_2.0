@@ -190,6 +190,21 @@ export default function MapPanel({
       setTempMarkerLabel(getShortLabel(report.description || report.event, 25));
   }, [tempMarkerReportId, reports]);
 
+  useEffect(() => {
+    const el = wrapperRef.current;
+    if (!el) return;
+
+    const wheelListener = (e) => {
+      handleWheel(e);
+    };
+
+    el.addEventListener("wheel", wheelListener, { passive: false });
+
+    return () => {
+      el.removeEventListener("wheel", wheelListener);
+    };
+  }, [zoom, panPosition]);
+
   const fetchMapsForEvent = async (eventId) => {
     if (!eventId) return;
     try {
