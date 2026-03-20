@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { STATUSES } from "../constants";
 import TeamsTable from "./TeamsTable";
-import { apiUrl } from "../config/api";
+import { getUnits } from "../services/unitsApi";
 
 export default function TeamsTableContainer() {
   const navigate = useNavigate();
@@ -12,22 +12,9 @@ export default function TeamsTableContainer() {
   const [selectedEvent, setSelectedEvent] = useState(null);
 
   const fetchTeams = useCallback(async () => {
-    const API_URL = `${apiUrl()}/v1`;
     try {
-      const eventId = selectedEvent?.id;
-      const url = eventId
-        ? `${API_URL}/aidteam?eventId=${eventId}`
-        : `${API_URL}/aidteam`;
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(`HTTP error! Status: ${res.status}`);
-
-      const text = await res.text();
-      let data;
-      try {
-        data = JSON.parse(text);
-      } catch {
-        throw new Error("Invalid JSON response: " + text.substring(0, 100));
-      }
+      const eventId = selectedEvent?.id ?? null;
+      const data = await getUnits(eventId);
 
       const statusConfig = {
         REGISTERED: { color: "#10B981" },
@@ -43,7 +30,7 @@ export default function TeamsTableContainer() {
         UNAVAILABLE: { color: "#6B7280" },
       };
 
-      const mapped = data.map((team) => ({
+      const mapped = (Array.isArray(data) ? data : []).map((team) => ({
         id: team.aidTeamId || team.id,
         name: team.aidTeamName || team.name,
         callNumber: team.callNumber,
@@ -58,7 +45,7 @@ export default function TeamsTableContainer() {
       setError(null);
     } catch (err) {
       console.error("Failed to fetch teams:", err);
-      setError(err.message);
+      setError(err.message || "Onbekende fout");
     } finally {
       setLoading(false);
     }
@@ -70,12 +57,12 @@ export default function TeamsTableContainer() {
       navigate("/events");
       return;
     }
+
     try {
       const parsed = JSON.parse(stored);
       setSelectedEvent(parsed);
     } catch {
       navigate("/events");
-      return;
     }
   }, [navigate]);
 
