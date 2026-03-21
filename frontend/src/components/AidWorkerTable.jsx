@@ -3,7 +3,7 @@ import React, { useState } from "react";
 export default function AidWorkersTable({ workers, onStatusClick }) {
   const [selectedWorker, setSelectedWorker] = useState(null);
 
-  if (!workers.length) return <p>Geen aid workers beschikbaar</p>;
+  if (!workers.length) return <p>Geen hulpverleners beschikbaar</p>;
 
   return (
     <>
@@ -14,7 +14,7 @@ export default function AidWorkersTable({ workers, onStatusClick }) {
               <th>Status</th>
               <th>Roepnummer</th>
               <th>Naam</th>
-              <th>Rol</th>
+              <th>Type</th>
               <th>Team</th>
             </tr>
           </thead>
@@ -44,7 +44,7 @@ export default function AidWorkersTable({ workers, onStatusClick }) {
                 </td>
                 <td>{w.callNumber || w.id}</td>
                 <td>{w.name}</td>
-                <td>{w.role}</td>
+                <td>{w.workerType || "N/A"}</td>
                 <td>{w.teamName || "N/A"}</td>
               </tr>
             ))}

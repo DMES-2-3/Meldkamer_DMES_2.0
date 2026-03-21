@@ -150,7 +150,7 @@ export default function TeamsTableContainer() {
 
   if (loading) return <p>Teams inladen...</p>;
   if (error) return <p style={{ color: "red" }}>Error: {error}</p>;
-  if (!teams.length) return <p>Geen teams beschikbaar</p>;
+  if (!teams.length) return <p>Geen teams beschikbaar voor dit evenement</p>;
 
   return (
     <>

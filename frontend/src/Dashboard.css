@@ -947,10 +947,16 @@
 .legend-buttons {
     margin-top: auto;
     display: flex;
+    flex-direction: column;
     justify-content: flex-end;
     gap: 16px;
     padding-top: 12px;
     border-radius: 8px;
+}
+
+.notepad-button {
+    display: flex;
+    justify-content: flex-end;
 }
 
 .btn-small {
