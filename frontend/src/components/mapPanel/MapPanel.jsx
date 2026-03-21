@@ -119,11 +119,24 @@ export default function MapPanel({
 
   useEffect(() => {
     setMaps(initialMaps);
-    if (initialMaps.length > 0 && !currentMapId) {
-      setCurrentMapId(initialMaps[0].mapId);
-    } else if (initialMaps.length === 0) {
+
+    if (initialMaps.length === 0) {
       setCurrentMapId(null);
+      setPageNumber(1);
+      setNumPages(null);
+      return;
     }
+
+    const mapStillExists = initialMaps.some((m) => m.mapId === currentMapId);
+
+    if (!mapStillExists) {
+      setCurrentMapId(initialMaps[0].mapId);
+      setPageNumber(1);
+      setNumPages(null);
+      setZoom(1);
+      setPanPosition({ x: 0, y: 0 });
+    }
+
     fetchReports();
   }, [initialMaps, selectedEventId]);
 
@@ -231,14 +244,29 @@ export default function MapPanel({
 
   const fetchMapsForEvent = async (eventId) => {
     if (!eventId) return;
+
     try {
       const res = await fetch(`${MAPS_URL}?eventId=${eventId}`);
       const data = await res.json();
       const eventMaps = Array.isArray(data) ? data : [];
+
       setMaps(eventMaps);
       onMapsUpdate(eventMaps);
-      if (eventMaps.length > 0 && !currentMapId) {
+
+      if (eventMaps.length === 0) {
+        setCurrentMapId(null);
+        setPageNumber(1);
+        setNumPages(null);
+        return;
+      }
+
+      const mapStillExists = eventMaps.some((m) => m.mapId === currentMapId);
+      if (!mapStillExists) {
         setCurrentMapId(eventMaps[0].mapId);
+        setPageNumber(1);
+        setNumPages(null);
+        setZoom(1);
+        setPanPosition({ x: 0, y: 0 });
       }
     } catch (err) {
       console.error(err);
@@ -521,8 +549,12 @@ export default function MapPanel({
         >
           {currentMapId && currentMap?.hasFile ? (
             <Document
+              key={currentMapId}
               file={`${MAPS_URL}/${currentMapId}/file`}
-              onLoadSuccess={({ numPages }) => setNumPages(numPages)}
+              onLoadSuccess={({ numPages }) => {
+                setNumPages(numPages);
+                if (pageNumber > numPages) setPageNumber(1);
+              }}
             >
               <div
                 ref={pdfPageRef}

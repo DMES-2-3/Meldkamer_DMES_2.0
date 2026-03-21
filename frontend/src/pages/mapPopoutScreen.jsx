@@ -13,14 +13,27 @@ export default function MapPopoutScreen({
   useEffect(() => {
     document.title = "Map Pop-out";
 
-    const stored = localStorage.getItem("selected_event");
-    if (stored) {
-      try {
-        setSelectedEvent(JSON.parse(stored));
-      } catch (e) {
-        console.error("Failed to parse selected_event", e);
+    const loadSelectedEvent = () => {
+      const stored = localStorage.getItem("selected_event");
+      if (stored) {
+        try {
+          setSelectedEvent(JSON.parse(stored));
+        } catch (e) {
+          console.error("Failed to parse selected_event", e);
+        }
       }
-    }
+    };
+
+    loadSelectedEvent();
+
+    const onStorage = (e) => {
+      if (e.key === "selected_event") {
+        loadSelectedEvent();
+      }
+    };
+
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
   }, []);
 
   const handleMapsUpdate = (maps) => {
@@ -57,7 +70,7 @@ export default function MapPopoutScreen({
   };
 
   return (
-    <div style={{ width: "100vw", height: "100vh", margin: 0, padding: 0, overflow: "hidden" }}>
+    <div style={{ width: "100vw", height: "100vh", margin: 0, padding: 0, overflow: "hidden", display: "flex" }}>
       <MapPanel
         onMapSelect={() => {}}
         pendingReport={null}
