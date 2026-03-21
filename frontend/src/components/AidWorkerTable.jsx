@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 
-export default function AidWorkersTable({ workers }) {
+export default function AidWorkersTable({ workers, onStatusClick }) {
   const [selectedWorker, setSelectedWorker] = useState(null);
 
   if (!workers.length) return <p>Geen aid workers beschikbaar</p>;
@@ -19,14 +19,28 @@ export default function AidWorkersTable({ workers }) {
             </tr>
           </thead>
           <tbody>
-            {workers.map(w => (
-              <tr key={w.id} onClick={() => setSelectedWorker(w)} className="clickable-row">
+            {workers.map((w) => (
+              <tr
+                key={w.id}
+                onClick={() => setSelectedWorker(w)}
+                className="clickable-row"
+              >
                 <td>
-                  <span
-                    className="status-dot"
-                    style={{ backgroundColor: w.color }}
-                  />
-                  {w.status}
+                  <button
+                    type="button"
+                    className="status-button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onStatusClick?.(w);
+                    }}
+                    title="Klik om status te wijzigen"
+                  >
+                    <span
+                      className="status-dot"
+                      style={{ backgroundColor: w.color }}
+                    />
+                    {w.statusLabel || w.status}
+                  </button>
                 </td>
                 <td>{w.callNumber || w.id}</td>
                 <td>{w.name}</td>
