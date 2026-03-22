@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { STATUS_TRANSLATIONS } from "../utils/utils";
 
 export default function AidWorkersTable({ workers, onStatusClick }) {
   const [selectedWorker, setSelectedWorker] = useState(null);
@@ -19,35 +20,25 @@ export default function AidWorkersTable({ workers, onStatusClick }) {
             </tr>
           </thead>
           <tbody>
-            {workers.map((w) => (
-              <tr
-                key={w.id}
-                onClick={() => setSelectedWorker(w)}
-                className="clickable-row"
-              >
-                <td>
-                  <button
-                    type="button"
-                    className="status-button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onStatusClick?.(w);
-                    }}
-                    title="Klik om status te wijzigen"
-                  >
+            {workers.map(w => {
+              const normalizedStatus = w.status.toLowerCase();
+
+              return (
+                <tr key={w.id} onClick={() => setSelectedWorker(w)} className="clickable-row">
+                  <td>
                     <span
                       className="status-dot"
                       style={{ backgroundColor: w.color }}
                     />
-                    {w.statusLabel || w.status}
-                  </button>
-                </td>
-                <td>{w.callNumber || w.id}</td>
-                <td>{w.name}</td>
-                <td>{w.workerType || "N/A"}</td>
-                <td>{w.teamName || "N/A"}</td>
-              </tr>
-            ))}
+                    {STATUS_TRANSLATIONS[normalizedStatus] || w.status}
+                  </td>
+                  <td>{w.callNumber || w.id}</td>
+                  <td>{w.name}</td>
+                  <td>{w.workerType || "N/A"}</td>
+                  <td>{w.teamName || "N/A"}</td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

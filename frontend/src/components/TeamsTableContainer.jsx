@@ -148,7 +148,7 @@ export default function TeamsTableContainer() {
     }
   }, [selectedEvent, fetchTeams]);
 
-  if (loading) return <p>Teams inladen...</p>;
+  if (loading) return <p>Teams laden...</p>;
   if (error) return <p style={{ color: "red" }}>Error: {error}</p>;
   if (!teams.length) return <p>Geen teams beschikbaar voor dit evenement</p>;
 

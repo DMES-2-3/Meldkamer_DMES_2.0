@@ -69,10 +69,10 @@ export default function ReportsTableContainer({
     setFilteredReports(reportsToFilter);
   }, [allEventReports, statusFilter, priorityFilter]);
 
-  if (loading) return <p>Rapporten laden...</p>;
+  if (loading) return <p>Meldingen laden...</p>;
   if (error) return <p style={{ color: "red" }}>Error: {error}</p>;
   if (!allEventReports.length)
-    return <p>Geen rapporten beschikbaar voor dit evenement</p>;
+    return <p>Geen meldingen beschikbaar voor dit evenement</p>;
 
   return <ReportsTable reports={filteredReports} />;
 }

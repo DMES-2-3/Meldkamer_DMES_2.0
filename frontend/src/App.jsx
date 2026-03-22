@@ -7,6 +7,7 @@ import { getReports, getUnits } from "./services/reportsApi";
 
 import TopNav from "./components/layout/TopNav";
 import Protected from "./components/protected";
+import FloatingNotepad from "./components/FloatingNotepad";
 
 import Dashboard from "./pages/dashboard";
 import EventsPage from "./pages/EventsPage";
@@ -21,6 +22,28 @@ import MapPopoutScreen from "./pages/mapPopoutScreen";
 function App() {
   const [reports, setReports] = useState([]);
   const [units, setUnits] = useState([]);
+  const [showKladblok, setShowKladblok] = useState(false);
+  const [kladblokContext, setKladblokContext] = useState(null);
+
+  useEffect(() => {
+    const handleGlobalKladblok = (e) => {
+      // Alt + K for opening/closing the notepad
+      if (e.altKey && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        const stored = localStorage.getItem("selected_event");
+        if (stored) {
+          try {
+            const parsed = JSON.parse(stored);
+            setKladblokContext({ type: "event", eventName: parsed.name || parsed.eventName });
+          } catch (err) {}
+        }
+        setShowKladblok((prev) => !prev);
+      }
+    };
+
+    window.addEventListener("keydown", handleGlobalKladblok);
+    return () => window.removeEventListener("keydown", handleGlobalKladblok);
+  }, []);
 
   const reloadData = useCallback(async () => {
     try {
@@ -113,6 +136,11 @@ function App() {
                           element={<Navigate to="/evenementen" replace />}
                         />
                       </Routes>
+                      <FloatingNotepad
+                        open={showKladblok}
+                        context={kladblokContext}
+                        onClose={() => setShowKladblok(false)}
+                      />
                     </div>
                   )}
                 />

@@ -617,11 +617,19 @@ select.up-input {
 }
 
 /* Lijst met unit-kaarten */
+.up-cards-wrapper {
+    background: #ffffff;
+    border: 1px solid #d1d5db;
+    border-top: none;
+    border-radius: 0 0 6px 6px;
+    padding: 16px;
+}
+
 .units-unit-list {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-    margin-top: 10px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 16px;
+    margin-top: 0;
 }
 
 .units-empty {
@@ -630,14 +638,68 @@ select.up-input {
 
 /* Unit card */
 .unit-card {
-    background: #f0f0f0;
-    padding: 10px;
-    border-radius: 6px;
-    border: 1px solid #d0d0d0;
-    min-width: 160px;
+    background: #ffffff;
+    padding: 14px;
+    border-radius: 8px;
+    border: 1px solid #d1d5db;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 10px;
+    cursor: pointer;
+    transition: box-shadow 0.15s, transform 0.1s;
+}
+
+.unit-card:hover {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    transform: translateY(-2px);
+    background-color: #f9fafb;
+}
+
+.unit-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.unit-card-body {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.unit-card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: auto;
+}
+
+/* Notes in cards */
+.unit-card .up-td-note {
+    font-size: 13px;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    max-width: none;
+    border-top: 1px dashed #e5e7eb;
+    padding-top: 6px;
+    margin-top: 4px;
+}
+
+/* Delete Icon */
+.up-delete-icon {
+    color: #dc2626;
+    font-size: 20px;
+    line-height: 1;
+    padding: 4px;
+    border-radius: 4px;
+    transition: background-color 0.15s, transform 0.1s;
+}
+
+.up-delete-icon:hover {
+    background-color: rgba(220, 38, 38, 0.08);
+    transform: translateY(-1px);
 }
 
 /* Label bovenaan */
@@ -670,7 +732,7 @@ select.up-input {
 
 .unit-team-name {
     font-weight: 600;
-    margin-top: -4px;
+    font-size: 15px;
 }
 
 .unit-updated {

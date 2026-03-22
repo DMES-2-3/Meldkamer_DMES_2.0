@@ -10,7 +10,7 @@ import { Document, Page, pdfjs } from "react-pdf";
 import GoogleMapsPanel from "../GoogleMapsPanel";
 import MapModal from "./MapModal";
 import MarkerModal from "./MarkerModal";
-import { getPriorityColor } from "../../utils/utils";
+import { getPriorityColor, PRIORITY_COLORS, REPORT_STATUS_COLORS, normalizePriority, normalizeReportStatus } from "../../utils/utils";
 
 pdfjs.GlobalWorkerOptions.workerSrc =
   "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
@@ -31,6 +31,7 @@ export default function MapPanel({
   reports: dashboardReports = [],
   updateReportLocation,
   colorMode = "priority",
+  activeLegendFilters,
   initialMapType = "PDF",
   isPopout = false,
 }) {
@@ -71,6 +72,23 @@ export default function MapPanel({
   const currentMarkers = markers.filter(
     (m) => m.mapId === currentMapId && m.page === pageNumber,
   );
+
+  const filteredPdfMarkers = currentMarkers.filter((marker) => {
+    if (!marker.reportId) return true;
+
+    const report = reports.find(r => r.id.toString() === marker.reportId.toString());
+    if (!report) return true;
+
+    const matchesStatus =
+      !activeLegendFilters?.status?.length ||
+      activeLegendFilters.status.includes(normalizeReportStatus(report.status || report.Status));
+
+    const matchesPriority =
+      !activeLegendFilters?.priority?.length ||
+      activeLegendFilters.priority.includes(normalizePriority(report.priority || report.Prioriteit));
+
+    return matchesStatus && matchesPriority;
+  });
 
   const fetchReports = async () => {
     try {
@@ -459,9 +477,9 @@ export default function MapPanel({
       const res = await fetch(MAPS_URL, { method: "POST", body: formData });
       const data = await res.json();
       if (!res.ok)
-        setMessage({ type: "error", text: data.error || "Upload failed" });
+        setMessage({ type: "error", text: data.error || "Upload mislukt" });
       else {
-        setMessage({ type: "success", text: "Upload successful!" });
+        setMessage({ type: "success", text: "Upload succesvol!" });
         const newMap = data.data;
         const updatedMaps = [...maps, newMap];
         setMaps(updatedMaps);
@@ -492,12 +510,22 @@ export default function MapPanel({
     });
   };
 
-  const getMarkerColor = (marker) => {
-    if (!marker.reportId) return "#9ca3af";
-    const report = reports.find(
-      (r) => r.id.toString() === marker.reportId.toString(),
-    );
-    return report ? getPriorityColor(report.priority) : "#9ca3af";
+  const getMarkerColor = (marker, reports = [], colorMode = "priority") => {
+    if (!marker?.reportId) return "#9ca3af";
+
+    const report = reports.find(r => r.id.toString() === marker.reportId.toString());
+    if (!report) return "#9ca3af";
+
+    if (colorMode === "priority") {
+      const normalized = normalizePriority(report.priority || report.Prioriteit);
+      return PRIORITY_COLORS[normalized] || PRIORITY_COLORS.default;
+    }
+    else if (colorMode === "status") {
+      const normalized = normalizeReportStatus(report.status || report.Status);
+      return REPORT_STATUS_COLORS[normalized] || REPORT_STATUS_COLORS.default;
+    }
+
+    return "#9ca3af";
   };
 
   return (
@@ -529,6 +557,7 @@ export default function MapPanel({
           reports={dashboardReports}
           onMarkerDragEnd={updateReportLocation}
           colorMode={colorMode}
+          activeLegendFilters={activeLegendFilters}
         />
       ) : (
         <div
@@ -569,7 +598,7 @@ export default function MapPanel({
                   renderAnnotationLayer={false}
                   renderTextLayer={false}
                 />
-                {currentMarkers.map((marker) => (
+                {filteredPdfMarkers.map((marker) => (
                   <div
                     key={marker.id}
                     style={{
@@ -583,7 +612,7 @@ export default function MapPanel({
                     <svg width="24" height="32" viewBox="0 0 24 32">
                       <path
                         d="M12 0C7.6 0 4 3.6 4 8c0 5.4 8 16 8 16s8-10.6 8-16c0-4.4-3.6-8-8-8z"
-                        fill={getMarkerColor(marker)}
+                        fill={getMarkerColor(marker, reports, colorMode)}
                         stroke="#fff"
                         strokeWidth="2"
                       />

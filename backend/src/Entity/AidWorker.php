@@ -36,6 +36,15 @@ class AidWorker
     #[Column(type: "boolean")]
     private bool $isActive = false;
 
+    #[
+        Column(
+            type: "datetime",
+            nullable: true,
+            options: ["default" => "CURRENT_TIMESTAMP"],
+        ),
+    ]
+    private ?\DateTime $updatedAt = null;
+
     #[Column(type: "text", nullable: true)]
     private ?string $description = null;
 
@@ -126,7 +135,20 @@ class AidWorker
 
     public function setStatus(Status $status): void
     {
-        $this->status = $status;
+        if (!isset($this->status) || $this->status !== $status) {
+            $this->status = $status;
+            $this->updatedAt = new \DateTime();
+        }
+    }
+
+    public function getUpdatedAt(): ?\DateTime
+    {
+        return $this->updatedAt;
+    }
+
+    public function setUpdatedAt(?\DateTime $updatedAt): void
+    {
+        $this->updatedAt = $updatedAt;
     }
 
     public function isActive(): bool
@@ -203,6 +225,7 @@ class AidWorker
             "eventId" => $this->event?->getEventId(),
             "teamId" => $this->team?->getAidTeamId(),
             "teamName" => $this->team?->getAidTeamName() ?? null,
+            "updatedAt" => $this->updatedAt?->format(\DateTimeInterface::ATOM),
         ];
     }
 }

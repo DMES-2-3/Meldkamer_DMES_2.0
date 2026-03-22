@@ -55,38 +55,24 @@ const WORKER_STATUS_OPTIONS = Object.entries(STATUSES).map(
 );
 
 // ---------------------------------------------------------------------------
-// SectionTable — dark header bar + table rows, visually joined
+// SectionCards — dark header bar + cards grid
 // ---------------------------------------------------------------------------
 
-function SectionTable({ title, accent, headers, rows, emptyMsg }) {
+function SectionCards({ title, accent, items, emptyMsg }) {
   return (
     <section className="up-section">
       <div className="up-section-header">
         <span>{title}</span>
-        <span className="up-section-count">{rows.length}</span>
+        <span className="up-section-count">{items.length}</span>
       </div>
-
-      <div className="up-table-wrapper up-table-wrapper--attached">
-        <table className="up-table">
-          <thead>
-            <tr>
-              {headers.map((header) => (
-                <th key={header}>{header}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.length === 0 ? (
-              <tr>
-                <td colSpan={headers.length} className="up-td-empty">
-                  {emptyMsg}
-                </td>
-              </tr>
-            ) : (
-              rows
-            )}
-          </tbody>
-        </table>
+      <div className="up-cards-wrapper">
+        {items.length === 0 ? (
+          <div className="up-td-empty">{emptyMsg}</div>
+        ) : (
+          <div className="units-unit-list">
+            {items}
+          </div>
+        )}
       </div>
     </section>
   );
@@ -576,25 +562,6 @@ function TeamModal({ team, eventId, onClose, onSaved }) {
 // Workers tab
 // ---------------------------------------------------------------------------
 
-const WORKER_HEADERS_BASE = [
-  "Naam",
-  "Roepnummer",
-  "Type",
-  "Status",
-  "Notitie",
-  "",
-];
-
-const WORKER_HEADERS_TEAM = [
-  "Naam",
-  "Roepnummer",
-  "Type",
-  "Status",
-  "Team",
-  "Notitie",
-  "",
-];
-
 function WorkersTab({ eventId }) {
   const [workers, setWorkers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -649,21 +616,24 @@ function WorkersTab({ eventId }) {
   const handleWorkerStatusChange = async (newStatus) => {
     if (!statusTarget) return;
 
-    if (statusTarget.status === newStatus) {
+    if (newStatus === statusTarget.status) {
       setStatusTarget(null);
+      setStatusError("");
       return;
     }
 
-    try {
-      setStatusSaving(true);
-      setStatusError("");
+    setStatusSaving(true);
+    setStatusError("");
 
+    try {
       await updateWorker(statusTarget.id, {
+        ...statusTarget,
         status: newStatus,
+        eventId,
       });
 
       setStatusTarget(null);
-      fetchWorkers();
+      await fetchWorkers();
     } catch (err) {
       setStatusError("Fout bij wijzigen status: " + err.message);
     } finally {
@@ -671,78 +641,52 @@ function WorkersTab({ eventId }) {
     }
   };
 
-  const actionCells = (w) => (
-    <>
-      <button
-        className="up-btn-icon"
-        title="Bewerken"
-        onClick={() => setEditTarget(w)}
-      >
-        ✏️
-      </button>
-      <button
-        className="up-btn-icon up-btn-icon--danger"
-        title="Verwijderen"
-        onClick={() => setDeleteTarget(w)}
-      >
-        🗑️
-      </button>
-    </>
+  const renderWorkerCard = (w, isAssigned) => (
+    <div key={w.id} className="unit-card" onClick={() => setEditTarget(w)}>
+      <div className="unit-card-header">
+        <span className="unit-team-name">{w.firstName} {w.lastName}</span>
+        <span
+          className="up-delete-icon"
+          onClick={(ev) => {
+            ev.stopPropagation();
+            setDeleteTarget(w);
+          }}
+          title="Verwijderen"
+        >
+          🗑
+        </span>
+      </div>
+      <div className="unit-card-body">
+        <span className={`unit-label ${getStatusLabelClass(w.status)}`}>{w.callNumber}</span>
+        <span style={{ fontSize: '13px', fontWeight: 500 }}>{w.workerType}</span>
+      </div>
+      {isAssigned && (
+        <div style={{ marginTop: '-4px' }}>
+          <span className="up-team-badge">{w.teamName}</span>
+        </div>
+      )}
+      <div className="unit-card-footer">
+        <span className={`up-status-pill up-status-pill--${w.status?.toLowerCase()}`}>
+          {statusLabel(w.status)}
+        </span>
+        <span className="up-td-muted" style={{ fontSize: '12px' }}>
+          {w.updatedAt
+            ? new Date(w.updatedAt).toLocaleTimeString("nl-NL", {
+                hour: "2-digit",
+                minute: "2-digit",
+              })
+            : ""}
+        </span>
+      </div>
+      {w.note && <div className="up-td-note">{w.note}</div>}
+    </div>
   );
 
   const unassigned = workers.filter((w) => !w.teamId);
   const assigned = workers.filter((w) => !!w.teamId);
 
-  const renderWorkerStatus = (w) => (
-    <button
-      type="button"
-      className={`up-status-pill up-status-pill--${w.status?.toLowerCase()} up-status-pill--clickable`}
-      onClick={() => {
-        setStatusError("");
-        setStatusTarget(w);
-      }}
-      title="Klik om status te wijzigen"
-    >
-      {statusLabel(w.status)}
-    </button>
-  );
-
-  const unassignedRows = unassigned.map((w) => (
-    <tr key={w.id}>
-      <td className="up-td-name">
-        {w.firstName} {w.lastName}
-      </td>
-      <td>
-        <span className={`unit-label ${getStatusLabelClass(w.status)}`}>
-          {w.callNumber}
-        </span>
-      </td>
-      <td>{w.workerType}</td>
-      <td>{renderWorkerStatus(w)}</td>
-      <td className="up-td-note">{w.note || "—"}</td>
-      <td className="up-td-actions">{actionCells(w)}</td>
-    </tr>
-  ));
-
-  const assignedRows = assigned.map((w) => (
-    <tr key={w.id}>
-      <td className="up-td-name">
-        {w.firstName} {w.lastName}
-      </td>
-      <td>
-        <span className={`unit-label ${getStatusLabelClass(w.status)}`}>
-          {w.callNumber}
-        </span>
-      </td>
-      <td>{w.workerType}</td>
-      <td>{renderWorkerStatus(w)}</td>
-      <td>
-        <span className="up-team-badge">{w.teamName}</span>
-      </td>
-      <td className="up-td-note">{w.note || "—"}</td>
-      <td className="up-td-actions">{actionCells(w)}</td>
-    </tr>
-  ));
+  const unassignedCards = unassigned.map(w => renderWorkerCard(w, false));
+  const assignedCards = assigned.map(w => renderWorkerCard(w, true));
 
   return (
     <div className="up-tab-content">
@@ -766,18 +710,16 @@ function WorkersTab({ eventId }) {
         </div>
       ) : (
         <>
-          <SectionTable
+          <SectionCards
             title="Geen Team"
             accent="#6b7280"
-            headers={WORKER_HEADERS_BASE}
-            rows={unassignedRows}
+            items={unassignedCards}
             emptyMsg="Alle hulpverleners zijn ingedeeld in een team"
           />
-          <SectionTable
+          <SectionCards
             title="In Team"
             accent="#1e1b4b"
-            headers={WORKER_HEADERS_TEAM}
-            rows={assignedRows}
+            items={assignedCards}
             emptyMsg="Nog geen hulpverleners ingedeeld in een team"
           />
         </>
@@ -835,17 +777,11 @@ function WorkersTab({ eventId }) {
 
 // ---------------------------------------------------------------------------
 // Teams tab
+// Three sections:
+//   "Aangemeld"      — AVAILABLE + NOTIFICATION
+//   "Wacht"            — WAIT only
+//   "Afgemeld" — SHORT_BREAK + LONG_BREAK + UNAVAILABLE
 // ---------------------------------------------------------------------------
-
-const TEAM_HEADERS = [
-  "Teamnaam",
-  "Roepnummer",
-  "Status",
-  "Hulpverleners",
-  "Notitie",
-  "Bijgewerkt",
-  "",
-];
 
 function TeamsTab({ eventId }) {
   const [teams, setTeams] = useState([]);
@@ -910,21 +846,25 @@ function TeamsTab({ eventId }) {
   const handleTeamStatusChange = async (newStatus) => {
     if (!statusTarget) return;
 
-    if (statusTarget.status === newStatus) {
+    if (newStatus === statusTarget.status) {
       setStatusTarget(null);
+      setStatusError("");
       return;
     }
 
-    try {
-      setStatusSaving(true);
-      setStatusError("");
+    setStatusSaving(true);
+    setStatusError("");
 
+    try {
       await updateUnit(statusTarget.id, {
+        ...statusTarget,
         status: newStatus,
+        eventId,
+        workerIds: statusTarget.workers?.map((w) => w.id) ?? [],
       });
 
       setStatusTarget(null);
-      fetchTeams();
+      await fetchTeams();
     } catch (err) {
       setStatusError("Fout bij wijzigen status: " + err.message);
     } finally {
@@ -932,13 +872,25 @@ function TeamsTab({ eventId }) {
     }
   };
 
-  const renderTeamRow = (t) => {
+  const renderTeamCard = (t) => {
     const workerCount = t.workerCount ?? t.workers?.length ?? 0;
 
     return (
-      <tr key={t.id}>
-        <td className="up-td-name">{t.name}</td>
-        <td>
+      <div key={t.id} className="unit-card" onClick={() => handleEditClick(t)}>
+        <div className="unit-card-header">
+          <span className="unit-team-name">{t.name}</span>
+          <span
+            className="up-delete-icon"
+            onClick={(ev) => {
+              ev.stopPropagation();
+              setDeleteTarget(t);
+            }}
+            title="Verwijderen"
+          >
+            🗑
+          </span>
+        </div>
+        <div className="unit-card-body">
           {t.callNumber ? (
             <span className={`unit-label ${getStatusLabelClass(t.status)}`}>
               {t.callNumber}
@@ -946,59 +898,31 @@ function TeamsTab({ eventId }) {
           ) : (
             <span className="up-td-muted">—</span>
           )}
-        </td>
-        <td>
-          <button
-            type="button"
-            className={`up-status-pill up-status-pill--${t.status?.toLowerCase()} up-status-pill--clickable`}
-            onClick={() => {
-              setStatusError("");
-              setStatusTarget(t);
-            }}
-            title="Klik om status te wijzigen"
-          >
-            {statusLabel(t.status)}
-          </button>
-        </td>
-        <td>
           <span className="up-team-badge">
             {workerCount} hulpverlener{workerCount !== 1 ? "s" : ""}
           </span>
-        </td>
-        <td className="up-td-note">{t.note || "—"}</td>
-        <td className="up-td-muted">
-          {t.updatedAt
-            ? new Date(t.updatedAt).toLocaleTimeString("nl-NL", {
-                hour: "2-digit",
-                minute: "2-digit",
-              })
-            : "—"}
-        </td>
-        <td className="up-td-actions">
-          <button
-            className="up-btn-icon"
-            title="Bewerken"
-            onClick={() => handleEditClick(t)}
-          >
-            ✏️
-          </button>
-          <button
-            className="up-btn-icon up-btn-icon--danger"
-            title="Verwijderen"
-            onClick={() => setDeleteTarget(t)}
-          >
-            🗑️
-          </button>
-        </td>
-      </tr>
+        </div>
+        <div className="unit-card-footer">
+          <span className={`up-status-pill up-status-pill--${t.status?.toLowerCase()}`}>
+            {statusLabel(t.status)}
+          </span>
+          <span className="up-td-muted" style={{ fontSize: '12px' }}>
+            {t.updatedAt
+              ? new Date(t.updatedAt).toLocaleTimeString("nl-NL", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })
+              : ""}
+          </span>
+        </div>
+        {t.note && <div className="up-td-note">{t.note}</div>}
+      </div>
     );
   };
 
-  const beschikbaar = teams.filter((t) => t.status === "AVAILABLE");
-  const wacht = teams.filter((t) => t.status === "WAIT");
-  const nietBeschikbaar = teams.filter(
-    (t) => t.status !== "AVAILABLE" && t.status !== "WAIT",
-  );
+  const wachtrij = teams.filter((t) => t.status === "WAIT");
+  const aangemeld = teams.filter((t) => ["AVAILABLE", "NOTIFICATION"].includes(t.status));
+  const afgemeld = teams.filter((t) => ["SHORT_BREAK", "LONG_BREAK", "SIGNED_OUT"].includes(t.status));
 
   return (
     <div className="up-tab-content">
@@ -1023,26 +947,23 @@ function TeamsTab({ eventId }) {
         </div>
       ) : (
         <>
-          <SectionTable
-            title="Beschikbaar"
-            accent="var(--section-available)"
-            headers={TEAM_HEADERS}
-            rows={beschikbaar.map(renderTeamRow)}
-            emptyMsg="Geen beschikbare teams"
+          <SectionCards
+            title="Aangemeld"
+            accent="#1e1b4b"
+            items={aangemeld.map(renderTeamCard)}
+            emptyMsg="Geen aangemelde teams"
           />
-          <SectionTable
-            title="Wacht"
-            accent="var(--section-wait)"
-            headers={TEAM_HEADERS}
-            rows={wacht.map(renderTeamRow)}
-            emptyMsg="Geen teams in wacht"
+          <SectionCards
+            title="Wachtrij"
+            accent="#1d6fb5"
+            items={wachtrij.map(renderTeamCard)}
+            emptyMsg="Geen teams in de wachtrij"
           />
-          <SectionTable
-            title="Niet Beschikbaar"
-            accent="var(--section-unavailable)"
-            headers={TEAM_HEADERS}
-            rows={nietBeschikbaar.map(renderTeamRow)}
-            emptyMsg="Geen niet-beschikbare teams"
+          <SectionCards
+            title="Afgemeld"
+            accent="#6b7280"
+            items={afgemeld.map(renderTeamCard)}
+            emptyMsg="Geen afgemelde teams"
           />
         </>
       )}
@@ -1104,7 +1025,23 @@ function TeamsTab({ eventId }) {
 export default function UnitsPage() {
   const navigate = useNavigate();
   const [selectedEvent, setSelectedEvent] = useState(null);
-  const [activeTab, setActiveTab] = useState("workers");
+  const [activeTab, setActiveTab] = useState("teams");
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Alt + N om een nieuwe melding te maken
+      if (e.altKey && e.key.toLowerCase() === 'n') {
+        e.preventDefault();
+        if (document.activeElement instanceof HTMLElement) {
+          document.activeElement.blur();
+        }
+        navigate("/melding");
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [navigate]);
 
   useEffect(() => {
     const stored = localStorage.getItem("selected_event");
@@ -1126,23 +1063,23 @@ export default function UnitsPage() {
     <div className="units-wrapper">
       <div className="up-tabs">
         <button
-          className={`up-tab ${activeTab === "workers" ? "up-tab--active" : ""}`}
-          onClick={() => setActiveTab("workers")}
-        >
-          Hulpverleners
-        </button>
-        <button
           className={`up-tab ${activeTab === "teams" ? "up-tab--active" : ""}`}
           onClick={() => setActiveTab("teams")}
         >
           Teams
         </button>
+        <button
+          className={`up-tab ${activeTab === "workers" ? "up-tab--active" : ""}`}
+          onClick={() => setActiveTab("workers")}
+        >
+          Hulpverleners
+        </button>
       </div>
 
-      {activeTab === "workers" ? (
-        <WorkersTab eventId={selectedEvent.id} />
-      ) : (
+      {activeTab === "teams" ? (
         <TeamsTab eventId={selectedEvent.id} />
+      ) : (
+        <WorkersTab eventId={selectedEvent.id} />
       )}
     </div>
   );

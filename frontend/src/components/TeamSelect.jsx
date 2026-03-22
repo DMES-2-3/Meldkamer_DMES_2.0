@@ -21,21 +21,21 @@ export default function TeamSelect({
       onClick={(e) => e.stopPropagation()}
     >
       <option value="">{placeholder}</option>
-
-      {units.map((unit) => {
-        const disabled = isTeamUnavailable(unit.status);
-
-        return (
-          <option
-            key={unit.id}
-            value={unit.name}
-            disabled={disabled}
-            style={{ color: disabled ? "red" : "initial" }}
-          >
-            {unit.name}
-          </option>
-        );
-      })}
+      {value && !units.find(u => u.name === value) && (
+        <option value={value}>{value}</option>
+      )}
+      {units.map((unit) => (
+        <option
+          key={unit.id}
+          value={unit.name}
+          disabled={isTeamUnavailable(unit.status)}
+          style={{
+            color: isTeamUnavailable(unit.status) ? "red" : "initial",
+          }}
+        >
+          {unit.name}
+        </option>
+      ))}
     </select>
   );
 }

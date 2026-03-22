@@ -16,6 +16,22 @@ const ExportPage = ({ title = "Export" }) => {
         setSelectedEvent(evt);
     }, [navigate]);
 
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            // Alt + N om een nieuwe melding te maken
+            if (e.altKey && e.key.toLowerCase() === 'n') {
+                e.preventDefault();
+                if (document.activeElement instanceof HTMLElement) {
+                    document.activeElement.blur();
+                }
+                navigate("/melding");
+            }
+        };
+
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    }, [navigate]);
+
     const handleExport = () => {
         if (!selectedEvent) return;
 

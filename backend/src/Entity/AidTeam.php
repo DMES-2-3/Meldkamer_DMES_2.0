@@ -109,7 +109,10 @@ class AidTeam
 
     public function setStatus(Status $status): void
     {
-        $this->status = $status;
+        if ($this->status !== $status) {
+            $this->status = $status;
+            $this->updatedAt = new \DateTime();
+        }
     }
 
     public function getDescription(): ?string
@@ -198,6 +201,7 @@ class AidTeam
                     "callNumber" => $w->getCallSign(),
                     "status" => $w->getStatus()->value,
                     "isActive" => $w->isActive(),
+                    "updatedAt" => $w->getUpdatedAt()?->format(\DateTimeInterface::ATOM),
                 ],
                 $this->aidWorkers->toArray(),
             ),
@@ -211,7 +215,7 @@ class AidTeam
             "note" => $this->description ?? "",
             "isActive" => $this->isActive,
             "eventId" => $this->event?->getEventId(),
-            "updatedAt" => $this->updatedAt?->format("Y-m-d\TH:i:s.u\Z"),
+            "updatedAt" => $this->updatedAt?->format(\DateTimeInterface::ATOM),
             "workers" => $workers,
             "workerCount" => count($workers),
         ];
