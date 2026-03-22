@@ -4,7 +4,7 @@ import {
   REPORT_STATUS_COLORS,
   PRIORITY_COLORS,
   LegendItem,
-} from "../utils";
+} from "../utils/utils";
 
 // Deze component toont een legenda met de betekenis van kleuren voor teams, hulpverleners en meldingen.
 

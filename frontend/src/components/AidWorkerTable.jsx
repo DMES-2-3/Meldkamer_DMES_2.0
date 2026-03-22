@@ -1,7 +1,7 @@
 import React, { useState } from "react";
-import { STATUS_TRANSLATIONS } from "../utils";
+import { STATUS_TRANSLATIONS } from "../utils/utils";
 
-export default function AidWorkersTable({ workers }) {
+export default function AidWorkersTable({ workers, onStatusClick }) {
   const [selectedWorker, setSelectedWorker] = useState(null);
 
   if (!workers.length) return <p>Geen hulpverleners beschikbaar</p>;

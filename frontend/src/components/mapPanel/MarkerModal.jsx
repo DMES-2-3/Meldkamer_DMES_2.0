@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { STATUS_TRANSLATIONS, PRIORITY_TRANSLATIONS } from "../../utils";
+import { STATUS_TRANSLATIONS, PRIORITY_TRANSLATIONS } from "../../utils/utils";
 
 export default function MarkerModal({
   show,

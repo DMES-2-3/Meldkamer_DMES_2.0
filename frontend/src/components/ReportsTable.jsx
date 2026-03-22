@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { getStatusColorForReport, getPriorityColor } from "../utils";
+import { getStatusColorForReport, getPriorityColor } from "../utils/utils";
 
 export default function ReportsTable({ reports }) {
   const navigate = useNavigate();

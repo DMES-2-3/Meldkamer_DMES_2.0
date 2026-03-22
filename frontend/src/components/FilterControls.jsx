@@ -1,5 +1,5 @@
 import React from "react";
-import { FILTER_OPTIONS } from "../utils";
+import { FILTER_OPTIONS } from "../utils/utils";
 
 export default function FilterControls({ statusFilter, priorityFilter, onStatusChange, onPriorityChange }) {
   return (

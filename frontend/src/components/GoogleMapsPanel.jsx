@@ -8,7 +8,7 @@ import {
   createMarkerIcon,
   normalizeReportStatus,
   normalizePriority
-} from "../utils";
+} from "../utils/utils";
 import "../Dashboard.css";
 
 const defaultCenter = { lat: 52.0907, lng: 5.1214 };
