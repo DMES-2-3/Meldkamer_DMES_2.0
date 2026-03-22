@@ -44,6 +44,22 @@ export const PRIORITY_COLORS = {
   default: "#d1d5db",
 };
 
+export const STATUS_TRANSLATIONS = {
+  available: "Beschikbaar",
+  notification: "Melding",
+  wait: "Wacht",
+  unavailable: "Niet beschikbaar",
+  new: "Open",
+  pending: "In behandeling",
+  closed: "Gesloten",
+};
+
+export const PRIORITY_TRANSLATIONS = {
+  green: "Laag",
+  orange: "Gemiddeld",
+  red: "Hoog",
+};
+
 export const normalizeTeamStatus = (status) => {
   if (!status) return "available";
   const s = status.toString().toLowerCase();

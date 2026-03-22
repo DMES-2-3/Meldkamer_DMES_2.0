@@ -399,9 +399,9 @@ export default function MapPanel({
       const res = await fetch(MAPS_URL, { method: "POST", body: formData });
       const data = await res.json();
       if (!res.ok)
-        setMessage({ type: "error", text: data.error || "Upload failed" });
+        setMessage({ type: "error", text: data.error || "Upload mislukt" });
       else {
-        setMessage({ type: "success", text: "Upload successful!" });
+        setMessage({ type: "success", text: "Upload succesvol!" });
         const newMap = data.data;
         const updatedMaps = [...maps, newMap];
         setMaps(updatedMaps);

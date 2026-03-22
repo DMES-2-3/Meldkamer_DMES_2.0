@@ -19,7 +19,7 @@ export default function MapModal({
           disabled={uploading}
           className="btn-save"
         >
-          {uploading ? "Uploading..." : "+ Upload New PDF"}
+          {uploading ? "Uploaden..." : "+ Upload PDF"}
         </button>
       </div>
 

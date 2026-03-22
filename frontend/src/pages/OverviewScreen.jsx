@@ -233,7 +233,7 @@ export default function OverviewScreen() {
   };
 
   if (loading) {
-    return <div>Loading...</div>;
+    return <div>Laden...</div>;
   }
 
   return (
