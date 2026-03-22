@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import "../login.css";
 import logo from "../assets/logo/DMES_Vierkant_Logo.png";
 import { useAuth } from "../contexts/AuthContext";
+import { apiUrl } from "../config/api";
 
 function Login() {
   const navigate = useNavigate();
@@ -31,7 +32,7 @@ function Login() {
     setMsg("");
 
     try {
-      const res = await fetch("http://localhost:8080/src/api/v1/user/login", {
+      const res = await fetch(`${apiUrl("src/api/v1/user/login")}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",

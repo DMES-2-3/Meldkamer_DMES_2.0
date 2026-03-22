@@ -1,16 +1,18 @@
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { apiUrl } from "../config/api";
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);   // { user_id, is_admin } or null
+  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const refreshSession = useCallback(async () => {
     try {
-      const res = await fetch("http://localhost:8080/src/api/v1/user/session", {
+      const res = await fetch(apiUrl("src/api/v1/user/session"), {
         credentials: "include",
       });
+
       const data = await res.json();
 
       if (data.success) {

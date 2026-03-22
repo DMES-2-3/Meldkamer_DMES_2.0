@@ -2,8 +2,9 @@ import React, { useState, useEffect, useCallback } from "react";
 import { STATUSES } from "../constants";
 import AidWorkersTable from "./AidWorkerTable";
 import StatusPickerModal from "./StatusPickerModal";
+import { API_BASE_URL } from "../config/api";
 
-const API_URL = "http://localhost:8080/src/api/v1";
+const API_URL = `${API_BASE_URL}/src/api/v1`;
 
 const getStatusColor = (status) => {
   const statusConfig = {
@@ -96,6 +97,9 @@ export default function AidWorkersTableContainer({ selectedEventId }) {
   const fetchWorkers = useCallback(async () => {
     try {
       setLoading(true);
+  if (loading) return <p>Hulpverleners laden...</p>;
+  if (error) return <p style={{ color: "red" }}>Error: {error}</p>;
+  if (!workers.length) return <p>Geen hulpverleners beschikbaar</p>;
 
       const url = selectedEventId
         ? `${API_URL}/aidworker?eventId=${selectedEventId}`
