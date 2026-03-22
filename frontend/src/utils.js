@@ -73,9 +73,9 @@ export const normalizeTeamStatus = (status) => {
 export const normalizeReportStatus = (status) => {
   if (!status) return "open";
   const s = status.toString().toLowerCase();
-  if (s === "registered") return "open";
-  if (s === "in behandeling") return "in progress";
-  if (s === "gesloten") return "closed";
+  if (s === "registered" || s === "new") return "open";
+  if (s === "in behandeling" || s === "pending") return "in progress";
+  if (s === "gesloten" || s === "closed") return "closed";
   return s;
 };
 
@@ -113,8 +113,12 @@ export const getStatusColorForReport = getReportStatusColor;
 export const getPriorityColor = (priority) =>
   PRIORITY_COLORS[normalizePriority(priority)] || PRIORITY_COLORS.default;
 
-export const LegendItem = ({ color, label }) => (
-  <div className="legend-item">
+export const LegendItem = ({ color, label, onClick, active }) => (
+  <div
+    className={`legend-item ${active ? "active" : ""}`}
+    style={{ cursor: "pointer" }}
+    onClick={onClick}
+  >
     <span className="legend-dot" style={{ backgroundColor: color }} />
     <span>{label}</span>
   </div>

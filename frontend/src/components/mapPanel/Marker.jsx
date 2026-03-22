@@ -1,5 +1,5 @@
 import React from "react";
-import { getPriorityColor } from "../../utils";
+import { getPriorityColor, getColorForMarker } from "../../utils";
 
 export const getTeamsForMarker = (marker, reports = []) => {
   if (!marker?.reportId || !Array.isArray(reports)) return [];
@@ -28,10 +28,4 @@ export function MarkerLabel({ reportId, label, reports }) {
       <div style={{ width: 0, height: 0, borderLeft: "5px solid transparent", borderRight: "5px solid transparent", borderTop: "5px solid rgba(0,0,0,0.75)", margin: "0 auto" }} />
     </div>
   );
-}
-
-export function getMarkerColor(marker, reports) {
-  if (!marker.reportId) return "#9ca3af";
-  const report = reports.find(r => r.id.toString() === marker.reportId.toString());
-  return report ? getPriorityColor(report.priority) : "#9ca3af";
 }

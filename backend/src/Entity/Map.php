@@ -48,7 +48,7 @@ class Map
     ]
     private Event $event;
 
-    #[ORM\OneToMany(mappedBy: "map", targetEntity: MapEntity::class)]
+    #[ORM\OneToMany(mappedBy: "map", targetEntity: MapEntity::class, cascade: ["persist", "remove"])]
     private Collection $mapEntities;
 
     public function __construct()
