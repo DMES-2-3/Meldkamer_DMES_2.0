@@ -38,6 +38,7 @@ class Assistance
             name: "FK_AidTeam",
             referencedColumnName: "aidTeamId",
             nullable: true,
+            onDelete: "SET NULL",
         ),
     ]
     private ?AidTeam $aidTeam = null;
