@@ -82,6 +82,7 @@ export default function AidWorkersTableContainer({ selectedEventId }) {
       status,
       statusLabel: getStatusLabel(status),
       color: getStatusColor(status),
+      workerType,
       type: workerType,
       role: workerType,
       note: w.note || w.description || "",
@@ -97,9 +98,6 @@ export default function AidWorkersTableContainer({ selectedEventId }) {
   const fetchWorkers = useCallback(async () => {
     try {
       setLoading(true);
-  if (loading) return <p>Hulpverleners laden...</p>;
-  if (error) return <p style={{ color: "red" }}>Error: {error}</p>;
-  if (!workers.length) return <p>Geen hulpverleners beschikbaar</p>;
 
       const url = selectedEventId
         ? `${API_URL}/aidworker?eventId=${selectedEventId}`
