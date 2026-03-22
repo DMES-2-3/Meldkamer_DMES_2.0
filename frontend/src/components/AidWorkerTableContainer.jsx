@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
 import { STATUSES } from "../constants";
 import AidWorkersTable from "./AidWorkerTable";
 import StatusPickerModal from "./StatusPickerModal";
@@ -30,36 +29,36 @@ const STATUS_OPTIONS = Object.entries(STATUSES).map(([value, config]) => ({
   color: getStatusColor(value),
 }));
 
-export default function AidWorkersTableContainer() {
-  const navigate = useNavigate();
-
+export default function AidWorkersTableContainer({ selectedEventId }) {
   const [workers, setWorkers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const [selectedEvent, setSelectedEvent] = useState(null);
   const [statusTarget, setStatusTarget] = useState(null);
   const [statusSaving, setStatusSaving] = useState(false);
   const [statusError, setStatusError] = useState("");
 
   const mapWorker = useCallback((w) => {
-    const firstName = w.firstName || "";
-    const lastName = w.lastName || "";
-    const fullName =
-      w.name || `${firstName} ${lastName}`.trim() || "Onbekende hulpverlener";
+    // ondersteunt zowel flat objecten als wrapped objecten
+    const worker = w.AidWorker || w;
 
-    const status = w.status || "AVAILABLE";
+    const firstName = worker.firstName || "";
+    const lastName = worker.lastName || "";
+    const fullName =
+      worker.name || `${firstName} ${lastName}`.trim() || "Onbekende hulpverlener";
+
+    const status = worker.status || "AVAILABLE";
 
     return {
-      id: w.id,
-      callNumber: w.callNumber || w.callSign || "",
+      id: worker.id,
+      callNumber: worker.callNumber || worker.callSign || "",
       name: fullName,
-      role: w.role || w.workerType || "N/A",
-      note: w.note || w.description || "",
+      role: worker.role || worker.workerType || "N/A",
+      note: worker.note || worker.description || "",
       status,
       statusLabel: STATUSES[status]?.label || status,
-      color: w.color || getStatusColor(status),
-      teamName: w.teamName || w.team?.name || "N/A",
+      color: worker.color || getStatusColor(status),
+      teamName: worker.teamName || worker.team?.name || "N/A",
     };
   }, []);
 
@@ -67,10 +66,11 @@ export default function AidWorkersTableContainer() {
     try {
       setLoading(true);
 
-      const eventId = selectedEvent?.id;
-      const url = eventId
-        ? `${API_URL}/aidworker?eventId=${eventId}`
+      const url = selectedEventId
+        ? `${API_URL}/aidworker?eventId=${selectedEventId}`
         : `${API_URL}/aidworker`;
+
+      console.log("Fetching aid workers from:", url);
 
       const res = await fetch(url);
       if (!res.ok) {
@@ -86,6 +86,8 @@ export default function AidWorkersTableContainer() {
         throw new Error("Invalid JSON response: " + text.substring(0, 100));
       }
 
+      console.log("Aid worker response:", data);
+
       const mapped = Array.isArray(data) ? data.map(mapWorker) : [];
       setWorkers(mapped);
       setError(null);
@@ -95,7 +97,7 @@ export default function AidWorkersTableContainer() {
     } finally {
       setLoading(false);
     }
-  }, [selectedEvent, mapWorker]);
+  }, [selectedEventId, mapWorker]);
 
   const handleStatusChange = async (newStatus) => {
     if (!statusTarget) return;
@@ -134,25 +136,8 @@ export default function AidWorkersTableContainer() {
   };
 
   useEffect(() => {
-    const stored = localStorage.getItem("selected_event");
-    if (!stored) {
-      navigate("/events");
-      return;
-    }
-
-    try {
-      const parsed = JSON.parse(stored);
-      setSelectedEvent(parsed);
-    } catch {
-      navigate("/events");
-    }
-  }, [navigate]);
-
-  useEffect(() => {
-    if (selectedEvent) {
-      fetchWorkers();
-    }
-  }, [selectedEvent, fetchWorkers]);
+    fetchWorkers();
+  }, [fetchWorkers]);
 
   if (loading) return <p>Hulpverleners laden...</p>;
   if (error) return <p style={{ color: "red" }}>Error: {error}</p>;
