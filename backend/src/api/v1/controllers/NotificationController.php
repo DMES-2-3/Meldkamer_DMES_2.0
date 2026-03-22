@@ -9,6 +9,7 @@ use App\Entity\Notification;
 use App\Entity\Priority;
 use App\Entity\SITRAP;
 use App\Entity\NotificationStatus;
+use App\Entity\Status;
 use App\Entity\AidWorker;
 use DoctrineProxies\__CG__\App\Entity\Event;
 use TypeError;
@@ -249,9 +250,25 @@ class NotificationController extends BaseController implements IController
         }
 
         if (isset($input["Status"])) {
-            $notification->setStatus(
-                NotificationStatus::from($input["Status"]),
-            );
+            $newStatus = NotificationStatus::from($input["Status"]);
+            $notification->setStatus($newStatus);
+
+            if ($newStatus === NotificationStatus::CLOSED) {
+                // Reset the primary AidTeam status to AVAILABLE
+                $primaryTeam = $notification->getAidTeam();
+                if ($primaryTeam !== null) {
+                    $primaryTeam->setStatus(Status::AVAILABLE);
+                }
+
+                // Reset the Assistance AidTeam status to AVAILABLE
+                $assistance = $notification->getAssistance();
+                if ($assistance !== null) {
+                    $assistanceTeam = $assistance->getAidTeam();
+                    if ($assistanceTeam !== null) {
+                        $assistanceTeam->setStatus(Status::AVAILABLE);
+                    }
+                }
+            }
         }
 
         if (isset($input["Ambulance"])) {
