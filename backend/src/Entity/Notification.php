@@ -50,7 +50,7 @@ class Notification
         ORM\JoinColumn(
             name: "FK_AidTeam",
             referencedColumnName: "aidTeamId",
-            onDelete: "CASCADE",
+            onDelete: "SET NULL",
             nullable: true,
         ),
     ]
