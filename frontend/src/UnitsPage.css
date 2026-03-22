@@ -54,11 +54,11 @@
     font-size: 13px;
     font-weight: 700;
     color: #ffffff;
+    background: #1e1b4b;
     letter-spacing: 0.02em;
 }
 
 .up-section-count {
-    background: rgba(255, 255, 255, 0.25);
     color: #ffffff;
     font-size: 12px;
     font-weight: 700;
@@ -209,7 +209,7 @@
 }
 
 .up-table tbody tr:hover {
-    background: #fafafa;
+    background: rgba(0, 0, 0, 0.03);
 }
 
 .up-row--active {
@@ -243,14 +243,12 @@
    =========================================================================== */
 
 .up-team-badge {
-    display: inline-block;
-    background: #ede9fe;
-    color: #5b21b6;
-    padding: 2px 8px;
+    background: rgba(99, 102, 241, 0.15);
+    color: #6366f1;
+    padding: 4px 8px;
     border-radius: 999px;
     font-size: 12px;
     font-weight: 600;
-    white-space: nowrap;
 }
 
 .up-available-badge {
@@ -620,11 +618,19 @@ select.up-input {
 }
 
 /* Lijst met unit-kaarten */
+.up-cards-wrapper {
+    background: #ffffff;
+    border: 1px solid #d1d5db;
+    border-top: none;
+    border-radius: 0 0 6px 6px;
+    padding: 16px;
+}
+
 .units-unit-list {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-    margin-top: 10px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 16px;
+    margin-top: 0;
 }
 
 .units-empty {
@@ -633,43 +639,101 @@ select.up-input {
 
 /* Unit card */
 .unit-card {
-    background: #f0f0f0;
-    padding: 10px;
-    border-radius: 6px;
-    border: 1px solid #d0d0d0;
-    min-width: 160px;
+    background: #ffffff;
+    padding: 14px;
+    border-radius: 8px;
+    border: 1px solid #d1d5db;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 10px;
+    cursor: pointer;
+    transition: box-shadow 0.15s, transform 0.1s;
+}
+
+.unit-card:hover {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    transform: translateY(-2px);
+    background-color: #f9fafb;
+}
+
+.unit-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.unit-card-body {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.unit-card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: auto;
+}
+
+/* Notes in cards */
+.unit-card .up-td-note {
+    font-size: 13px;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    max-width: none;
+    border-top: 1px dashed #e5e7eb;
+    padding-top: 6px;
+    margin-top: 4px;
+}
+
+/* Delete Icon */
+.up-delete-icon {
+    color: #dc2626;
+    font-size: 20px;
+    line-height: 1;
+    padding: 4px;
+    border-radius: 4px;
+    transition: background-color 0.15s, transform 0.1s;
+}
+
+.up-delete-icon:hover {
+    background-color: rgba(220, 38, 38, 0.08);
+    transform: translateY(-1px);
 }
 
 /* Label bovenaan */
 .unit-label {
-    color: white;
-    padding: 4px 6px;
-    border-radius: 4px;
-    font-weight: bold;
-    font-size: 14px;
-    width: fit-content;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 12px;
 }
 
-/* Kleurvarianten */
 .label-green {
-    background: #1cc700;
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--status-available);
 }
+
 .label-yellow {
-    background: #ffcc00;
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--status-busy);
 }
+
 .label-blue {
-    background: #00aaff;
+  background: rgba(59, 130, 246, 0.15);
+  color: var(--status-wait);
 }
+
 .label-gray {
-    background: #909090;
+  background: rgba(107, 114, 128, 0.15);
+  color: var(--status-unavailable);
 }
 
 .unit-team-name {
     font-weight: 600;
-    margin-top: -4px;
+    font-size: 15px;
 }
 
 .unit-updated {
@@ -712,4 +776,133 @@ select.up-input {
     font-weight: 600;
     color: #111827;
     text-decoration: underline;
+}
+
+/* Statuspicker Modal */
+.up-status-modal {
+  max-width: 460px;
+}
+
+.status-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  padding: 0;
+}
+
+.status-button:hover {
+  opacity: 0.8;
+}
+
+.up-status-pill--clickable {
+  border: none;
+  cursor: pointer;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+.up-status-pill--clickable:hover {
+  transform: translateY(-1px);
+  opacity: 0.95;
+}
+
+.up-status-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.up-status-picker-subtitle {
+  margin: 0;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.up-status-legend {
+  display: grid;
+  gap: 10px;
+}
+
+.up-status-option {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #fff;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.up-status-option:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+}
+
+.up-status-option--active {
+  border-color: #1d4ed8;
+  background: #eff6ff;
+}
+
+.up-status-option-check {
+  font-size: 13px;
+  color: #1d4ed8;
+  font-weight: 600;
+}
+
+.up-table th,
+.up-table td {
+  text-align: left;
+  vertical-align: middle;
+  padding: 10px 12px;
+}
+
+.up-td-actions {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.up-td-name {
+  font-weight: 500;
+}
+
+.up-status-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* status kleuren */
+.up-status-pill--available {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--status-available);
+}
+
+.up-status-pill--wait {
+  background: rgba(59, 130, 246, 0.15);
+  color: var(--status-wait);
+}
+
+.up-status-pill--busy,
+.up-status-pill--notification {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--status-busy);
+}
+
+.up-status-pill--unavailable {
+  background: rgba(107, 114, 128, 0.15);
+  color: var(--status-unavailable);
 }

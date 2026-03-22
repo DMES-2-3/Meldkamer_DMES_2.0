@@ -8,7 +8,7 @@ export default function TeamSelect({
   placeholder = "Kies team",
 }) {
   const isTeamUnavailable = (status) => {
-    return ["Bezig", "Notificatie", "Niet beschikbaar", "Uitgelogd"].includes(
+    return ["BUSY", "NOTIFICATION", "UNAVAILABLE", "SIGNED_OUT"].includes(
       status,
     );
   };
@@ -21,6 +21,9 @@ export default function TeamSelect({
       onClick={(e) => e.stopPropagation()}
     >
       <option value="">{placeholder}</option>
+      {value && !units.find(u => u.name === value) && (
+        <option value={value}>{value}</option>
+      )}
       {units.map((unit) => (
         <option
           key={unit.id}

@@ -2,45 +2,86 @@ import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { STATUSES } from "../constants";
 import TeamsTable from "./TeamsTable";
-import { getUnits } from "../services/unitsApi";
+import StatusPickerModal from "./StatusPickerModal";
+import { API_BASE_URL } from "../config/api";
+
+const API_URL = `${API_BASE_URL}/src/api/v1`;
+
+const getStatusColor = (status) => {
+  const statusConfig = {
+    REGISTERED: "#10B981",
+    AVAILABLE: "#10B981",
+    NOTIFICATION: "#F59E0B",
+    WAIT: "#3B82F6",
+    SHORT_BREAK: "#3B82F6",
+    LONG_BREAK: "#3B82F6",
+    SIGNED_OUT: "#6B7280",
+    ACTIVE: "#10B981",
+    BUSY: "#F59E0B",
+    RESOLVED: "#6B7280",
+    UNAVAILABLE: "#6B7280",
+  };
+
+  return statusConfig[status] || "#6B7280";
+};
+
+const STATUS_OPTIONS = Object.entries(STATUSES).map(([value, config]) => ({
+  value,
+  label: config.label,
+  color: getStatusColor(value),
+}));
 
 export default function TeamsTableContainer() {
   const navigate = useNavigate();
+
   const [teams, setTeams] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedEvent, setSelectedEvent] = useState(null);
 
+  const [statusTarget, setStatusTarget] = useState(null);
+  const [statusSaving, setStatusSaving] = useState(false);
+  const [statusError, setStatusError] = useState("");
+
+  const mapTeam = useCallback((team) => {
+    const status = team.status || "UNAVAILABLE";
+
+    return {
+      id: team.aidTeamId || team.id,
+      name: team.aidTeamName || team.name,
+      callNumber: team.callNumber || "",
+      status,
+      statusLabel: STATUSES[status]?.label || status,
+      color: getStatusColor(status),
+      note: team.description || team.note || "",
+      workers: team.workers || [],
+    };
+  }, []);
+
   const fetchTeams = useCallback(async () => {
     try {
+      setLoading(true);
+
       const eventId = selectedEvent?.id ?? null;
-      const data = await getUnits(eventId);
+      const url = eventId
+        ? `${API_URL}/aidteam?eventId=${eventId}`
+        : `${API_URL}/aidteam`;
 
-      const statusConfig = {
-        REGISTERED: { color: "#10B981" },
-        AVAILABLE: { color: "#10B981" },
-        NOTIFICATION: { color: "#F59E0B" },
-        WAIT: { color: "#3B82F6" },
-        SHORT_BREAK: { color: "#3B82F6" },
-        LONG_BREAK: { color: "#3B82F6" },
-        SIGNED_OUT: { color: "#6B7280" },
-        ACTIVE: { color: "#10B981" },
-        BUSY: { color: "#F59E0B" },
-        RESOLVED: { color: "#6B7280" },
-        UNAVAILABLE: { color: "#6B7280" },
-      };
+      const res = await fetch(url);
+      if (!res.ok) {
+        throw new Error(`HTTP error! Status: ${res.status}`);
+      }
 
-      const mapped = (Array.isArray(data) ? data : []).map((team) => ({
-        id: team.aidTeamId || team.id,
-        name: team.aidTeamName || team.name,
-        callNumber: team.callNumber,
-        status: team.status || "UNAVAILABLE",
-        statusLabel: STATUSES[team.status]?.label || team.status,
-        color: statusConfig[team.status]?.color || "#6B7280",
-        note: team.description || team.note || "",
-        workers: team.workers || [],
-      }));
+      const text = await res.text();
+      let data;
 
+      try {
+        data = JSON.parse(text);
+      } catch {
+        throw new Error("Invalid JSON response: " + text.substring(0, 100));
+      }
+
+      const mapped = Array.isArray(data) ? data.map(mapTeam) : [];
       setTeams(mapped);
       setError(null);
     } catch (err) {
@@ -49,7 +90,43 @@ export default function TeamsTableContainer() {
     } finally {
       setLoading(false);
     }
-  }, [selectedEvent]);
+  }, [selectedEvent, mapTeam]);
+
+  const handleStatusChange = async (newStatus) => {
+    if (!statusTarget) return;
+
+    if (newStatus === statusTarget.status) {
+      setStatusTarget(null);
+      setStatusError("");
+      return;
+    }
+
+    try {
+      setStatusSaving(true);
+      setStatusError("");
+
+      const res = await fetch(`${API_URL}/aidteam/${statusTarget.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ status: newStatus }),
+      });
+
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || `HTTP error! Status: ${res.status}`);
+      }
+
+      setStatusTarget(null);
+      await fetchTeams();
+    } catch (err) {
+      console.error("Failed to update team status:", err);
+      setStatusError(err.message);
+    } finally {
+      setStatusSaving(false);
+    }
+  };
 
   useEffect(() => {
     const stored = localStorage.getItem("selected_event");
@@ -72,9 +149,35 @@ export default function TeamsTableContainer() {
     }
   }, [selectedEvent, fetchTeams]);
 
-  if (loading) return <p>Teams inladen...</p>;
+  if (loading) return <p>Teams laden...</p>;
   if (error) return <p style={{ color: "red" }}>Error: {error}</p>;
-  if (!teams.length) return <p>Geen teams beschikbaar</p>;
+  if (!teams.length) return <p>Geen teams beschikbaar voor dit evenement</p>;
 
-  return <TeamsTable teams={teams} />;
+  return (
+    <>
+      <TeamsTable
+        teams={teams}
+        onStatusClick={(team) => {
+          setStatusError("");
+          setStatusTarget(team);
+        }}
+      />
+
+      {statusTarget && (
+        <StatusPickerModal
+          title={`Status wijzigen — ${statusTarget.name}`}
+          currentStatus={statusTarget.status}
+          options={STATUS_OPTIONS}
+          saving={statusSaving}
+          error={statusError}
+          onClose={() => {
+            if (statusSaving) return;
+            setStatusTarget(null);
+            setStatusError("");
+          }}
+          onSelect={handleStatusChange}
+        />
+      )}
+    </>
+  );
 }

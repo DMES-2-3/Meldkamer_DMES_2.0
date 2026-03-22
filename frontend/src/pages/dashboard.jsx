@@ -7,8 +7,7 @@ import TeamsTableContainer from "../components/TeamsTableContainer";
 import AidWorkersTableContainer from "../components/AidWorkerTableContainer";
 import ReportsTableContainer from "../components/ReportsTableContainer";
 import FilterControls from "../components/FilterControls";
-import FloatingNotepad from "../components/FloatingNotepad";
-import { MAPS, MAIN_TABS, REPORT_TABS } from "../utils";
+import { MAPS, MAIN_TABS, REPORT_TABS } from "../utils/utils";
 import "../Dashboard.css";
 
 export default function Dashboard({ reports, reloadData, setReports }) {
@@ -22,8 +21,11 @@ export default function Dashboard({ reports, reloadData, setReports }) {
   const [statusFilter, setStatusFilter] = useState("All");
   const [priorityFilter, setPriorityFilter] = useState("All");
 
-  const [showKladblok, setShowKladblok] = useState(false);
-  const [kladblokContext, setKladblokContext] = useState(null);
+  const [activeLegendFilters, setActiveLegendFilters] = useState({
+    status: [],
+    priority: [],
+  });
+
   const [selectedEvent, setSelectedEvent] = useState(null);
 
   // Get selected event from localStorage
@@ -39,28 +41,26 @@ export default function Dashboard({ reports, reloadData, setReports }) {
     }
   }, []);
 
-  const onOpenNotepad = () => 
-  {
-    const eventName = selectedEvent?.name;
-    if (!eventName) {
-      alert("Geen event geselecteerd.");
-      return;
-    }
-    setKladblokContext({ type: "event", eventName: selectedEvent.name });
-    setShowKladblok(true);
-  };
-
-  const onOpenReportNotepad = (reportId) => 
-  {
-    if (!reportId) return;
-    setKladblokContext({ type: "report", reportId });
-    setShowKladblok(true);
-  };
-
   useEffect(() => {
     window._reports = reports;
     console.log("Dashboard reports: ", reports);
   }, [reports]);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Alt + N om een nieuwe melding te maken
+      if (e.altKey && e.key.toLowerCase() === 'n') {
+        e.preventDefault();
+        if (document.activeElement instanceof HTMLElement) {
+          document.activeElement.blur();
+        }
+        navigate("/melding");
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [navigate]);
 
   const mapPanelRef = useRef(null);
   const [isResizing, setIsResizing] = useState(false);
@@ -146,6 +146,7 @@ export default function Dashboard({ reports, reloadData, setReports }) {
           reports={reports}
           updateReportLocation={updateReportLocation}
           colorMode={mapColorMode}
+          activeLegendFilters={activeLegendFilters}
           initialMapType={location.state?.openMapType}
         />
         <div className="resize-handle" onMouseDown={startResize} />
@@ -167,7 +168,7 @@ export default function Dashboard({ reports, reloadData, setReports }) {
 
         {/* Tab content */}
         {mainTab === MAIN_TABS.TEAMS && <TeamsTableContainer />}
-        {mainTab === MAIN_TABS.AIDWORKERS && <AidWorkersTableContainer />}
+        {mainTab === MAIN_TABS.AIDWORKERS && <AidWorkersTableContainer selectedEventId={selectedEvent?.id} />}
         {mainTab === MAIN_TABS.REPORTS && (
           <>
             {/* Subtabs and filters */}
@@ -207,7 +208,6 @@ export default function Dashboard({ reports, reloadData, setReports }) {
               reportsTab={reportsTab}
               statusFilter={statusFilter}
               priorityFilter={priorityFilter}
-              onOpenReportNotepad={onOpenReportNotepad}
             />
           </>
         )}
@@ -216,18 +216,10 @@ export default function Dashboard({ reports, reloadData, setReports }) {
           <Legend
             colorMode={mapColorMode}
             setColorMode={setMapColorMode}
+            activeLegendFilters={activeLegendFilters}
+            setActiveLegendFilters={setActiveLegendFilters}
           />
         </div>
-        <div className="notepad-button">
-          <button className="btn-small" onClick={onOpenNotepad}>
-            Kladblok
-          </button>
-        </div>
-          <FloatingNotepad
-            open={showKladblok}
-            context={kladblokContext}
-            onClose={() => setShowKladblok(false)}
-          />
       </div>
     </div>
   );

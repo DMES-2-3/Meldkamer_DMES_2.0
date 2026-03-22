@@ -1,10 +1,16 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
+import {
+  getStoredMapState,
+  saveStoredMapState,
+  createMapSyncChannel,
+  broadcastMapState,
+} from "../../utils/mapSync";
 import { useNavigate } from "react-router-dom";
 import { Document, Page, pdfjs } from "react-pdf";
 import GoogleMapsPanel from "../GoogleMapsPanel";
 import MapModal from "./MapModal";
 import MarkerModal from "./MarkerModal";
-import { getPriorityColor } from "../../utils";
+import { getPriorityColor, PRIORITY_COLORS, REPORT_STATUS_COLORS, normalizePriority, normalizeReportStatus } from "../../utils/utils";
 import { apiUrl } from "../../config/api";
 
 pdfjs.GlobalWorkerOptions.workerSrc =
@@ -26,7 +32,9 @@ export default function MapPanel({
   reports: dashboardReports = [],
   updateReportLocation,
   colorMode = "priority",
+  activeLegendFilters,
   initialMapType = "PDF",
+  isPopout = false,
 }) {
   const navigate = useNavigate();
   const wrapperRef = useRef(null);
@@ -35,22 +43,14 @@ export default function MapPanel({
 
   const [maps, setMaps] = useState(initialMaps);
   const [reports, setReports] = useState([]);
-  const [currentMapId, setCurrentMapId] = useState(
-    () => JSON.parse(sessionStorage.getItem("currentMapId")) || null,
-  );
-  const [pageNumber, setPageNumber] = useState(
-    () => JSON.parse(sessionStorage.getItem("pageNumber")) || 1,
-  );
+  const sharedState = getStoredMapState();
+
+  const [currentMapId, setCurrentMapId] = useState(sharedState.currentMapId || null);
+  const [pageNumber, setPageNumber] = useState(sharedState.pageNumber || 1);
   const [numPages, setNumPages] = useState(null);
-  const [zoom, setZoom] = useState(
-    () => JSON.parse(sessionStorage.getItem("zoom")) || 1,
-  );
-  const [panPosition, setPanPosition] = useState(
-    () => JSON.parse(sessionStorage.getItem("panPosition")) || { x: 0, y: 0 },
-  );
-  const [markers, setMarkers] = useState(
-    () => JSON.parse(sessionStorage.getItem("markers")) || [],
-  );
+  const [zoom, setZoom] = useState(sharedState.zoom || 1);
+  const [panPosition, setPanPosition] = useState(sharedState.panPosition || { x: 0, y: 0 });
+  const [markers, setMarkers] = useState(sharedState.markers || []);
 
   const [showMapModal, setShowMapModal] = useState(false);
   const [showMarkerModal, setShowMarkerModal] = useState(false);
@@ -73,6 +73,23 @@ export default function MapPanel({
   const currentMarkers = markers.filter(
     (m) => m.mapId === currentMapId && m.page === pageNumber,
   );
+
+  const filteredPdfMarkers = currentMarkers.filter((marker) => {
+    if (!marker.reportId) return true;
+
+    const report = reports.find(r => r.id.toString() === marker.reportId.toString());
+    if (!report) return true;
+
+    const matchesStatus =
+      !activeLegendFilters?.status?.length ||
+      activeLegendFilters.status.includes(normalizeReportStatus(report.status || report.Status));
+
+    const matchesPriority =
+      !activeLegendFilters?.priority?.length ||
+      activeLegendFilters.priority.includes(normalizePriority(report.priority || report.Prioriteit));
+
+    return matchesStatus && matchesPriority;
+  });
 
   const fetchReports = async () => {
     try {
@@ -121,11 +138,24 @@ export default function MapPanel({
 
   useEffect(() => {
     setMaps(initialMaps);
-    if (initialMaps.length > 0 && !currentMapId) {
-      setCurrentMapId(initialMaps[0].mapId);
-    } else if (initialMaps.length === 0) {
+
+    if (initialMaps.length === 0) {
       setCurrentMapId(null);
+      setPageNumber(1);
+      setNumPages(null);
+      return;
     }
+
+    const mapStillExists = initialMaps.some((m) => m.mapId === currentMapId);
+
+    if (!mapStillExists) {
+      setCurrentMapId(initialMaps[0].mapId);
+      setPageNumber(1);
+      setNumPages(null);
+      setZoom(1);
+      setPanPosition({ x: 0, y: 0 });
+    }
+
     fetchReports();
   }, [initialMaps, selectedEventId, currentMapId]);
 
@@ -154,19 +184,23 @@ export default function MapPanel({
   }, []);
 
   useEffect(() => {
-    sessionStorage.setItem("currentMapId", JSON.stringify(currentMapId));
+    broadcastMapState({ currentMapId });
   }, [currentMapId]);
+
   useEffect(() => {
-    sessionStorage.setItem("pageNumber", JSON.stringify(pageNumber));
+    broadcastMapState({ pageNumber });
   }, [pageNumber]);
+
   useEffect(() => {
-    sessionStorage.setItem("markers", JSON.stringify(markers));
+    broadcastMapState({ markers });
   }, [markers]);
+
   useEffect(() => {
-    sessionStorage.setItem("zoom", JSON.stringify(zoom));
+    broadcastMapState({ zoom });
   }, [zoom]);
+
   useEffect(() => {
-    sessionStorage.setItem("panPosition", JSON.stringify(panPosition));
+    broadcastMapState({ panPosition });
   }, [panPosition]);
 
   useEffect(() => {
@@ -190,16 +224,68 @@ export default function MapPanel({
       setTempMarkerLabel(getShortLabel(report.description || report.event, 25));
   }, [tempMarkerReportId, reports]);
 
+  useEffect(() => {
+    const channel = createMapSyncChannel();
+
+    const applyState = (next) => {
+      if (!next) return;
+
+      if (next.currentMapId !== undefined) setCurrentMapId(next.currentMapId);
+      if (next.pageNumber !== undefined) setPageNumber(next.pageNumber);
+      if (next.zoom !== undefined) setZoom(next.zoom);
+      if (next.panPosition !== undefined) setPanPosition(next.panPosition);
+      if (next.markers !== undefined) setMarkers(next.markers);
+    };
+
+    const onStorage = (e) => {
+      if (e.key === "shared_map_state" && e.newValue) {
+        try {
+          applyState(JSON.parse(e.newValue));
+        } catch (err) {
+          console.error("Failed to parse shared_map_state", err);
+        }
+      }
+    };
+
+    if (channel) {
+      channel.onmessage = (event) => {
+        applyState(event.data);
+      };
+    }
+
+    window.addEventListener("storage", onStorage);
+
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      if (channel) channel.close();
+    };
+  }, []);
+
   const fetchMapsForEvent = async (eventId) => {
     if (!eventId) return;
+
     try {
       const res = await fetch(`${MAPS_URL}?eventId=${eventId}`);
       const data = await res.json();
       const eventMaps = Array.isArray(data) ? data : [];
+
       setMaps(eventMaps);
       onMapsUpdate(eventMaps);
-      if (eventMaps.length > 0 && !currentMapId) {
+
+      if (eventMaps.length === 0) {
+        setCurrentMapId(null);
+        setPageNumber(1);
+        setNumPages(null);
+        return;
+      }
+
+      const mapStillExists = eventMaps.some((m) => m.mapId === currentMapId);
+      if (!mapStillExists) {
         setCurrentMapId(eventMaps[0].mapId);
+        setPageNumber(1);
+        setNumPages(null);
+        setZoom(1);
+        setPanPosition({ x: 0, y: 0 });
       }
     } catch (err) {
       console.error(err);
@@ -368,6 +454,16 @@ export default function MapPanel({
     if (onMapSelect) onMapSelect(map.mapId);
   };
 
+    const openMapPopout = () => {
+    const url = `${window.location.origin}/map-popout`;
+
+    window.open(
+      url,
+      "MapPopoutWindow",
+      "width=1400,height=900,left=100,top=100,resizable=yes,scrollbars=yes"
+    );
+  };
+
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
     if (!file || !selectedEventId) return;
@@ -433,12 +529,22 @@ export default function MapPanel({
     });
   };
 
-  const getMarkerColor = (marker) => {
-    if (!marker.reportId) return "#9ca3af";
-    const report = reports.find(
-      (r) => r.id.toString() === marker.reportId.toString(),
-    );
-    return report ? getPriorityColor(report.priority) : "#9ca3af";
+  const getMarkerColor = (marker, reports = [], colorMode = "priority") => {
+    if (!marker?.reportId) return "#9ca3af";
+
+    const report = reports.find(r => r.id.toString() === marker.reportId.toString());
+    if (!report) return "#9ca3af";
+
+    if (colorMode === "priority") {
+      const normalized = normalizePriority(report.priority || report.Prioriteit);
+      return PRIORITY_COLORS[normalized] || PRIORITY_COLORS.default;
+    }
+    else if (colorMode === "status") {
+      const normalized = normalizeReportStatus(report.status || report.Status);
+      return REPORT_STATUS_COLORS[normalized] || REPORT_STATUS_COLORS.default;
+    }
+
+    return "#9ca3af";
   };
 
   return (
@@ -470,6 +576,7 @@ export default function MapPanel({
           reports={dashboardReports}
           onMarkerDragEnd={updateReportLocation}
           colorMode={colorMode}
+          activeLegendFilters={activeLegendFilters}
         />
       ) : (
         <div
@@ -505,7 +612,7 @@ export default function MapPanel({
                   renderAnnotationLayer={false}
                   renderTextLayer={false}
                 />
-                {currentMarkers.map((marker) => (
+                {filteredPdfMarkers.map((marker) => (
                   <div
                     key={marker.id}
                     style={{
@@ -519,7 +626,7 @@ export default function MapPanel({
                     <svg width="24" height="32" viewBox="0 0 24 32">
                       <path
                         d="M12 0C7.6 0 4 3.6 4 8c0 5.4 8 16 8 16s8-10.6 8-16c0-4.4-3.6-8-8-8z"
-                        fill={getMarkerColor(marker)}
+                        fill={getMarkerColor(marker, reports, colorMode)}
                         stroke="#fff"
                         strokeWidth="2"
                       />
@@ -538,54 +645,61 @@ export default function MapPanel({
             </div>
           )}
 
-          <div className="map-buttons">
-            <button
-              disabled={pageNumber <= 1}
-              onClick={() => setPageNumber((p) => p - 1)}
-            >
-              Vorige
-            </button>
-            <button
-              disabled={!numPages || pageNumber >= numPages}
-              onClick={() => setPageNumber((p) => p + 1)}
-            >
-              Volgende
-            </button>
-            <button onClick={zoomIn}>Zoom +</button>
-            <button onClick={zoomOut}>Zoom -</button>
-            <button onClick={resetZoom}>Reset</button>
-            <button
-              className={isAddingMarker ? "btn-marker-active" : ""}
-              onClick={() => setIsAddingMarker(!isAddingMarker)}
-              disabled={!currentMapId || !currentMap?.hasFile}
-            >
-              {isAddingMarker ? "Annuleren" : "Voeg Marker toe"}
-            </button>
-            <button
-              onClick={() => {
-                setEditingMarker(null);
-                setShowMarkerModal(true);
-              }}
-            >
-              Markers ({currentMarkers.length})
-            </button>
-            <button onClick={() => setShowMapModal(true)}>Maps</button>
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploading}
-            >
-              {uploading ? "Uploaden..." : "Upload"}
-            </button>
-            <span className="zoom-percentage">{Math.round(zoom * 100)}%</span>
-          </div>
+          {!isPopout && (
+            <>
+              <div className="map-buttons">
+                <button
+                  disabled={pageNumber <= 1}
+                  onClick={() => setPageNumber((p) => p - 1)}
+                >
+                  Vorige
+                </button>
+                <button
+                  disabled={!numPages || pageNumber >= numPages}
+                  onClick={() => setPageNumber((p) => p + 1)}
+                >
+                  Volgende
+                </button>
+                <button onClick={zoomIn}>Zoom +</button>
+                <button onClick={zoomOut}>Zoom -</button>
+                <button onClick={resetZoom}>Reset</button>
+                <button
+                  className={isAddingMarker ? "btn-marker-active" : ""}
+                  onClick={() => setIsAddingMarker(!isAddingMarker)}
+                  disabled={!currentMapId || !currentMap?.hasFile}
+                >
+                  {isAddingMarker ? "Annuleren" : "Voeg Marker toe"}
+                </button>
+                <button
+                  onClick={() => {
+                    setEditingMarker(null);
+                    setShowMarkerModal(true);
+                  }}
+                >
+                  Markers ({currentMarkers.length})
+                </button>
+                <button onClick={() => setShowMapModal(true)}>Maps</button>
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                >
+                  {uploading ? "Uploaden..." : "Upload"}
+                </button>
+                <button onClick={openMapPopout}>Pop-out</button>
+                <span className="zoom-percentage">
+                  {Math.round(zoom * 100)}%
+                </span>
+              </div>
 
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="application/pdf"
-            onChange={handleFileUpload}
-            style={{ display: "none" }}
-          />
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="application/pdf"
+                onChange={handleFileUpload}
+                style={{ display: "none" }}
+              />
+            </>
+          )}
         </div>
       )}
 

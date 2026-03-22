@@ -428,6 +428,12 @@ export default function EventsPage() {
                   className="event-form-input"
                   value={editEvent.name}
                   onChange={(e) => handleEditChange("name", e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleSaveEvent();
+                    }
+                  }}
                   placeholder="Naam van het evenement"
                 />
               </div>
@@ -440,6 +446,12 @@ export default function EventsPage() {
                   className="event-form-input"
                   value={editEvent.postcode || ""}
                   onChange={(e) => handleEditChange("postcode", e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleSaveEvent();
+                    }
+                  }}
                   placeholder="Bijv. 3511AD"
                 />
               </div>

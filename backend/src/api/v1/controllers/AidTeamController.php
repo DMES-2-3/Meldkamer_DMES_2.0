@@ -309,7 +309,8 @@ class AidTeamController
 
             // Unassign all workers so they become available again
             foreach ($team->getAidWorkers()->toArray() as $worker) {
-                $team->removeAidWorker($worker);
+                $team->removeAidWorker($worker); // sets worker->isActive = false
+                $worker->setStatus(Status::AVAILABLE);
             }
 
             $this->em->remove($team);

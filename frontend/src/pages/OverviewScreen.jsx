@@ -12,6 +12,22 @@ export default function OverviewScreen() {
   const [loading, setLoading] = useState(true);
   const [selectedEvent, setSelectedEvent] = useState(null);
 
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Alt + N om een nieuwe melding te maken
+      if (e.altKey && e.key.toLowerCase() === 'n') {
+        e.preventDefault();
+        if (document.activeElement instanceof HTMLElement) {
+          document.activeElement.blur();
+        }
+        navigate("/melding");
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [navigate]);
+
   const reloadData = useCallback(async () => {
     setLoading(true);
     try {
@@ -57,6 +73,17 @@ export default function OverviewScreen() {
       return;
     }
   }, [navigate]);
+
+  const availableUnits = useMemo(() => {
+    return mappedUnits.filter((u) => {
+      const isAvailable = u.status === "AVAILABLE";
+      const isForEvent =
+        selectedEvent && selectedEvent.id
+          ? u.eventId === selectedEvent.id
+          : true;
+      return isAvailable && isForEvent;
+    });
+  }, [mappedUnits, selectedEvent]);
 
   const { newReports, inProgressReports, closedReports } = useMemo(() => {
     const newR = [];
@@ -206,7 +233,7 @@ export default function OverviewScreen() {
   };
 
   if (loading) {
-    return <div>Loading...</div>;
+    return <div>Laden...</div>;
   }
 
   return (
@@ -214,7 +241,7 @@ export default function OverviewScreen() {
       <Section title="Nieuwe meldingen" color="#00A651">
         <OverviewTable
           reports={newReports}
-          units={mappedUnits}
+          units={availableUnits}
           placeholderRows={5}
           onRowClick={handleReportClick}
           onStatusUpdate={handleStatusUpdate}
@@ -226,7 +253,7 @@ export default function OverviewScreen() {
       <Section title="Lopende meldingen" color="#F7941D">
         <OverviewTable
           reports={inProgressReports}
-          units={mappedUnits}
+          units={availableUnits}
           placeholderRows={5}
           onRowClick={handleReportClick}
           onStatusUpdate={handleStatusUpdate}
@@ -238,7 +265,7 @@ export default function OverviewScreen() {
       <Section title="Gesloten meldingen" color="#9B9B9B">
         <OverviewTable
           reports={closedReports}
-          units={mappedUnits}
+          units={availableUnits}
           placeholderRows={5}
           onRowClick={handleReportClick}
           onStatusUpdate={handleStatusUpdate}

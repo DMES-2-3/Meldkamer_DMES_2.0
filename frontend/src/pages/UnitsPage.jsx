@@ -15,15 +15,8 @@ import { STATUSES, UNIT_STATUSES } from "../constants";
 import "../UnitsPage.css";
 
 // ---------------------------------------------------------------------------
-// Constants
+// Status helpers
 // ---------------------------------------------------------------------------
-
-const STATUS_OPTIONS = Object.entries(UNIT_STATUSES).map(
-  ([value, { label }]) => ({
-    value,
-    label,
-  }),
-);
 
 const getStatusLabelClass = (status) => {
   switch (status) {
@@ -45,31 +38,41 @@ const getStatusLabelClass = (status) => {
 const statusLabel = (status) =>
   UNIT_STATUSES[status]?.label ?? STATUSES[status]?.label ?? status;
 
+const UNIT_STATUS_OPTIONS = Object.entries(UNIT_STATUSES).map(
+  ([value, { label }]) => ({
+    value,
+    label,
+    className: getStatusLabelClass(value),
+  }),
+);
+
+const WORKER_STATUS_OPTIONS = Object.entries(STATUSES).map(
+  ([value, { label }]) => ({
+    value,
+    label,
+    className: getStatusLabelClass(value),
+  }),
+);
+
 // ---------------------------------------------------------------------------
-// SectionTable — dark header bar + table rows, visually joined
+// SectionCards — dark header bar + cards grid
 // ---------------------------------------------------------------------------
 
-function SectionTable({ title, accent, headers, rows, emptyMsg }) {
+function SectionCards({ title, accent, items, emptyMsg }) {
   return (
     <section className="up-section">
-      <div className="up-section-header" style={{ background: accent }}>
+      <div className="up-section-header">
         <span>{title}</span>
-        <span className="up-section-count">{rows.length}</span>
+        <span className="up-section-count">{items.length}</span>
       </div>
-      <div className="up-table-wrapper up-table-wrapper--attached">
-        <table className="up-table">
-          <tbody>
-            {rows.length === 0 ? (
-              <tr>
-                <td colSpan={headers.length} className="up-td-empty">
-                  {emptyMsg}
-                </td>
-              </tr>
-            ) : (
-              rows
-            )}
-          </tbody>
-        </table>
+      <div className="up-cards-wrapper">
+        {items.length === 0 ? (
+          <div className="up-td-empty">{emptyMsg}</div>
+        ) : (
+          <div className="units-unit-list">
+            {items}
+          </div>
+        )}
       </div>
     </section>
   );
@@ -140,6 +143,66 @@ function Modal({ title, onClose, children }) {
 }
 
 // ---------------------------------------------------------------------------
+// Status picker modal
+// ---------------------------------------------------------------------------
+
+function StatusPickerModal({
+  title,
+  currentStatus,
+  options,
+  saving,
+  apiError,
+  onClose,
+  onSelect,
+}) {
+  return (
+    <Modal title={title} onClose={onClose}>
+      {apiError && <div className="up-api-error">{apiError}</div>}
+
+      <div className="up-status-picker">
+        <p className="up-status-picker-subtitle">
+          Kies een status. Na selectie wordt de status direct bijgewerkt.
+        </p>
+
+        <div className="up-status-legend">
+          {options.map((option) => {
+            const active = option.value === currentStatus;
+
+            return (
+              <button
+                key={option.value}
+                type="button"
+                className={`up-status-option ${active ? "up-status-option--active" : ""}`}
+                onClick={() => onSelect(option.value)}
+                disabled={saving}
+              >
+                <span className={`unit-label ${option.className}`}>
+                  {option.label}
+                </span>
+
+                <span className="up-status-option-check">
+                  {active ? "✓ Huidig" : "Selecteer"}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="up-modal-footer">
+        <button
+          className="up-btn up-btn-secondary"
+          onClick={onClose}
+          disabled={saving}
+        >
+          Sluiten
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Delete confirm modal
 // ---------------------------------------------------------------------------
 
@@ -206,8 +269,10 @@ function WorkerModal({ worker, eventId, onClose, onSaved }) {
       setErrors(e);
       return;
     }
+
     setSaving(true);
     setApiError("");
+
     try {
       const payload = { ...form, eventId };
       isEdit
@@ -236,6 +301,7 @@ function WorkerModal({ worker, eventId, onClose, onSaved }) {
             placeholder="Jan"
           />
         </Field>
+
         <Field label="Achternaam" error={errors.lastName}>
           <TextInput
             value={form.lastName}
@@ -243,6 +309,7 @@ function WorkerModal({ worker, eventId, onClose, onSaved }) {
             placeholder="de Vries"
           />
         </Field>
+
         <Field label="Roepnummer" error={errors.callNumber}>
           <TextInput
             value={form.callNumber}
@@ -250,6 +317,7 @@ function WorkerModal({ worker, eventId, onClose, onSaved }) {
             placeholder="A-01"
           />
         </Field>
+
         <Field label="Type" error={errors.workerType}>
           <TextInput
             value={form.workerType}
@@ -257,14 +325,16 @@ function WorkerModal({ worker, eventId, onClose, onSaved }) {
             placeholder="bv. EHBO, BHV, Arts…"
           />
         </Field>
+
         <Field label="Status" error={errors.status}>
           <SelectInput
             value={form.status}
             onChange={set("status")}
-            options={STATUS_OPTIONS}
+            options={WORKER_STATUS_OPTIONS}
             placeholder="Kies status…"
           />
         </Field>
+
         <Field label="Notitie">
           <TextInput
             value={form.note}
@@ -295,7 +365,7 @@ function WorkerModal({ worker, eventId, onClose, onSaved }) {
 }
 
 // ---------------------------------------------------------------------------
-// Team modal — add / edit  (checkbox worker picker)
+// Team modal — add / edit
 // ---------------------------------------------------------------------------
 
 function TeamModal({ team, eventId, onClose, onSaved }) {
@@ -328,7 +398,9 @@ function TeamModal({ team, eventId, onClose, onSaved }) {
           : Array.isArray(res)
             ? res
             : [];
+
         const currentIds = new Set(team?.workers?.map((w) => w.id) ?? []);
+
         setAvailableWorkers(
           all.filter((w) => !w.isActive || currentIds.has(w.id)),
         );
@@ -338,6 +410,7 @@ function TeamModal({ team, eventId, onClose, onSaved }) {
         setLoadingWorkers(false);
       }
     };
+
     load();
   }, [eventId, team]);
 
@@ -350,8 +423,9 @@ function TeamModal({ team, eventId, onClose, onSaved }) {
     const e = {};
     if (!form.teamName.trim()) e.teamName = "Verplicht";
     if (!form.status) e.status = "Verplicht";
-    if (selectedWorkerIds.length < 1)
+    if (selectedWorkerIds.length < 1) {
       e.workers = "Selecteer minimaal 1 hulpverlener";
+    }
     return e;
   };
 
@@ -361,8 +435,10 @@ function TeamModal({ team, eventId, onClose, onSaved }) {
       setErrors(e);
       return;
     }
+
     setSaving(true);
     setApiError("");
+
     try {
       const payload = { ...form, workerIds: selectedWorkerIds, eventId };
       isEdit ? await updateUnit(team.id, payload) : await createUnit(payload);
@@ -386,6 +462,7 @@ function TeamModal({ team, eventId, onClose, onSaved }) {
             placeholder="Team Alpha"
           />
         </Field>
+
         <Field label="Roepnummer">
           <TextInput
             value={form.callNumber}
@@ -393,14 +470,16 @@ function TeamModal({ team, eventId, onClose, onSaved }) {
             placeholder="T-01"
           />
         </Field>
+
         <Field label="Status" error={errors.status}>
           <SelectInput
             value={form.status}
             onChange={set("status")}
-            options={STATUS_OPTIONS}
+            options={UNIT_STATUS_OPTIONS}
             placeholder="Kies status…"
           />
         </Field>
+
         <Field label="Notitie">
           <TextInput
             value={form.note}
@@ -417,11 +496,13 @@ function TeamModal({ team, eventId, onClose, onSaved }) {
             {selectedWorkerIds.length} geselecteerd
           </span>
         </div>
+
         {errors.workers && (
           <div className="up-field-error up-field-error--standalone">
             {errors.workers}
           </div>
         )}
+
         {loadingWorkers ? (
           <div className="up-worker-picker-loading">Laden…</div>
         ) : availableWorkers.length === 0 ? (
@@ -433,6 +514,7 @@ function TeamModal({ team, eventId, onClose, onSaved }) {
           <div className="up-worker-picker-list">
             {availableWorkers.map((w) => {
               const checked = selectedWorkerIds.includes(w.id);
+
               return (
                 <label
                   key={w.id}
@@ -478,26 +560,7 @@ function TeamModal({ team, eventId, onClose, onSaved }) {
 
 // ---------------------------------------------------------------------------
 // Workers tab
-// Two sections: "Geen Team" (unassigned) and "In Team" (assigned)
 // ---------------------------------------------------------------------------
-
-const WORKER_HEADERS_BASE = [
-  "Naam",
-  "Roepnummer",
-  "Type",
-  "Status",
-  "Notitie",
-  "",
-];
-const WORKER_HEADERS_TEAM = [
-  "Naam",
-  "Roepnummer",
-  "Type",
-  "Status",
-  "Team",
-  "Notitie",
-  "",
-];
 
 function WorkersTab({ eventId }) {
   const [workers, setWorkers] = useState([]);
@@ -508,16 +571,22 @@ function WorkersTab({ eventId }) {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
 
+  const [statusTarget, setStatusTarget] = useState(null);
+  const [statusSaving, setStatusSaving] = useState(false);
+  const [statusError, setStatusError] = useState("");
+
   const fetchWorkers = useCallback(async () => {
     try {
       setError("");
       setLoading(true);
+
       const res = await getWorkers({ eventId });
       const list = Array.isArray(res?.data)
         ? res.data
         : Array.isArray(res)
           ? res
           : [];
+
       setWorkers(list);
     } catch (err) {
       setError("Fout bij ophalen hulpverleners: " + err.message);
@@ -532,6 +601,7 @@ function WorkersTab({ eventId }) {
 
   const handleDeleteConfirm = async () => {
     setDeleting(true);
+
     try {
       await deleteWorker(deleteTarget.id);
       setDeleteTarget(null);
@@ -543,76 +613,80 @@ function WorkersTab({ eventId }) {
     }
   };
 
-  const actionCells = (w) => (
-    <>
-      <button
-        className="up-btn-icon"
-        title="Bewerken"
-        onClick={() => setEditTarget(w)}
-      >
-        ✏️
-      </button>
-      <button
-        className="up-btn-icon up-btn-icon--danger"
-        title="Verwijderen"
-        onClick={() => setDeleteTarget(w)}
-      >
-        🗑️
-      </button>
-    </>
+  const handleWorkerStatusChange = async (newStatus) => {
+    if (!statusTarget) return;
+
+    if (newStatus === statusTarget.status) {
+      setStatusTarget(null);
+      setStatusError("");
+      return;
+    }
+
+    setStatusSaving(true);
+    setStatusError("");
+
+    try {
+      await updateWorker(statusTarget.id, {
+        ...statusTarget,
+        status: newStatus,
+        eventId,
+      });
+
+      setStatusTarget(null);
+      await fetchWorkers();
+    } catch (err) {
+      setStatusError("Fout bij wijzigen status: " + err.message);
+    } finally {
+      setStatusSaving(false);
+    }
+  };
+
+  const renderWorkerCard = (w, isAssigned) => (
+    <div key={w.id} className="unit-card" onClick={() => setEditTarget(w)}>
+      <div className="unit-card-header">
+        <span className="unit-team-name">{w.firstName} {w.lastName}</span>
+        <span
+          className="up-delete-icon"
+          onClick={(ev) => {
+            ev.stopPropagation();
+            setDeleteTarget(w);
+          }}
+          title="Verwijderen"
+        >
+          🗑
+        </span>
+      </div>
+      <div className="unit-card-body">
+        <span className={`unit-label ${getStatusLabelClass(w.status)}`}>{w.callNumber}</span>
+        <span style={{ fontSize: '13px', fontWeight: 500 }}>{w.workerType}</span>
+      </div>
+      {isAssigned && (
+        <div style={{ marginTop: '-4px' }}>
+          <span className="up-team-badge">{w.teamName}</span>
+        </div>
+      )}
+      <div className="unit-card-footer">
+        <span className={`up-status-pill up-status-pill--${w.status?.toLowerCase()}`}>
+          {statusLabel(w.status)}
+        </span>
+        <span className="up-td-muted" style={{ fontSize: '12px' }}>
+          {w.updatedAt
+            ? new Date(w.updatedAt).toLocaleTimeString("nl-NL", {
+                hour: "2-digit",
+                minute: "2-digit",
+              })
+            : ""}
+        </span>
+      </div>
+      {w.note && <div className="up-td-note">{w.note}</div>}
+    </div>
   );
 
   const unassigned = workers.filter((w) => !w.teamId);
   const assigned = workers.filter((w) => !!w.teamId);
 
-  const unassignedRows = unassigned.map((w) => (
-    <tr key={w.id}>
-      <td className="up-td-name">
-        {w.firstName} {w.lastName}
-      </td>
-      <td>
-        <span className={`unit-label ${getStatusLabelClass(w.status)}`}>
-          {w.callNumber}
-        </span>
-      </td>
-      <td>{w.workerType}</td>
-      <td>
-        <span
-          className={`up-status-pill up-status-pill--${w.status?.toLowerCase()}`}
-        >
-          {statusLabel(w.status)}
-        </span>
-      </td>
-      <td className="up-td-note">{w.note || "—"}</td>
-      <td className="up-td-actions">{actionCells(w)}</td>
-    </tr>
-  ));
-
-  const assignedRows = assigned.map((w) => (
-    <tr key={w.id}>
-      <td className="up-td-name">
-        {w.firstName} {w.lastName}
-      </td>
-      <td>
-        <span className={`unit-label ${getStatusLabelClass(w.status)}`}>
-          {w.callNumber}
-        </span>
-      </td>
-      <td>{w.workerType}</td>
-      <td>
-        <span
-          className={`up-status-pill up-status-pill--${w.status?.toLowerCase()}`}
-        >
-          {statusLabel(w.status)}
-        </span>
-      </td>
-      <td>
-        <span className="up-team-badge">{w.teamName}</span>
-      </td>
-      <td className="up-td-note">{w.note || "—"}</td>
-      <td className="up-td-actions">{actionCells(w)}</td>
-    </tr>
-  ));
+  const unassignedCards = unassigned.map(w => renderWorkerCard(w, false));
+  const assignedCards = assigned.map(w => renderWorkerCard(w, true));
 
   return (
     <div className="up-tab-content">
@@ -636,18 +710,16 @@ function WorkersTab({ eventId }) {
         </div>
       ) : (
         <>
-          <SectionTable
+          <SectionCards
             title="Geen Team"
             accent="#6b7280"
-            headers={WORKER_HEADERS_BASE}
-            rows={unassignedRows}
+            items={unassignedCards}
             emptyMsg="Alle hulpverleners zijn ingedeeld in een team"
           />
-          <SectionTable
+          <SectionCards
             title="In Team"
             accent="#1e1b4b"
-            headers={WORKER_HEADERS_TEAM}
-            rows={assignedRows}
+            items={assignedCards}
             emptyMsg="Nog geen hulpverleners ingedeeld in een team"
           />
         </>
@@ -663,6 +735,7 @@ function WorkersTab({ eventId }) {
           }}
         />
       )}
+
       {editTarget && (
         <WorkerModal
           worker={editTarget}
@@ -674,12 +747,28 @@ function WorkersTab({ eventId }) {
           }}
         />
       )}
+
       {deleteTarget && (
         <DeleteModal
           label={`${deleteTarget.firstName} ${deleteTarget.lastName}`}
           deleting={deleting}
           onClose={() => setDeleteTarget(null)}
           onConfirm={handleDeleteConfirm}
+        />
+      )}
+
+      {statusTarget && (
+        <StatusPickerModal
+          title={`Status wijzigen — ${statusTarget.firstName} ${statusTarget.lastName}`}
+          currentStatus={statusTarget.status}
+          options={WORKER_STATUS_OPTIONS}
+          saving={statusSaving}
+          apiError={statusError}
+          onClose={() => {
+            setStatusTarget(null);
+            setStatusError("");
+          }}
+          onSelect={handleWorkerStatusChange}
         />
       )}
     </div>
@@ -689,19 +778,10 @@ function WorkersTab({ eventId }) {
 // ---------------------------------------------------------------------------
 // Teams tab
 // Three sections:
-//   "Beschikbaar"      — AVAILABLE only
+//   "Aangemeld"      — AVAILABLE + NOTIFICATION
 //   "Wacht"            — WAIT only
-//   "Niet Beschikbaar" — NOTIFICATION + UNAVAILABLE + anything else
+//   "Afgemeld" — SHORT_BREAK + LONG_BREAK + UNAVAILABLE
 // ---------------------------------------------------------------------------
-
-const TEAM_HEADERS = [
-  "Teamnaam",
-  "Roepnummer",
-  "Hulpverleners",
-  "Notitie",
-  "Bijgewerkt",
-  "",
-];
 
 function TeamsTab({ eventId }) {
   const [teams, setTeams] = useState([]);
@@ -712,16 +792,22 @@ function TeamsTab({ eventId }) {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
 
+  const [statusTarget, setStatusTarget] = useState(null);
+  const [statusSaving, setStatusSaving] = useState(false);
+  const [statusError, setStatusError] = useState("");
+
   const fetchTeams = useCallback(async () => {
     try {
       setError("");
       setLoading(true);
+
       const res = await getUnits(eventId);
       const list = Array.isArray(res?.data)
         ? res.data
         : Array.isArray(res)
           ? res
           : [];
+
       setTeams(list);
     } catch (err) {
       setError("Fout bij ophalen teams: " + err.message);
@@ -745,6 +831,7 @@ function TeamsTab({ eventId }) {
 
   const handleDeleteConfirm = async () => {
     setDeleting(true);
+
     try {
       await deleteUnit(deleteTarget.id);
       setDeleteTarget(null);
@@ -756,12 +843,54 @@ function TeamsTab({ eventId }) {
     }
   };
 
-  const renderTeamRow = (t) => {
+  const handleTeamStatusChange = async (newStatus) => {
+    if (!statusTarget) return;
+
+    if (newStatus === statusTarget.status) {
+      setStatusTarget(null);
+      setStatusError("");
+      return;
+    }
+
+    setStatusSaving(true);
+    setStatusError("");
+
+    try {
+      await updateUnit(statusTarget.id, {
+        ...statusTarget,
+        status: newStatus,
+        eventId,
+        workerIds: statusTarget.workers?.map((w) => w.id) ?? [],
+      });
+
+      setStatusTarget(null);
+      await fetchTeams();
+    } catch (err) {
+      setStatusError("Fout bij wijzigen status: " + err.message);
+    } finally {
+      setStatusSaving(false);
+    }
+  };
+
+  const renderTeamCard = (t) => {
     const workerCount = t.workerCount ?? t.workers?.length ?? 0;
+
     return (
-      <tr key={t.id}>
-        <td className="up-td-name">{t.name}</td>
-        <td>
+      <div key={t.id} className="unit-card" onClick={() => handleEditClick(t)}>
+        <div className="unit-card-header">
+          <span className="unit-team-name">{t.name}</span>
+          <span
+            className="up-delete-icon"
+            onClick={(ev) => {
+              ev.stopPropagation();
+              setDeleteTarget(t);
+            }}
+            title="Verwijderen"
+          >
+            🗑
+          </span>
+        </div>
+        <div className="unit-card-body">
           {t.callNumber ? (
             <span className={`unit-label ${getStatusLabelClass(t.status)}`}>
               {t.callNumber}
@@ -769,46 +898,31 @@ function TeamsTab({ eventId }) {
           ) : (
             <span className="up-td-muted">—</span>
           )}
-        </td>
-        <td>
           <span className="up-team-badge">
             {workerCount} hulpverlener{workerCount !== 1 ? "s" : ""}
           </span>
-        </td>
-        <td className="up-td-note">{t.note || "—"}</td>
-        <td className="up-td-muted">
-          {t.updatedAt
-            ? new Date(t.updatedAt).toLocaleTimeString("nl-NL", {
-                hour: "2-digit",
-                minute: "2-digit",
-              })
-            : "—"}
-        </td>
-        <td className="up-td-actions">
-          <button
-            className="up-btn-icon"
-            title="Bewerken"
-            onClick={() => handleEditClick(t)}
-          >
-            ✏️
-          </button>
-          <button
-            className="up-btn-icon up-btn-icon--danger"
-            title="Verwijderen"
-            onClick={() => setDeleteTarget(t)}
-          >
-            🗑️
-          </button>
-        </td>
-      </tr>
+        </div>
+        <div className="unit-card-footer">
+          <span className={`up-status-pill up-status-pill--${t.status?.toLowerCase()}`}>
+            {statusLabel(t.status)}
+          </span>
+          <span className="up-td-muted" style={{ fontSize: '12px' }}>
+            {t.updatedAt
+              ? new Date(t.updatedAt).toLocaleTimeString("nl-NL", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })
+              : ""}
+          </span>
+        </div>
+        {t.note && <div className="up-td-note">{t.note}</div>}
+      </div>
     );
   };
 
-  const beschikbaar = teams.filter((t) => t.status === "AVAILABLE");
-  const wacht = teams.filter((t) => t.status === "WAIT");
-  const nietBeschikbaar = teams.filter(
-    (t) => t.status !== "AVAILABLE" && t.status !== "WAIT",
-  );
+  const wachtrij = teams.filter((t) => t.status === "WAIT");
+  const aangemeld = teams.filter((t) => ["AVAILABLE", "NOTIFICATION"].includes(t.status));
+  const afgemeld = teams.filter((t) => ["SHORT_BREAK", "LONG_BREAK", "SIGNED_OUT"].includes(t.status));
 
   return (
     <div className="up-tab-content">
@@ -833,26 +947,23 @@ function TeamsTab({ eventId }) {
         </div>
       ) : (
         <>
-          <SectionTable
-            title="Beschikbaar"
+          <SectionCards
+            title="Aangemeld"
             accent="#1e1b4b"
-            headers={TEAM_HEADERS}
-            rows={beschikbaar.map(renderTeamRow)}
-            emptyMsg="Geen beschikbare teams"
+            items={aangemeld.map(renderTeamCard)}
+            emptyMsg="Geen aangemelde teams"
           />
-          <SectionTable
-            title="Wacht"
+          <SectionCards
+            title="Wachtrij"
             accent="#1d6fb5"
-            headers={TEAM_HEADERS}
-            rows={wacht.map(renderTeamRow)}
-            emptyMsg="Geen teams in wacht"
+            items={wachtrij.map(renderTeamCard)}
+            emptyMsg="Geen teams in de wachtrij"
           />
-          <SectionTable
-            title="Niet Beschikbaar"
+          <SectionCards
+            title="Afgemeld"
             accent="#6b7280"
-            headers={TEAM_HEADERS}
-            rows={nietBeschikbaar.map(renderTeamRow)}
-            emptyMsg="Geen niet-beschikbare teams"
+            items={afgemeld.map(renderTeamCard)}
+            emptyMsg="Geen afgemelde teams"
           />
         </>
       )}
@@ -867,6 +978,7 @@ function TeamsTab({ eventId }) {
           }}
         />
       )}
+
       {editTarget && (
         <TeamModal
           team={editTarget}
@@ -878,12 +990,28 @@ function TeamsTab({ eventId }) {
           }}
         />
       )}
+
       {deleteTarget && (
         <DeleteModal
           label={deleteTarget.name}
           deleting={deleting}
           onClose={() => setDeleteTarget(null)}
           onConfirm={handleDeleteConfirm}
+        />
+      )}
+
+      {statusTarget && (
+        <StatusPickerModal
+          title={`Status wijzigen — ${statusTarget.name}`}
+          currentStatus={statusTarget.status}
+          options={UNIT_STATUS_OPTIONS}
+          saving={statusSaving}
+          apiError={statusError}
+          onClose={() => {
+            setStatusTarget(null);
+            setStatusError("");
+          }}
+          onSelect={handleTeamStatusChange}
         />
       )}
     </div>
@@ -897,7 +1025,23 @@ function TeamsTab({ eventId }) {
 export default function UnitsPage() {
   const navigate = useNavigate();
   const [selectedEvent, setSelectedEvent] = useState(null);
-  const [activeTab, setActiveTab] = useState("workers");
+  const [activeTab, setActiveTab] = useState("teams");
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Alt + N om een nieuwe melding te maken
+      if (e.altKey && e.key.toLowerCase() === 'n') {
+        e.preventDefault();
+        if (document.activeElement instanceof HTMLElement) {
+          document.activeElement.blur();
+        }
+        navigate("/melding");
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [navigate]);
 
   useEffect(() => {
     const stored = localStorage.getItem("selected_event");
@@ -905,6 +1049,7 @@ export default function UnitsPage() {
       navigate("/events");
       return;
     }
+
     try {
       setSelectedEvent(JSON.parse(stored));
     } catch {
@@ -918,23 +1063,23 @@ export default function UnitsPage() {
     <div className="units-wrapper">
       <div className="up-tabs">
         <button
-          className={`up-tab ${activeTab === "workers" ? "up-tab--active" : ""}`}
-          onClick={() => setActiveTab("workers")}
-        >
-          Hulpverleners
-        </button>
-        <button
           className={`up-tab ${activeTab === "teams" ? "up-tab--active" : ""}`}
           onClick={() => setActiveTab("teams")}
         >
           Teams
         </button>
+        <button
+          className={`up-tab ${activeTab === "workers" ? "up-tab--active" : ""}`}
+          onClick={() => setActiveTab("workers")}
+        >
+          Hulpverleners
+        </button>
       </div>
 
-      {activeTab === "workers" ? (
-        <WorkersTab eventId={selectedEvent.id} />
-      ) : (
+      {activeTab === "teams" ? (
         <TeamsTab eventId={selectedEvent.id} />
+      ) : (
+        <WorkersTab eventId={selectedEvent.id} />
       )}
     </div>
   );

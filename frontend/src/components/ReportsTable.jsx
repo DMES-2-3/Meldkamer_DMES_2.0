@@ -1,11 +1,11 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { getStatusColorForReport, getPriorityColor } from "../utils";
+import { getStatusColorForReport, getPriorityColor } from "../utils/utils";
 
 export default function ReportsTable({ reports }) {
   const navigate = useNavigate();
 
-  if (!reports.length) return <p>Geen rapporten beschikbaar</p>;
+  if (!reports.length) return <p>Geen meldingen beschikbaar</p>;
 
   return (
     <div
@@ -23,7 +23,7 @@ export default function ReportsTable({ reports }) {
             <th>Prioriteit</th>
             <th>Ambulance Nodig</th>
             <th>Beschrijving</th>
-            <th>Aid Team</th>
+            <th>Team</th>
           </tr>
         </thead>
 
@@ -53,7 +53,7 @@ export default function ReportsTable({ reports }) {
                 />
                 {r.Prioriteit}
               </td>
-              <td>{r.Ambulance ? "Yes" : "No"}</td>
+              <td>{r.Ambulance ? "Ja" : "Nee"}</td>
               <td>{r.Note}</td>
               <td>{r.Team || "N/A"}</td>
             </tr>
