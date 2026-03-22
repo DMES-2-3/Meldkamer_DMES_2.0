@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useRef } from "react";
 import { Rnd } from "react-rnd";
 
 function storageKeyFor(context) {
@@ -21,6 +21,7 @@ function uiKeyFor(context) {
 export default function FloatingNotepad({ open, context, onClose }) {
   const key = useMemo(() => storageKeyFor(context), [context]);
   const uiKey = useMemo(() => uiKeyFor(context), [context]);
+  const textareaRef = useRef(null);
 
   const [text, setText] = useState("");
 
@@ -38,6 +39,10 @@ export default function FloatingNotepad({ open, context, onClose }) {
 
     const stored = localStorage.getItem(key);
     setText(stored ?? "");
+    
+    setTimeout(() => {
+      textareaRef.current?.focus();
+    }, 50);
 
     if (uiKey) {
       const uiStored = localStorage.getItem(uiKey);
@@ -143,6 +148,7 @@ export default function FloatingNotepad({ open, context, onClose }) {
 
         <div style={{ padding: 10, display: "flex", flexDirection: "column", gap: 8, flex: 1 }}>
           <textarea
+            ref={textareaRef}
             value={text}
             onChange={(e) => setText(e.target.value)}
             placeholder="Schrijf je aantekeningen…"
