@@ -7,7 +7,6 @@ import TeamsTableContainer from "../components/TeamsTableContainer";
 import AidWorkersTableContainer from "../components/AidWorkerTableContainer";
 import ReportsTableContainer from "../components/ReportsTableContainer";
 import FilterControls from "../components/FilterControls";
-import FloatingNotepad from "../components/FloatingNotepad";
 import { MAPS, MAIN_TABS, REPORT_TABS } from "../utils/utils";
 import "../Dashboard.css";
 
@@ -27,8 +26,6 @@ export default function Dashboard({ reports, reloadData, setReports }) {
     priority: [],
   });
 
-  const [showKladblok, setShowKladblok] = useState(false);
-  const [kladblokContext, setKladblokContext] = useState(null);
   const [selectedEvent, setSelectedEvent] = useState(null);
 
   // Get selected event from localStorage
@@ -43,24 +40,6 @@ export default function Dashboard({ reports, reloadData, setReports }) {
       }
     }
   }, []);
-
-  const onOpenNotepad = () => 
-  {
-    const eventName = selectedEvent?.name;
-    if (!eventName) {
-      alert("Geen event geselecteerd.");
-      return;
-    }
-    setKladblokContext({ type: "event", eventName: selectedEvent.name });
-    setShowKladblok(true);
-  };
-
-  const onOpenReportNotepad = (reportId) => 
-  {
-    if (!reportId) return;
-    setKladblokContext({ type: "report", reportId });
-    setShowKladblok(true);
-  };
 
   useEffect(() => {
     window._reports = reports;
@@ -229,7 +208,6 @@ export default function Dashboard({ reports, reloadData, setReports }) {
               reportsTab={reportsTab}
               statusFilter={statusFilter}
               priorityFilter={priorityFilter}
-              onOpenReportNotepad={onOpenReportNotepad}
             />
           </>
         )}
@@ -242,16 +220,6 @@ export default function Dashboard({ reports, reloadData, setReports }) {
             setActiveLegendFilters={setActiveLegendFilters}
           />
         </div>
-        <div className="notepad-button">
-          <button className="btn-small" onClick={onOpenNotepad}>
-            Kladblok
-          </button>
-        </div>
-          <FloatingNotepad
-            open={showKladblok}
-            context={kladblokContext}
-            onClose={() => setShowKladblok(false)}
-          />
       </div>
     </div>
   );

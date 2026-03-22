@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
-import { useCallback } from "react";
 import dmesLogo from "../../assets/logos/DMES_Vierkant_Logo.png";
 
-const TopNav = () => {
+const TopNav = ({ onOpenNotepad }) => {
   const navigate = useNavigate();
   const [selectedEvent, setSelectedEvent] = useState(null);
 
@@ -72,7 +71,17 @@ const TopNav = () => {
           </NavLink>
         </div>
       </div>
+
       <div className="top-nav-right">
+        <button
+          className="btn-small"
+          onClick={onOpenNotepad}
+          type="button"
+          style={{ marginRight: "12px" }}
+        >
+          Kladblok
+        </button>
+
         {selectedEvent && (
           <span className="top-nav-event-name">
             {selectedEvent.name || selectedEvent.eventName || "Geen evenement"}
