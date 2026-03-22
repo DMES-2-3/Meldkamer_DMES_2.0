@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react"; 
 import AidWorkersTable from "./AidWorkerTable";
 import { getAidWorkers } from "../services/reportsApi";
 
@@ -7,7 +7,7 @@ const DUMMY_WORKERS = [
     id: 1,
     callNumber: "A-10",
     name: "John Doe",
-    role: "Medic",
+    workerType: "Medic",
     note: "Experienced",
     status: "AVAILABLE",
     color: "#10B981",
@@ -15,44 +15,43 @@ const DUMMY_WORKERS = [
   },
 ];
 
-export default function AidWorkersTableContainer() {
+export default function AidWorkersTableContainer({ selectedEventId }) 
+{
   const [workers, setWorkers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    const fetchWorkers = async () => {
-      try {
-        const data = await getAidWorkers();
+  useEffect(() => 
+  {
+    if (!selectedEventId) return;
 
-        const mapped = (data || []).map((w) => ({
-          id: w.id,
-          callNumber: w.callNumber,
-          name: w.name,
-          role: w.role || "N/A",
-          note: w.note || "",
-          status: w.status || "AVAILABLE",
-          color: w.color || "#10B981",
-          teamName: w.teamName || "N/A",
-        }));
-
-        setWorkers(mapped);
+    const fetchWorkers = async () => 
+    {
+      setLoading(true);
+      try 
+      {
+        const data = await getAidWorkers({ eventId: selectedEventId });
+        setWorkers(data || []);
         setError(null);
-      } catch (err) {
+      } 
+      catch (err) 
+      {
         console.error("Failed to fetch aid workers:", err);
         setError(err.message);
         setWorkers(DUMMY_WORKERS);
-      } finally {
+      } 
+      finally 
+      {
         setLoading(false);
       }
     };
 
     fetchWorkers();
-  }, []);
+  }, [selectedEventId]);
 
-  if (loading) return <p>Aid workers laden...</p>;
+  if (loading) return <p>Hulpverleners laden...</p>;
   if (error) return <p style={{ color: "red" }}>Error: {error}</p>;
-  if (!workers.length) return <p>Geen aid workers beschikbaar</p>;
+  if (!workers.length) return <p>Geen hulpverleners beschikbaar voor dit evenement</p>;
 
   return <AidWorkersTable workers={workers} />;
 }

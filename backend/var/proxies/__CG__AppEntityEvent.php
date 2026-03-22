@@ -22,12 +22,18 @@ class Event extends \App\Entity\Event implements \Doctrine\ORM\Proxy\InternalPro
     
 
     private const LAZY_OBJECT_PROPERTY_SCOPES = [
+        "\0".parent::class."\0".'Notification' => [parent::class, 'Notification', null],
+        "\0".parent::class."\0".'aidTeams' => [parent::class, 'aidTeams', null],
+        "\0".parent::class."\0".'aidWorkers' => [parent::class, 'aidWorkers', null],
         "\0".parent::class."\0".'createdAt' => [parent::class, 'createdAt', null],
         "\0".parent::class."\0".'eventId' => [parent::class, 'eventId', null],
         "\0".parent::class."\0".'eventName' => [parent::class, 'eventName', null],
         "\0".parent::class."\0".'maps' => [parent::class, 'maps', null],
         "\0".parent::class."\0".'postcode' => [parent::class, 'postcode', null],
         "\0".parent::class."\0".'updatedAt' => [parent::class, 'updatedAt', null],
+        'Notification' => [parent::class, 'Notification', null],
+        'aidTeams' => [parent::class, 'aidTeams', null],
+        'aidWorkers' => [parent::class, 'aidWorkers', null],
         'createdAt' => [parent::class, 'createdAt', null],
         'eventId' => [parent::class, 'eventId', null],
         'eventName' => [parent::class, 'eventName', null],

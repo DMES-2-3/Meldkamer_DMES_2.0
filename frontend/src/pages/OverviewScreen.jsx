@@ -12,6 +12,22 @@ export default function OverviewScreen() {
   const [loading, setLoading] = useState(true);
   const [selectedEvent, setSelectedEvent] = useState(null);
 
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Alt + N om een nieuwe melding te maken
+      if (e.altKey && e.key.toLowerCase() === 'n') {
+        e.preventDefault();
+        if (document.activeElement instanceof HTMLElement) {
+          document.activeElement.blur();
+        }
+        navigate("/melding");
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [navigate]);
+
   const reloadData = useCallback(async () => {
     setLoading(true);
     try {
@@ -42,6 +58,8 @@ export default function OverviewScreen() {
       teamName: u.aidTeamName || u.name,
     }));
   }, [units]);
+
+  const availableUnits = useMemo(() => mappedUnits.filter(u => u.status === "AVAILABLE"), [mappedUnits]);
 
   useEffect(() => {
     const stored = localStorage.getItem("selected_event");
@@ -214,7 +232,7 @@ export default function OverviewScreen() {
       <Section title="Nieuwe meldingen" color="#00A651">
         <OverviewTable
           reports={newReports}
-          units={mappedUnits}
+          units={availableUnits}
           placeholderRows={5}
           onRowClick={handleReportClick}
           onStatusUpdate={handleStatusUpdate}
@@ -226,7 +244,7 @@ export default function OverviewScreen() {
       <Section title="Lopende meldingen" color="#F7941D">
         <OverviewTable
           reports={inProgressReports}
-          units={mappedUnits}
+          units={availableUnits}
           placeholderRows={5}
           onRowClick={handleReportClick}
           onStatusUpdate={handleStatusUpdate}
@@ -238,7 +256,7 @@ export default function OverviewScreen() {
       <Section title="Gesloten meldingen" color="#9B9B9B">
         <OverviewTable
           reports={closedReports}
-          units={mappedUnits}
+          units={availableUnits}
           placeholderRows={5}
           onRowClick={handleReportClick}
           onStatusUpdate={handleStatusUpdate}
