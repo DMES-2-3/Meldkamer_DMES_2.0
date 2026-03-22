@@ -76,6 +76,12 @@ function Login() {
             e.preventDefault();
             loginSubmit();
           }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              loginSubmit();
+            }
+          }}
         >
           <label>Email</label>
           <input

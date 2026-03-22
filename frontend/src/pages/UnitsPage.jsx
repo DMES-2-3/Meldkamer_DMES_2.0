@@ -835,6 +835,22 @@ export default function UnitsPage() {
   const [activeTab, setActiveTab] = useState("teams");
 
   useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Alt + N om een nieuwe melding te maken
+      if (e.altKey && e.key.toLowerCase() === 'n') {
+        e.preventDefault();
+        if (document.activeElement instanceof HTMLElement) {
+          document.activeElement.blur();
+        }
+        navigate("/melding");
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [navigate]);
+
+  useEffect(() => {
     const stored = localStorage.getItem("selected_event");
     if (!stored) {
       navigate("/events");
