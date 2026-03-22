@@ -45,9 +45,39 @@ class Event
     ]
     private Collection $maps;
 
+    #[
+        OneToMany(
+            mappedBy: "event",
+            targetEntity: Notification::class,
+            cascade: ["persist", "remove"],
+        ),
+    ]
+    private Collection $Notification;
+
+    #[
+        OneToMany(
+            mappedBy: "event",
+            targetEntity: AidTeam::class,
+            cascade: ["persist", "remove"],
+        ),
+    ]
+    private Collection $aidTeams;
+
+    #[
+        OneToMany(
+            mappedBy: "event",
+            targetEntity: AidWorker::class,
+            cascade: ["persist", "remove"],
+        ),
+    ]
+    private Collection $aidWorkers;
+
     public function __construct()
     {
         $this->maps = new ArrayCollection();
+        $this->Notification = new ArrayCollection();
+        $this->aidTeams = new ArrayCollection();
+        $this->aidWorkers = new ArrayCollection();
     }
 
     #[ORM\PrePersist]
@@ -107,6 +137,21 @@ class Event
     public function getMaps(): Collection
     {
         return $this->maps;
+    }
+
+    public function getNotification(): Collection
+    {
+        return $this->Notification;
+    }
+
+    public function getAidTeams(): Collection
+    {
+        return $this->aidTeams;
+    }
+
+    public function getAidWorkers(): Collection
+    {
+        return $this->aidWorkers;
     }
 
     public function toArray(): array

@@ -355,30 +355,6 @@ export default function ReportScreen({ reloadData }) {
       return;
     try {
       if (formData.id) {
-        // Release the primary team associated with the report
-        const teamName = formData.Team;
-        if (teamName) {
-          const team = units.find((u) => u.name === teamName);
-          if (team) {
-            const payload = { ...team, status: "AVAILABLE" };
-            delete payload.id;
-            delete payload.name;
-            await updateUnit(team.id, payload);
-          }
-        }
-
-        // Release the assistance team associated with the report
-        const assistanceTeamName = formData.Assistance?.Team;
-        if (assistanceTeamName) {
-          const assistanceTeam = units.find((u) => u.name === assistanceTeamName);
-          if (assistanceTeam) {
-            const payload = { ...assistanceTeam, status: "AVAILABLE" };
-            delete payload.id;
-            delete payload.name;
-            await updateUnit(assistanceTeam.id, payload);
-          }
-        }
-
         await deleteReport(formData.id);
         if (reloadData) await reloadData();
       }

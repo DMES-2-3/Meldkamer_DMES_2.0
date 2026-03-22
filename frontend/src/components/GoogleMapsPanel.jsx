@@ -8,7 +8,7 @@ import {
   createMarkerIcon,
   normalizeReportStatus,
   normalizePriority
-} from "../utils";
+} from "../utils/utils";
 import "../Dashboard.css";
 
 const defaultCenter = { lat: 52.0907, lng: 5.1214 };
@@ -18,6 +18,7 @@ export default function GoogleMapsPanel({
   reports,
   onMarkerDragEnd,
   colorMode,
+  activeLegendFilters
 }) {
   const navigate = useNavigate();
 
@@ -88,56 +89,68 @@ export default function GoogleMapsPanel({
     setMarkers(newMarkers);
   }, [reports, selectedEvent]);
 
-  if (loadError) {
-    return (
-      <div className="map-error">
-        <h3>Google Maps kon niet geladen worden</h3>
-        <p>
-          {loadError.message?.includes("InvalidKeyMapError") ||
-          loadError.message?.includes("ApiNotActivatedMapError")
-            ? "Google Maps API key is niet geldig of de API is niet geactiveerd."
-            : "Er is een fout opgetreden bij het laden van Google Maps."}
-        </p>
-        <p>
-          Controleer of je Google Maps API key correct is ingesteld in het .env
-          bestand en of de Maps JavaScript API en Geocoding API zijn
-          geactiveerd.
-        </p>
-      </div>
-    );
-  }
+  const filteredMarkers = markers.filter((m) => {
+    const matchesStatus =
+      !activeLegendFilters?.status?.length ||
+      activeLegendFilters.status.includes(m.status);
 
-  if (
-    !process.env.REACT_APP_GOOGLE_MAPS_API_KEY ||
-    process.env.REACT_APP_GOOGLE_MAPS_API_KEY ===
-      "placeholder_key_replace_with_actual_key"
-  ) {
-    return (
-      <div className="map-error">
-        <h3>Google Maps API key ontbreekt</h3>
-        <p>Om Google Maps te gebruiken, moet je een API key instellen:</p>
-        <ol>
-          <li>
-            Ga naar{" "}
-            <a
-              href="https://console.cloud.google.com/"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Google Cloud Console
-            </a>
-          </li>
-          <li>Activeer de Maps JavaScript API en Geocoding API</li>
-          <li>Maak een API key aan</li>
-          <li>
-            Voeg deze toe aan het .env bestand:
-            REACT_APP_GOOGLE_MAPS_API_KEY=je_api_key
-          </li>
-          <li>Herstart de ontwikkelserver</li>
-        </ol>
-      </div>
-    );
-  }
+    const matchesPriority =
+      !activeLegendFilters?.priority?.length ||
+      activeLegendFilters.priority.includes(m.priority);
+
+    return matchesStatus && matchesPriority;
+  });
+
+  // if (loadError) {
+  //   return (
+  //     <div className="map-error">
+  //       <h3>Google Maps kon niet geladen worden</h3>
+  //       <p>
+  //         {loadError.message?.includes("InvalidKeyMapError") ||
+  //         loadError.message?.includes("ApiNotActivatedMapError")
+  //           ? "Google Maps API key is niet geldig of de API is niet geactiveerd."
+  //           : "Er is een fout opgetreden bij het laden van Google Maps."}
+  //       </p>
+  //       <p>
+  //         Controleer of je Google Maps API key correct is ingesteld in het .env
+  //         bestand en of de Maps JavaScript API en Geocoding API zijn
+  //         geactiveerd.
+  //       </p>
+  //     </div>
+  //   );
+  // }
+
+  // if (
+  //   !process.env.REACT_APP_GOOGLE_MAPS_API_KEY ||
+  //   process.env.REACT_APP_GOOGLE_MAPS_API_KEY ===
+  //     "placeholder_key_replace_with_actual_key"
+  // ) {
+  //   return (
+  //     <div className="map-error">
+  //       <h3>Google Maps API key ontbreekt</h3>
+  //       <p>Om Google Maps te gebruiken, moet je een API key instellen:</p>
+  //       <ol>
+  //         <li>
+  //           Ga naar{" "}
+  //           <a
+  //             href="https://console.cloud.google.com/"
+  //             target="_blank"
+  //             rel="noopener noreferrer"
+  //           >
+  //             Google Cloud Console
+  //           </a>
+  //         </li>
+  //         <li>Activeer de Maps JavaScript API en Geocoding API</li>
+  //         <li>Maak een API key aan</li>
+  //         <li>
+  //           Voeg deze toe aan het .env bestand:
+  //           REACT_APP_GOOGLE_MAPS_API_KEY=je_api_key
+  //         </li>
+  //         <li>Herstart de ontwikkelserver</li>
+  //       </ol>
+  //     </div>
+  //   );
+  // }
 
   if (!isLoaded)
     return <div className="map-loading">Google Maps wordt geladen…</div>;
@@ -157,7 +170,7 @@ export default function GoogleMapsPanel({
           }
         }}
       >
-        {markers.map((m) => {
+        {filteredMarkers.map((m) => {
           let color = PRIORITY_COLORS.default;
 
           if (colorMode === "priority" && m.priority) {

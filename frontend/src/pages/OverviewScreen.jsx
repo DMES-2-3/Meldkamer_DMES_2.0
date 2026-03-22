@@ -59,8 +59,6 @@ export default function OverviewScreen() {
     }));
   }, [units]);
 
-  const availableUnits = useMemo(() => mappedUnits.filter(u => u.status === "AVAILABLE"), [mappedUnits]);
-
   useEffect(() => {
     const stored = localStorage.getItem("selected_event");
     if (!stored) {
@@ -75,6 +73,17 @@ export default function OverviewScreen() {
       return;
     }
   }, [navigate]);
+
+  const availableUnits = useMemo(() => {
+    return mappedUnits.filter((u) => {
+      const isAvailable = u.status === "AVAILABLE";
+      const isForEvent =
+        selectedEvent && selectedEvent.id
+          ? u.eventId === selectedEvent.id
+          : true;
+      return isAvailable && isForEvent;
+    });
+  }, [mappedUnits, selectedEvent]);
 
   const { newReports, inProgressReports, closedReports } = useMemo(() => {
     const newR = [];
@@ -224,7 +233,7 @@ export default function OverviewScreen() {
   };
 
   if (loading) {
-    return <div>Loading...</div>;
+    return <div>Laden...</div>;
   }
 
   return (
