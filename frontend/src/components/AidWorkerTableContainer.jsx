@@ -7,25 +7,46 @@ const API_URL = "http://localhost:8080/src/api/v1";
 
 const getStatusColor = (status) => {
   const statusConfig = {
-    REGISTERED: "#10B981",
-    AVAILABLE: "#10B981",
-    NOTIFICATION: "#F59E0B",
-    WAIT: "#3B82F6",
-    SHORT_BREAK: "#3B82F6",
-    LONG_BREAK: "#3B82F6",
-    SIGNED_OUT: "#6B7280",
-    ACTIVE: "#10B981",
-    BUSY: "#F59E0B",
-    RESOLVED: "#6B7280",
-    UNAVAILABLE: "#6B7280",
+    REGISTERED: "#10B981",   // groen
+    AVAILABLE: "#10B981",    // groen
+    ACTIVE: "#10B981",       // groen
+
+    NOTIFICATION: "#F59E0B", // oranje
+    BUSY: "#F59E0B",         // oranje
+
+    WAIT: "#3B82F6",         // blauw
+    SHORT_BREAK: "#6366F1",  // indigo / paarsblauw
+    LONG_BREAK: "#8B5CF6",   // paars
+
+    SIGNED_OUT: "#6B7280",   // grijs
+    RESOLVED: "#6B7280",     // grijs
+    UNAVAILABLE: "#6B7280",  // grijs
   };
 
   return statusConfig[status] || "#6B7280";
 };
 
-const STATUS_OPTIONS = Object.entries(STATUSES).map(([value, config]) => ({
+const getStatusLabel = (status) => {
+  const fallbackLabels = {
+    AVAILABLE: "Beschikbaar",
+    SHORT_BREAK: "Korte pauze",
+    LONG_BREAK: "Lange pauze",
+    WAIT: "Wacht",
+    NOTIFICATION: "Oproep",
+    SIGNED_OUT: "Uitgelogd",
+    ACTIVE: "Actief",
+    BUSY: "Bezet",
+    UNAVAILABLE: "Niet beschikbaar",
+    REGISTERED: "Geregistreerd",
+    RESOLVED: "Afgerond",
+  };
+
+  return STATUSES?.[status]?.label || fallbackLabels[status] || status;
+};
+
+const STATUS_OPTIONS = Object.keys(STATUSES).map((value) => ({
   value,
-  label: config.label,
+  label: getStatusLabel(value),
   color: getStatusColor(value),
 }));
 
@@ -39,26 +60,36 @@ export default function AidWorkersTableContainer({ selectedEventId }) {
   const [statusError, setStatusError] = useState("");
 
   const mapWorker = useCallback((w) => {
-    // ondersteunt zowel flat objecten als wrapped objecten
-    const worker = w.AidWorker || w;
-
-    const firstName = worker.firstName || "";
-    const lastName = worker.lastName || "";
+    const firstName = w.firstName || w.firstname || "";
+    const lastName = w.lastName || w.lastname || "";
     const fullName =
-      worker.name || `${firstName} ${lastName}`.trim() || "Onbekende hulpverlener";
+      w.name || `${firstName} ${lastName}`.trim() || "Onbekende hulpverlener";
 
-    const status = worker.status || "AVAILABLE";
+    const status = w.status || "AVAILABLE";
+
+    const workerType =
+      w.aidWorkerType ||
+      w.workerType ||
+      w.role ||
+      w.type ||
+      "N/A";
 
     return {
-      id: worker.id,
-      callNumber: worker.callNumber || worker.callSign || "",
+      id: w.id || w.aidWorkerId,
       name: fullName,
-      role: worker.role || worker.workerType || "N/A",
-      note: worker.note || worker.description || "",
+      callNumber: w.callNumber || w.callSign || "",
       status,
-      statusLabel: STATUSES[status]?.label || status,
-      color: worker.color || getStatusColor(status),
-      teamName: worker.teamName || worker.team?.name || "N/A",
+      statusLabel: getStatusLabel(status),
+      color: getStatusColor(status),
+      type: workerType,
+      role: workerType,
+      note: w.note || w.description || "",
+      teamName:
+        w.teamName ||
+        w.team?.name ||
+        w.AidTeam?.name ||
+        `TEST${w.FK_AidTeam ?? ""}` ||
+        "N/A",
     };
   }, []);
 
@@ -69,8 +100,6 @@ export default function AidWorkersTableContainer({ selectedEventId }) {
       const url = selectedEventId
         ? `${API_URL}/aidworker?eventId=${selectedEventId}`
         : `${API_URL}/aidworker`;
-
-      console.log("Fetching aid workers from:", url);
 
       const res = await fetch(url);
       if (!res.ok) {
@@ -86,9 +115,13 @@ export default function AidWorkersTableContainer({ selectedEventId }) {
         throw new Error("Invalid JSON response: " + text.substring(0, 100));
       }
 
-      console.log("Aid worker response:", data);
+      if (!data.success) {
+        throw new Error("API returned success=false");
+      }
 
-      const mapped = Array.isArray(data) ? data.map(mapWorker) : [];
+      const workersArray = Array.isArray(data.data) ? data.data : [];
+      const mapped = workersArray.map(mapWorker);
+
       setWorkers(mapped);
       setError(null);
     } catch (err) {
