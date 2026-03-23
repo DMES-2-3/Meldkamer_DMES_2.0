@@ -4,6 +4,7 @@ import "../login.css";
 import logo from "../assets/logo/DMES_Vierkant_Logo.png";
 import { useAuth } from "../contexts/AuthContext";
 import { apiUrl } from "../config/api";
+import { getCsrfToken, clearCsrfToken } from "../config/csrf";
 
 function Login() {
   const navigate = useNavigate();
@@ -14,7 +15,6 @@ function Login() {
   const [submitting, setSubmitting] = useState(false);
   const [showPass, setShowPass] = useState(false);
 
-  // If already logged in, skip straight to the app
   useEffect(() => {
     if (!loading && user) {
       navigate("/evenementen", { replace: true });
@@ -32,12 +32,23 @@ function Login() {
     setMsg("");
 
     try {
-      const res = await fetch(`${apiUrl("src/api/v1/user/login")}`, {
+      clearCsrfToken();
+      const csrfToken = await getCsrfToken();
+
+      const res = await fetch(apiUrl("src/api/v1/user/login"), {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRF-Token": csrfToken,
+        },
         credentials: "include",
         body: JSON.stringify(form),
       });
+
+      const contentType = res.headers.get("content-type") || "";
+      if (!contentType.includes("application/json")) {
+        throw new Error("Server gaf geen geldige JSON response terug.");
+      }
 
       const data = await res.json();
 
@@ -47,7 +58,7 @@ function Login() {
         ]);
       } else {
         setMsg(data.message || "Login successful!");
-        // Refresh the shared auth context so the rest of the app knows who is logged in
+        clearCsrfToken();
         await refreshSession();
         navigate("/evenementen", { replace: true });
       }
@@ -58,7 +69,6 @@ function Login() {
     }
   };
 
-  // While we're still checking the existing session, show nothing to avoid flicker
   if (loading) return null;
 
   return (
@@ -66,12 +76,15 @@ function Login() {
       <div className="form">
         <img className="login-logo" src={logo} alt="DMES_logo" />
         <h1>Login</h1>
+
         {errors.map((e, i) => (
           <p key={i} className="error">
             {e}
           </p>
         ))}
+
         {msg && <p className="success">{msg}</p>}
+
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -93,6 +106,7 @@ function Login() {
             onChange={handleInputChange}
             disabled={submitting}
           />
+
           <label>Wachtwoord</label>
           <input
             type={showPass ? "text" : "password"}
@@ -101,6 +115,7 @@ function Login() {
             onChange={handleInputChange}
             disabled={submitting}
           />
+
           <label className="show-pass">
             <input
               type="checkbox"
@@ -110,6 +125,7 @@ function Login() {
             />
             Toon wachtwoord
           </label>
+
           <button className="button" type="submit" disabled={submitting}>
             {submitting ? "Inloggen..." : "Inloggen"}
           </button>

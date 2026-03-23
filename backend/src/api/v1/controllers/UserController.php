@@ -9,28 +9,42 @@ class UserController extends BaseController
     public function handleRequest($method, $action = null)
     {
         switch ($action) {
+            case "csrf":
+                if ($method === "GET") {
+                    $this->csrf();
+                } else {
+                    $this->sendError("Method not allowed", 405);
+                }
+                break;
+
             case "register":
                 if ($method === "POST") {
                     $this->requireAdminSession();
+                    $this->validateCsrfToken();
                     $this->register();
                 } else {
                     $this->sendError("Method not allowed", 405);
                 }
                 break;
+
             case "login":
                 if ($method === "POST") {
+                    $this->validateCsrfToken();
                     $this->login();
                 } else {
                     $this->sendError("Method not allowed", 405);
                 }
                 break;
+
             case "logout":
                 if ($method === "DELETE") {
+                    $this->validateCsrfToken();
                     $this->logout();
                 } else {
                     $this->sendError("Method not allowed", 405);
                 }
                 break;
+
             case "session":
                 if ($method === "GET") {
                     $this->checkSession();
@@ -38,6 +52,7 @@ class UserController extends BaseController
                     $this->sendError("Method not allowed", 405);
                 }
                 break;
+
             default:
                 $this->sendError("Action not found", 404);
         }
@@ -204,6 +219,7 @@ class UserController extends BaseController
         $this->startSecureSession();
         session_regenerate_id(true);
         $_SESSION["user_id"] = $user->getUserId();
+        $_SESSION["csrf_token"] = bin2hex(random_bytes(32));
 
         $this->sendResponse([
             "success" => true,
@@ -276,11 +292,43 @@ class UserController extends BaseController
             session_set_cookie_params([
                 "lifetime" => 0,
                 "path" => "/",
-                "secure" => isset($_SERVER["HTTPS"]),
+                "secure" =>
+                    (!empty($_SERVER["HTTPS"]) && $_SERVER["HTTPS"] !== "off") ||
+                    (isset($_SERVER["HTTP_X_FORWARDED_PROTO"]) &&
+                        $_SERVER["HTTP_X_FORWARDED_PROTO"] === "https"),
                 "httponly" => true,
                 "samesite" => "Strict",
             ]);
             session_start();
+        }
+    }
+
+    private function csrf()
+    {
+        $this->startSecureSession();
+
+        if (empty($_SESSION["csrf_token"])) {
+            $_SESSION["csrf_token"] = bin2hex(random_bytes(32));
+        }
+
+        $this->sendResponse([
+            "success" => true,
+            "csrf_token" => $_SESSION["csrf_token"],
+        ]);
+    }
+
+    private function validateCsrfToken()
+    {
+        $this->startSecureSession();
+
+        $headerToken = $_SERVER["HTTP_X_CSRF_TOKEN"] ?? null;
+
+        if (
+            empty($_SESSION["csrf_token"]) ||
+            empty($headerToken) ||
+            !hash_equals($_SESSION["csrf_token"], $headerToken)
+        ) {
+            $this->sendError("Ongeldig of ontbrekend CSRF-token.", 403);
         }
     }
 }
