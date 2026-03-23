@@ -3,7 +3,8 @@ import { getPriorityColor, getColorForMarker } from "../../utils";
 
 export const getTeamsForMarker = (marker, reports = []) => {
   if (!marker?.reportId || !Array.isArray(reports)) return [];
-  const report = reports.find(r => r.id.toString() === marker.reportId.toString());
+  const reportWrapper = reports.find(r => (r.Report?.id || r?.id)?.toString() === marker.reportId.toString());
+  const report = reportWrapper?.Report || reportWrapper;
   if (!report) return [];
   return Array.isArray(report.team) ? report.team : [report.team].filter(Boolean);
 };

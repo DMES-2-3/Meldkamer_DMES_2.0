@@ -28,20 +28,23 @@ export default function MarkerModal({
   useEffect(() => {
     if (!editingMarker || labelManuallyEdited || !linkedReportId) return;
 
-    const report = localReports.find(
-      (r) => r.id && r.id.toString() === linkedReportId.toString()
+    const reportWrapper = localReports.find(
+      (r) => (r.Report?.id || r?.id)?.toString() === linkedReportId.toString()
     );
+    const report = reportWrapper?.Report || reportWrapper;
 
     if (report) setMarkerLabel(getDefaultLabelFromReport(report));
   }, [linkedReportId, localReports, editingMarker, labelManuallyEdited]);
 
   if (!show) return null;
 
-  const linkedReport = editingMarker
+  // Look up full details for currently linked report
+  const linkedReportWrapper = editingMarker
     ? localReports.find(
-        (r) => r.id && r.id.toString() === (linkedReportId || "").toString()
+        (r) => (r.Report?.id || r?.id)?.toString() === (linkedReportId || "").toString()
       )
     : null;
+  const linkedReport = linkedReportWrapper?.Report || linkedReportWrapper;
 
   const handleSave = () => {
     if (!editingMarker) return; 
@@ -70,11 +73,12 @@ export default function MarkerModal({
               </p>
             )}
             {markers.map((marker) => {
-              const report = marker.reportId
+              const reportWrapper = marker.reportId
                 ? localReports.find(
-                    (r) => r.id && r.id.toString() === marker.reportId.toString()
+                    (r) => (r.Report?.id || r?.id)?.toString() === marker.reportId.toString()
                   )
                 : null;
+              const report = reportWrapper?.Report || reportWrapper;
 
               return (
                 <div

@@ -58,6 +58,14 @@ function App() {
 
   useEffect(() => {
     reloadData();
+
+    const handleStorage = (e) => {
+      if (e.key === "shared_report_update") {
+        reloadData();
+      }
+    };
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
   }, [reloadData]);
 
   return (

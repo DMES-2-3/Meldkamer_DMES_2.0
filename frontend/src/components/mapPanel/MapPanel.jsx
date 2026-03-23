@@ -28,7 +28,7 @@ export default function MapPanel({
   selectedEventId,
   initialMaps = [],
   onMapsUpdate = () => {},
-  reports: dashboardReports = [],
+  reports = [],
   updateReportLocation,
   colorMode = "priority",
   activeLegendFilters,
@@ -41,7 +41,6 @@ export default function MapPanel({
   const fileInputRef = useRef(null);
 
   const [maps, setMaps] = useState(initialMaps);
-  const [reports, setReports] = useState([]);
   const sharedState = getStoredMapState();
 
   const [currentMapId, setCurrentMapId] = useState(sharedState.currentMapId || null);
@@ -76,7 +75,8 @@ export default function MapPanel({
   const filteredPdfMarkers = currentMarkers.filter((marker) => {
     if (!marker.reportId) return true;
 
-    const report = reports.find(r => r.id.toString() === marker.reportId.toString());
+    const reportWrapper = reports.find(r => (r.Report?.id || r?.id)?.toString() === marker.reportId.toString());
+    const report = reportWrapper?.Report || reportWrapper;
     if (!report) return true;
 
     const matchesStatus =
@@ -89,29 +89,6 @@ export default function MapPanel({
 
     return matchesStatus && matchesPriority;
   });
-
-  const fetchReports = async () => {
-    try {
-      const res = await fetch(NOTIFICATIONS_URL);
-      const data = await res.json();
-      const mappedReports = (Array.isArray(data.data) ? data.data : [])
-        .map((n) => ({
-          id: n.id || n.notificationId,
-          event: n.Subject,
-          priority: n.Prioriteit,
-          status: n.Status,
-          team: n.Team,
-          location: n.Location,
-          description: n.Note,
-          reportedBy: n.ReportedBy,
-          time: n.Time,
-        }))
-        .filter((report) => report.id !== null && report.id !== undefined);
-      setReports(mappedReports);
-    } catch (err) {
-      console.error("Failed to fetch reports:", err);
-    }
-  };
 
   const getShortLabel = (description, maxLength = 25) => {
     if (!description) return "";
@@ -154,8 +131,6 @@ export default function MapPanel({
       setZoom(1);
       setPanPosition({ x: 0, y: 0 });
     }
-
-    fetchReports();
   }, [initialMaps, selectedEventId]);
 
   // Check for a completed pending PDF marker (coming back from ReportScreen)
@@ -182,24 +157,50 @@ export default function MapPanel({
     }
   }, []);
 
+  const syncStateRef = useRef({
+    currentMapId,
+    pageNumber,
+    markers,
+    zoom,
+    panPosition,
+  });
+
   useEffect(() => {
-    broadcastMapState({ currentMapId });
+    if (syncStateRef.current.currentMapId !== currentMapId) {
+      syncStateRef.current.currentMapId = currentMapId;
+      broadcastMapState({ currentMapId });
+    }
   }, [currentMapId]);
 
   useEffect(() => {
-    broadcastMapState({ pageNumber });
+    if (syncStateRef.current.pageNumber !== pageNumber) {
+      syncStateRef.current.pageNumber = pageNumber;
+      broadcastMapState({ pageNumber });
+    }
   }, [pageNumber]);
 
   useEffect(() => {
-    broadcastMapState({ markers });
+    if (JSON.stringify(syncStateRef.current.markers) !== JSON.stringify(markers)) {
+      syncStateRef.current.markers = markers;
+      broadcastMapState({ markers });
+    }
   }, [markers]);
 
   useEffect(() => {
-    broadcastMapState({ zoom });
+    if (syncStateRef.current.zoom !== zoom) {
+      syncStateRef.current.zoom = zoom;
+      broadcastMapState({ zoom });
+    }
   }, [zoom]);
 
   useEffect(() => {
-    broadcastMapState({ panPosition });
+    if (
+      syncStateRef.current.panPosition?.x !== panPosition.x ||
+      syncStateRef.current.panPosition?.y !== panPosition.y
+    ) {
+      syncStateRef.current.panPosition = panPosition;
+      broadcastMapState({ panPosition });
+    }
   }, [panPosition]);
 
   useEffect(() => {
@@ -216,9 +217,10 @@ export default function MapPanel({
 
   useEffect(() => {
     if (!tempMarkerReportId) return;
-    const report = reports.find(
-      (r) => r.id.toString() === tempMarkerReportId.toString(),
+    const reportWrapper = reports.find(
+      (r) => (r.Report?.id || r?.id)?.toString() === tempMarkerReportId?.toString(),
     );
+    const report = reportWrapper?.Report || reportWrapper;
     if (report)
       setTempMarkerLabel(getShortLabel(report.description || report.event, 25));
   }, [tempMarkerReportId, reports]);
@@ -229,11 +231,32 @@ export default function MapPanel({
     const applyState = (next) => {
       if (!next) return;
 
-      if (next.currentMapId !== undefined) setCurrentMapId(next.currentMapId);
-      if (next.pageNumber !== undefined) setPageNumber(next.pageNumber);
-      if (next.zoom !== undefined) setZoom(next.zoom);
-      if (next.panPosition !== undefined) setPanPosition(next.panPosition);
-      if (next.markers !== undefined) setMarkers(next.markers);
+      if (next.currentMapId !== undefined) {
+        syncStateRef.current.currentMapId = next.currentMapId;
+        setCurrentMapId((prev) => (prev === next.currentMapId ? prev : next.currentMapId));
+      }
+      if (next.pageNumber !== undefined) {
+        syncStateRef.current.pageNumber = next.pageNumber;
+        setPageNumber((prev) => (prev === next.pageNumber ? prev : next.pageNumber));
+      }
+      if (next.zoom !== undefined) {
+        syncStateRef.current.zoom = next.zoom;
+        setZoom((prev) => (prev === next.zoom ? prev : next.zoom));
+      }
+      if (next.panPosition !== undefined) {
+        syncStateRef.current.panPosition = next.panPosition;
+        setPanPosition((prev) =>
+          prev.x === next.panPosition.x && prev.y === next.panPosition.y
+            ? prev
+            : next.panPosition
+        );
+      }
+      if (next.markers !== undefined) {
+        syncStateRef.current.markers = next.markers;
+        setMarkers((prev) =>
+          JSON.stringify(prev) === JSON.stringify(next.markers) ? prev : next.markers
+        );
+      }
     };
 
     const onStorage = (e) => {
@@ -513,7 +536,8 @@ export default function MapPanel({
   const getMarkerColor = (marker, reports = [], colorMode = "priority") => {
     if (!marker?.reportId) return "#9ca3af";
 
-    const report = reports.find(r => r.id.toString() === marker.reportId.toString());
+    const reportWrapper = reports.find(r => (r.Report?.id || r?.id)?.toString() === marker.reportId.toString());
+    const report = reportWrapper?.Report || reportWrapper;
     if (!report) return "#9ca3af";
 
     if (colorMode === "priority") {
@@ -554,7 +578,7 @@ export default function MapPanel({
       {mapType === "GoogleMaps" ? (
         <GoogleMapsPanel
           onMapClick={handleMapClick}
-          reports={dashboardReports}
+          reports={reports}
           onMarkerDragEnd={updateReportLocation}
           colorMode={colorMode}
           activeLegendFilters={activeLegendFilters}

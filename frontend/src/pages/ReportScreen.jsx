@@ -293,6 +293,8 @@ export default function ReportScreen({ reloadData }) {
         formData.id;
 
       if (newReportId) {
+        localStorage.setItem("shared_report_update", Date.now().toString());
+
         const finalKey = `notepad:report:${newReportId}`;
 
         const draftStored = localStorage.getItem(draftKey);
@@ -356,6 +358,7 @@ export default function ReportScreen({ reloadData }) {
     try {
       if (formData.id) {
         await deleteReport(formData.id);
+        localStorage.setItem("shared_report_update", Date.now().toString());
         if (reloadData) await reloadData();
       }
       goBack();
