@@ -13,6 +13,11 @@ export function AuthProvider({ children }) {
         credentials: "include",
       });
 
+      if (!res.ok) {
+        setUser(null);
+        return;
+      }
+
       const data = await res.json();
 
       if (data.success) {
