@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { getStoredMapState, broadcastMapState } from "../utils/mapSync";
 import {
   saveReport,
   getAidWorkers,
@@ -358,6 +359,15 @@ export default function ReportScreen({ reloadData }) {
     try {
       if (formData.id) {
         await deleteReport(formData.id);
+        
+        const mapState = getStoredMapState();
+        if (mapState.markers) {
+          const updatedMarkers = mapState.markers.filter(
+            (m) => m.reportId !== formData.id.toString()
+          );
+          broadcastMapState({ markers: updatedMarkers });
+        }
+
         localStorage.setItem("shared_report_update", Date.now().toString());
         if (reloadData) await reloadData();
       }
