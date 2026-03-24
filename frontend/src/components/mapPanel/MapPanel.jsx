@@ -10,6 +10,7 @@ import { Document, Page, pdfjs } from "react-pdf";
 import GoogleMapsPanel from "../GoogleMapsPanel";
 import MapModal from "./MapModal";
 import MarkerModal from "./MarkerModal";
+import Marker from "./Marker";
 import { getPriorityColor, PRIORITY_COLORS, REPORT_STATUS_COLORS, normalizePriority, normalizeReportStatus } from "../../utils/utils";
 
 pdfjs.GlobalWorkerOptions.workerSrc =
@@ -533,25 +534,6 @@ export default function MapPanel({
     });
   };
 
-  const getMarkerColor = (marker, reports = [], colorMode = "priority") => {
-    if (!marker?.reportId) return "#9ca3af";
-
-    const reportWrapper = reports.find(r => (r.Report?.id || r?.id)?.toString() === marker.reportId.toString());
-    const report = reportWrapper?.Report || reportWrapper;
-    if (!report) return "#9ca3af";
-
-    if (colorMode === "priority") {
-      const normalized = normalizePriority(report.priority || report.Prioriteit);
-      return PRIORITY_COLORS[normalized] || PRIORITY_COLORS.default;
-    }
-    else if (colorMode === "status") {
-      const normalized = normalizeReportStatus(report.status || report.Status);
-      return REPORT_STATUS_COLORS[normalized] || REPORT_STATUS_COLORS.default;
-    }
-
-    return "#9ca3af";
-  };
-
   return (
     <div className="map-panel">
       {message && (
@@ -623,27 +605,14 @@ export default function MapPanel({
                   renderTextLayer={false}
                 />
                 {filteredPdfMarkers.map((marker) => (
-                  <div
+                  <Marker
                     key={marker.id}
-                    style={{
-                      left: marker.x,
-                      top: marker.y,
-                      position: "absolute",
-                      zIndex: selectedMarkerId === marker.id ? 20 : 10,
-                    }}
-                    onMouseDown={(e) => handleMarkerMouseDown(e, marker)}
-                  >
-                    <svg width="24" height="32" viewBox="0 0 24 32">
-                      <path
-                        d="M12 0C7.6 0 4 3.6 4 8c0 5.4 8 16 8 16s8-10.6 8-16c0-4.4-3.6-8-8-8z"
-                        fill={getMarkerColor(marker, reports, colorMode)}
-                        stroke="#fff"
-                        strokeWidth="2"
-                      />
-                      <circle cx="12" cy="8" r="3" fill="#fff" />
-                    </svg>
-                    <div className="marker-label">{marker.label}</div>
-                  </div>
+                    marker={marker}
+                    reports={reports}
+                    colorMode={colorMode}
+                    isSelected={selectedMarkerId === marker.id}
+                    onMouseDown={handleMarkerMouseDown}
+                  />
                 ))}
               </div>
             </Document>

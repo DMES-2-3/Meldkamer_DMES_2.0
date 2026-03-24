@@ -1,32 +1,70 @@
 import React from "react";
-import { getPriorityColor, getColorForMarker } from "../../utils";
+import { REPORT_STATUS_COLORS, PRIORITY_COLORS, normalizePriority, normalizeReportStatus } from "../../utils/utils";
 
-export const getTeamsForMarker = (marker, reports = []) => {
-  if (!marker?.reportId || !Array.isArray(reports)) return [];
-  const reportWrapper = reports.find(r => (r.Report?.id || r?.id)?.toString() === marker.reportId.toString());
-  const report = reportWrapper?.Report || reportWrapper;
-  if (!report) return [];
-  return Array.isArray(report.team) ? report.team : [report.team].filter(Boolean);
+const getShortLabel = (description, maxLength = 25) => {
+  if (!description) return "";
+  return description.length <= maxLength
+    ? description
+    : description.slice(0, maxLength).trim() + "...";
 };
 
-export function MarkerIcon({ color, onClick, onDoubleClick }) {
-  return (
-    <svg width="24" height="32" viewBox="0 0 24 32" onClick={onClick} onDoubleClick={onDoubleClick} className="marker-icon">
-      <path d="M12 0C7.6 0 4 3.6 4 8c0 5.4 8 16 8 16s8-10.6 8-16c0-4.4-3.6-8-8-8z" fill={color} stroke="#fff" strokeWidth="2" />
-      <circle cx="12" cy="8" r="3" fill="#fff" />
-    </svg>
-  );
-}
+export const getMarkerColor = (marker, reports = [], colorMode = "priority") => {
+  if (!marker.reportId) return PRIORITY_COLORS.default;
 
-export function MarkerLabel({ reportId, label, reports }) {
-  const teams = getTeamsForMarker({ reportId }, reports);
+  const reportWrapper = reports.find(
+    (r) => (r.Report?.id || r?.id)?.toString() === marker.reportId.toString()
+  );
+  const report = reportWrapper?.Report || reportWrapper;
+
+  if (!report) return PRIORITY_COLORS.default;
+
+  if (colorMode === "status") {
+    const normalized = normalizeReportStatus(report.status || report.Status);
+    return REPORT_STATUS_COLORS[normalized] || REPORT_STATUS_COLORS.default;
+  }
+
+  const normalized = normalizePriority(report.priority || report.Prioriteit);
+  return PRIORITY_COLORS[normalized] || PRIORITY_COLORS.default;
+};
+
+export function Marker({
+  marker,
+  reports = [],
+  colorMode = "priority",
+  isSelected = false,
+  onMouseDown,
+}) {
+  const color = getMarkerColor(marker, reports, colorMode);
+  
+  const report = reports.find(
+    (r) => (r.Report?.id || r?.id)?.toString() === marker.reportId?.toString()
+  );
+  const subject = report?.Report?.Subject || report?.Subject;
+  
+  const label = getShortLabel(subject || marker.label);
+
   return (
-    <div style={{ position: "absolute", bottom: "100%", left: "50%", transform: "translateX(-50%)", pointerEvents: "none", textAlign: "center", zIndex: 30 }}>
-      <div style={{ display: "inline-block", background: "rgba(0,0,0,0.75)", color: "#fff", padding: "4px 8px", borderRadius: "4px", whiteSpace: "nowrap", fontSize: "12px" }}>
-        {reportId ? `(${reportId}) ` : ""}{label}
-        {teams.length > 0 && <div style={{ fontSize: "10px", marginTop: "2px" }}>Teams: {teams.join(", ")}</div>}
-      </div>
-      <div style={{ width: 0, height: 0, borderLeft: "5px solid transparent", borderRight: "5px solid transparent", borderTop: "5px solid rgba(0,0,0,0.75)", margin: "0 auto" }} />
+    <div
+      style={{
+        left: marker.x,
+        top: marker.y,
+        position: "absolute",
+        zIndex: isSelected ? 20 : 10,
+      }}
+      onMouseDown={(e) => onMouseDown && onMouseDown(e, marker)}
+    >
+      <svg width="24" height="32" viewBox="0 0 24 32">
+        <path
+          d="M12 0C7.6 0 4 3.6 4 8c0 5.4 8 16 8 16s8-10.6 8-16c0-4.4-3.6-8-8-8z"
+          fill={color}
+          stroke="#fff"
+          strokeWidth="2"
+        />
+        <circle cx="12" cy="8" r="3" fill="#fff" />
+      </svg>
+      <div className="marker-label">{label}</div>
     </div>
   );
 }
+
+export default Marker;
