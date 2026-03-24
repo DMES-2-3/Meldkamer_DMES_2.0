@@ -20,7 +20,8 @@ export default function GoogleMapsPanel({
   colorMode,
   activeLegendFilters,
   isAddingMarker,
-  onMarkerClick
+  onMarkerClick,
+  onMarkersUpdate
 }) {
   const navigate = useNavigate();
 
@@ -91,17 +92,25 @@ export default function GoogleMapsPanel({
     setMarkers(newMarkers);
   }, [reports, selectedEvent]);
 
-  const filteredMarkers = markers.filter((m) => {
-    const matchesStatus =
-      !activeLegendFilters?.status?.length ||
-      activeLegendFilters.status.includes(m.status);
+  const filteredMarkers = React.useMemo(() => {
+    return markers.filter((m) => {
+      const matchesStatus =
+        !activeLegendFilters?.status?.length ||
+        activeLegendFilters.status.includes(m.status);
 
-    const matchesPriority =
-      !activeLegendFilters?.priority?.length ||
-      activeLegendFilters.priority.includes(m.priority);
+      const matchesPriority =
+        !activeLegendFilters?.priority?.length ||
+        activeLegendFilters.priority.includes(m.priority);
 
-    return matchesStatus && matchesPriority;
-  });
+      return matchesStatus && matchesPriority;
+    });
+  }, [markers, activeLegendFilters]);
+
+  useEffect(() => {
+    if (onMarkersUpdate) {
+      onMarkersUpdate(filteredMarkers);
+    }
+  }, [filteredMarkers, onMarkersUpdate]);
 
   // if (loadError) {
   //   return (

@@ -67,6 +67,7 @@ export default function MapPanel({
   const [isAddingMarker, setIsAddingMarker] = useState(false);
   const [markerClickCandidate, setMarkerClickCandidate] = useState(null);
   const [mapType, setMapType] = useState(initialMapType); // "PDF" or "GoogleMaps"
+  const [googleMapMarkers, setGoogleMapMarkers] = useState([]);
 
   const currentMap = maps.find((m) => m.mapId === currentMapId) || null;
   const currentMarkers = markers.filter(
@@ -580,6 +581,7 @@ export default function MapPanel({
                 reportId: m.id,
               });
             }}
+            onMarkersUpdate={setGoogleMapMarkers}
           />
           {!isPopout && (
             <div className="map-buttons">
@@ -595,7 +597,7 @@ export default function MapPanel({
                   setShowMarkerModal(true);
                 }}
               >
-                Markers ({currentMarkers.length})
+                Markers ({googleMapMarkers.length})
               </button>
               <button onClick={openMapPopout}>Pop-out</button>
             </div>
@@ -739,20 +741,32 @@ export default function MapPanel({
         show={showMarkerModal}
         onClose={() => setShowMarkerModal(false)}
         editingMarker={editingMarker}
-        markers={currentMarkers}
+        markers={mapType === "GoogleMaps" ? googleMapMarkers.map(m => ({ id: `gmap-${m.id}`, label: m.title, reportId: m.id })) : currentMarkers}
         localReports={reports}
         selectedEventId={selectedEventId}
         onSave={(updatedMarker) => {
-          setMarkers((prev) =>
-            prev.map((m) => (m.id === updatedMarker.id ? updatedMarker : m)),
-          );
-          setEditingMarker(null);
-          setShowMarkerModal(false);
+          if (mapType === "GoogleMaps") {
+            alert("Bewerken van Google Maps markers via deze lijst is nog niet ondersteund. Wijzig de melding direct.");
+            setShowMarkerModal(false);
+          } else {
+            setMarkers((prev) =>
+              prev.map((m) => (m.id === updatedMarker.id ? updatedMarker : m)),
+            );
+            setEditingMarker(null);
+            setShowMarkerModal(false);
+          }
         }}
         onDelete={(markerId) => {
-          setMarkers((prev) => prev.filter((m) => m.id !== markerId));
-          setEditingMarker(null);
-          setShowMarkerModal(false);
+          if (mapType === "GoogleMaps") {
+            const realId = markerId.toString().replace("gmap-", "");
+            updateReportLocation(realId, "");
+            setEditingMarker(null);
+            setShowMarkerModal(false);
+          } else {
+            setMarkers((prev) => prev.filter((m) => m.id !== markerId));
+            setEditingMarker(null);
+            setShowMarkerModal(false);
+          }
         }}
         onEditMarker={(marker) => {
           setEditingMarker(marker);
