@@ -359,7 +359,7 @@ export default function ReportScreen({ reloadData }) {
     try {
       if (formData.id) {
         await deleteReport(formData.id);
-        
+
         const mapState = getStoredMapState();
         if (mapState.markers) {
           const updatedMarkers = mapState.markers.filter(
@@ -395,6 +395,9 @@ export default function ReportScreen({ reloadData }) {
   const availableUnitsForEvent = unitsForEvent.filter(
     (u) => u.status === "AVAILABLE"
   );
+
+  const isCoordinates = formData.Location && /^[-+]?\d{1,2}\.\d+,\s*[-+]?\d{1,3}\.\d+$/.test(formData.Location.trim());
+  const isLocationReadOnly = fromGoogleMaps || isCoordinates;
 
   return (
     <div className="report-screen">
@@ -460,12 +463,22 @@ export default function ReportScreen({ reloadData }) {
           </div>
 
           <div className="input-group">
-            <label>Locatie</label>
+            <label>
+              Locatie
+              {isLocationReadOnly && (
+                <span style={{ fontSize: "0.85em", color: "#888", marginLeft: "6px" }}>
+                  (Map Coördinaten)
+                </span>
+              )}
+            </label>
             <input
               type="text"
               ref={locationRef}
               value={formData.Location}
               onChange={(e) => handleChange("Location", e.target.value)}
+              readOnly={isLocationReadOnly}
+              disabled={isLocationReadOnly}
+              title={isLocationReadOnly ? "Locked because it contains map coordinates" : ""}
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
                   e.preventDefault();

@@ -143,15 +143,18 @@ export const createMarkerIcon = (color = "#FF0000") => {
     url:
       "data:image/svg+xml;charset=UTF-8," +
       encodeURIComponent(`
-        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24">
-          <path fill="${color}" stroke="black" stroke-width="1"
-            d="M12 2C8.1 2 5 5.1 5 9c0 5.2 7 13 7 13s7-7.8 7-13c0-3.9-3.1-7-7-7z"/>
-          <circle cx="12" cy="9" r="3.5" fill="white"/>
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="32" viewBox="0 0 24 32">
+          <path fill="${color}" stroke="#fff" stroke-width="2"
+            d="M12 0C7.6 0 4 3.6 4 8c0 5.4 8 16 8 16s8-10.6 8-16c0-4.4-3.6-8-8-8z"/>
+          <circle cx="12" cy="8" r="3" fill="#fff"/>
         </svg>
       `),
   };
   if (window.google?.maps?.Size) {
-    icon.scaledSize = new window.google.maps.Size(36, 36);
+    icon.scaledSize = new window.google.maps.Size(24, 32);
+  }
+  if (window.google?.maps?.Point) {
+    icon.labelOrigin = new window.google.maps.Point(12, 40);
   }
   return icon;
 };

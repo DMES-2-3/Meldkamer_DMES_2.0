@@ -522,16 +522,18 @@ export default function MapPanel({
 
   // Google Maps click handler
   const handleMapClick = (coords) => {
+    if (!isAddingMarker) return;
     navigate("/melding", {
       state: {
         report: {
           Location: `${coords.lat}, ${coords.lng}`,
-          Prioriteit: "Groen",
+          Prioriteit: "Laag",
           Status: "Open",
         },
         from: "google-maps",
       },
     });
+    setIsAddingMarker(false);
   };
 
   return (
@@ -558,13 +560,47 @@ export default function MapPanel({
       </div>
 
       {mapType === "GoogleMaps" ? (
-        <GoogleMapsPanel
-          onMapClick={handleMapClick}
-          reports={reports}
-          onMarkerDragEnd={updateReportLocation}
-          colorMode={colorMode}
-          activeLegendFilters={activeLegendFilters}
-        />
+        <div
+          className="map-wrapper"
+          style={{
+            cursor: isAddingMarker ? "crosshair" : "default",
+          }}
+        >
+          <GoogleMapsPanel
+            onMapClick={handleMapClick}
+            reports={reports}
+            onMarkerDragEnd={updateReportLocation}
+            colorMode={colorMode}
+            activeLegendFilters={activeLegendFilters}
+            isAddingMarker={isAddingMarker}
+            onMarkerClick={(m) => {
+              openMarkerModal({
+                id: `gmap-${m.id}`,
+                label: m.title,
+                reportId: m.id,
+              });
+            }}
+          />
+          {!isPopout && (
+            <div className="map-buttons">
+              <button
+                className={isAddingMarker ? "btn-marker-active" : ""}
+                onClick={() => setIsAddingMarker(!isAddingMarker)}
+              >
+                {isAddingMarker ? "Annuleren" : "Voeg Marker toe"}
+              </button>
+              <button
+                onClick={() => {
+                  setEditingMarker(null);
+                  setShowMarkerModal(true);
+                }}
+              >
+                Markers ({currentMarkers.length})
+              </button>
+              <button onClick={openMapPopout}>Pop-out</button>
+            </div>
+          )}
+        </div>
       ) : (
         <div
           ref={wrapperRef}

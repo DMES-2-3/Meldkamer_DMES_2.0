@@ -18,7 +18,9 @@ export default function GoogleMapsPanel({
   reports,
   onMarkerDragEnd,
   colorMode,
-  activeLegendFilters
+  activeLegendFilters,
+  isAddingMarker,
+  onMarkerClick
 }) {
   const navigate = useNavigate();
 
@@ -161,6 +163,9 @@ export default function GoogleMapsPanel({
         mapContainerClassName="google-map-inner"
         center={center}
         zoom={15}
+        options={{
+          draggableCursor: isAddingMarker ? "crosshair" : "default",
+        }}
         onClick={(e) => {
           if (onMapClick) {
             onMapClick({
@@ -180,11 +185,21 @@ export default function GoogleMapsPanel({
           }
 
           const icon = createMarkerIcon(color);
+          const shortLabel = m.title
+            ? m.title.length <= 25
+              ? m.title
+              : m.title.slice(0, 25).trim() + "..."
+            : "";
+            
           return (
             <Marker
               key={m.id}
               position={m.position}
               title={m.title}
+              label={{
+                text: shortLabel,
+                className: "marker-label",
+              }}
               icon={icon}
               draggable={true}
               onDragEnd={(e) => {
@@ -192,15 +207,19 @@ export default function GoogleMapsPanel({
                 if (onMarkerDragEnd) onMarkerDragEnd(m.id, newLocation);
               }}
               onClick={() => {
-                const reportWrapper = reports.find(
-                  (r) => String((r.Report || r).id) === String(m.id),
-                );
-                navigate("/melding", {
-                  state: {
-                    report: reportWrapper,
-                    from: "google-maps",
-                  },
-                });
+                if (onMarkerClick) {
+                  onMarkerClick(m);
+                } else {
+                  const reportWrapper = reports.find(
+                    (r) => String((r.Report || r).id) === String(m.id),
+                  );
+                  navigate("/melding", {
+                    state: {
+                      report: reportWrapper,
+                      from: "google-maps",
+                    },
+                  });
+                }
               }}
             />
           );
