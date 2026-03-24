@@ -173,6 +173,7 @@ export default function OverviewScreen() {
 
     const updatedReport = { ...originalReport, Status: newStatus };
     await saveReport(updatedReport);
+    localStorage.setItem("shared_report_update", Date.now().toString());
     reloadData();
   };
 
@@ -215,6 +216,7 @@ export default function OverviewScreen() {
 
     const updatedReport = { ...originalReport, Team: newTeamName };
     await saveReport(updatedReport);
+    localStorage.setItem("shared_report_update", Date.now().toString());
     reloadData();
   };
 
@@ -229,6 +231,7 @@ export default function OverviewScreen() {
 
     const updatedReport = { ...originalReport, Prioriteit: newPriority };
     await saveReport(updatedReport);
+    localStorage.setItem("shared_report_update", Date.now().toString());
     reloadData();
   };
 
