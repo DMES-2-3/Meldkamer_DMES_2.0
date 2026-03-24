@@ -2,14 +2,11 @@ import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import Section from "../components/layout/Section";
 import OverviewTable from "../components/OverviewTable";
-import { getReports, saveReport } from "../services/reportsApi";
-import { getUnits, updateUnit } from "../services/unitsApi";
+import { saveReport } from "../services/reportsApi";
+import { updateUnit } from "../services/unitsApi";
 
-export default function OverviewScreen() {
+export default function OverviewScreen({ reports, units, reloadData }) {
   const navigate = useNavigate();
-  const [reports, setReports] = useState([]);
-  const [units, setUnits] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [selectedEvent, setSelectedEvent] = useState(null);
 
   useEffect(() => {
@@ -27,27 +24,6 @@ export default function OverviewScreen() {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [navigate]);
-
-  const reloadData = useCallback(async () => {
-    setLoading(true);
-    try {
-      const [reportsData, unitsData] = await Promise.all([
-        getReports(),
-        getUnits(),
-      ]);
-      setReports(reportsData);
-      setUnits(unitsData);
-    } catch (error) {
-      console.error("Failed to fetch data:", error);
-      // Optionally set an error state here
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    reloadData();
-  }, [reloadData]);
 
   const mappedUnits = useMemo(() => {
     if (!units) return [];
@@ -234,10 +210,6 @@ export default function OverviewScreen() {
     localStorage.setItem("shared_report_update", Date.now().toString());
     reloadData();
   };
-
-  if (loading) {
-    return <div>Laden...</div>;
-  }
 
   return (
     <div>
