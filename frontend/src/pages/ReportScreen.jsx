@@ -74,6 +74,7 @@ export default function ReportScreen({ reloadData }) {
   const initialReport = location.state?.report;
   const fromGoogleMaps = location.state?.from === "google-maps";
   const fromPdfMap = location.state?.from === "pdf-map";
+  const fromMap = location.state?.from === "map";
   const originalReportData = React.useRef(null);
 
   const [units, setUnits] = useState([]);
@@ -212,6 +213,8 @@ export default function ReportScreen({ reloadData }) {
       navigate("/dashboard", { state: { openMapType: "GoogleMaps" } });
     } else if (fromPdfMap) {
       navigate("/dashboard", { state: { openMapType: "PDF" } });
+    } else if (fromMap) {
+      navigate("/dashboard");
     } else {
       navigate("/overzicht");
     }

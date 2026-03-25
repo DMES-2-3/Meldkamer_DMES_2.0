@@ -8,6 +8,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { Document, Page, pdfjs } from "react-pdf";
 import GoogleMapsPanel from "../GoogleMapsPanel";
+import LinkReportModal from "./LinkReportModal";
 import MapModal from "./MapModal";
 import MarkerModal from "./MarkerModal";
 import Marker from "./Marker";
@@ -68,6 +69,9 @@ export default function MapPanel({
   const [markerClickCandidate, setMarkerClickCandidate] = useState(null);
   const [mapType, setMapType] = useState(initialMapType); // "PDF" or "GoogleMaps"
   const [googleMapMarkers, setGoogleMapMarkers] = useState([]);
+
+  const [showLinkModal, setShowLinkModal] = useState(false);
+  const [pendingLinkData, setPendingLinkData] = useState(null);
 
   const currentMap = maps.find((m) => m.mapId === currentMapId) || null;
   const currentMarkers = markers.filter(
@@ -366,23 +370,12 @@ export default function MapPanel({
         page: pageNumber,
         mapId: currentMapId,
       };
-      sessionStorage.setItem(
-        "pendingPdfMarker",
-        JSON.stringify(pendingPdfMarker),
-      );
-
+      
+      setPendingLinkData({ type: "pdf", data: pendingPdfMarker });
+      setShowLinkModal(true);
       setIsAddingMarker(false);
       setMessage(null);
 
-      navigate("/melding", {
-        state: {
-          report: {
-            Prioriteit: "Laag",
-            Status: "Open",
-          },
-          from: "pdf-map",
-        },
-      });
       return;
     }
 
@@ -524,17 +517,62 @@ export default function MapPanel({
   // Google Maps click handler
   const handleMapClick = (coords) => {
     if (!isAddingMarker) return;
-    navigate("/melding", {
-      state: {
-        report: {
-          Location: `${coords.lat}, ${coords.lng}`,
-          Prioriteit: "Laag",
-          Status: "Open",
-        },
-        from: "google-maps",
-      },
-    });
+    setPendingLinkData({ type: "google", coords });
+    setShowLinkModal(true);
     setIsAddingMarker(false);
+  };
+
+  const handleCreateNewReport = () => {
+    setShowLinkModal(false);
+    if (pendingLinkData?.type === "pdf") {
+      sessionStorage.setItem("pendingPdfMarker", JSON.stringify(pendingLinkData.data));
+      navigate("/melding", {
+        state: { report: { Prioriteit: "Laag", Status: "Open" }, from: "pdf-map" }
+      });
+    } else if (pendingLinkData?.type === "google") {
+      navigate("/melding", {
+        state: {
+          report: { Location: `${pendingLinkData.coords.lat}, ${pendingLinkData.coords.lng}`, Prioriteit: "Laag", Status: "Open" },
+          from: "google-maps"
+        }
+      });
+    }
+  };
+
+  const handleLinkReport = (selectedReportIdToLink) => {
+    if (!selectedReportIdToLink) return;
+    setShowLinkModal(false);
+    
+    // Logic to save the marker for the selected report
+    if (pendingLinkData?.type === "pdf") {
+      const { x, y, page, mapId } = pendingLinkData.data;
+      const markerId = Date.now().toString();
+      const reportId = selectedReportIdToLink;
+      const label = reports?.find((r) => String((r.Report || r).id) === String(reportId))?.Report?.Subject || "Nieuwe Marker";
+      
+      const newMarker = {
+        id: markerId,
+        x,
+        y,
+        label,
+        page,
+        mapId,
+        reportId,
+      };
+
+      const updated = [...markers, newMarker];
+      setMarkers(updated);
+    } else if (pendingLinkData?.type === "google") {
+      const reportToUpdate = reports?.find((r) => String((r.Report || r).id) === String(selectedReportIdToLink));
+      if (reportToUpdate) {
+        const rep = reportToUpdate.Report || reportToUpdate;
+        const updatedReport = { ...rep, Location: `${pendingLinkData.coords.lat}, ${pendingLinkData.coords.lng}` };
+        
+        navigate("/melding", {
+          state: { report: { ...updatedReport }, from: "google-maps" }
+        });
+      }
+    }
   };
 
   return (
@@ -544,6 +582,14 @@ export default function MapPanel({
           {message.text}
         </div>
       )}
+
+      <LinkReportModal
+        isOpen={showLinkModal}
+        onClose={() => setShowLinkModal(false)}
+        reports={reports}
+        onLink={handleLinkReport}
+        onCreateNew={handleCreateNewReport}
+      />
 
       <div className="map-type-tabs">
         <button
