@@ -50,9 +50,24 @@ export default function Legend({ colorMode, setColorMode, activeLegendFilters, s
         Status
       </h3>
       <div className="legend-grid">
-        <LegendItem color={REPORT_STATUS_COLORS.open} label="Open" />
-        <LegendItem color={REPORT_STATUS_COLORS["in progress"]} label="In behandeling" />
-        <LegendItem color={REPORT_STATUS_COLORS.closed} label="Gesloten" />
+         <LegendItem
+          color={REPORT_STATUS_COLORS.open}
+          label="Open"
+          onClick={() => toggleFilter("status", "open")}
+          active={activeLegendFilters.status.includes("open")}
+        />
+        <LegendItem
+          color={REPORT_STATUS_COLORS["in progress"]}
+          label="In behandeling"
+          onClick={() => toggleFilter("status", "in progress")}
+          active={activeLegendFilters.status.includes("in progress")}
+        />
+        <LegendItem
+          color={REPORT_STATUS_COLORS.closed}
+          label="Gesloten"
+          onClick={() => toggleFilter("status", "closed")}
+          active={activeLegendFilters.status.includes("closed")}
+        />
       </div>
 
       <h3
