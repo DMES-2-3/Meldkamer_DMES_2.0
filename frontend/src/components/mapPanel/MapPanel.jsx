@@ -8,8 +8,10 @@ import {
 import { useNavigate } from "react-router-dom";
 import { Document, Page, pdfjs } from "react-pdf";
 import GoogleMapsPanel from "../GoogleMapsPanel";
+import LinkReportModal from "./LinkReportModal";
 import MapModal from "./MapModal";
 import MarkerModal from "./MarkerModal";
+import Marker from "./Marker";
 import { getPriorityColor, PRIORITY_COLORS, REPORT_STATUS_COLORS, normalizePriority, normalizeReportStatus } from "../../utils/utils";
 import { apiUrl } from "../../config/api";
 
@@ -29,7 +31,7 @@ export default function MapPanel({
   selectedEventId,
   initialMaps = [],
   onMapsUpdate = () => {},
-  reports: dashboardReports = [],
+  reports = [],
   updateReportLocation,
   colorMode = "priority",
   activeLegendFilters,
@@ -42,7 +44,6 @@ export default function MapPanel({
   const fileInputRef = useRef(null);
 
   const [maps, setMaps] = useState(initialMaps);
-  const [reports, setReports] = useState([]);
   const sharedState = getStoredMapState();
 
   const [currentMapId, setCurrentMapId] = useState(sharedState.currentMapId || null);
@@ -68,6 +69,10 @@ export default function MapPanel({
   const [isAddingMarker, setIsAddingMarker] = useState(false);
   const [markerClickCandidate, setMarkerClickCandidate] = useState(null);
   const [mapType, setMapType] = useState(initialMapType); // "PDF" or "GoogleMaps"
+  const [googleMapMarkers, setGoogleMapMarkers] = useState([]);
+
+  const [showLinkModal, setShowLinkModal] = useState(false);
+  const [pendingLinkData, setPendingLinkData] = useState(null);
 
   const currentMap = maps.find((m) => m.mapId === currentMapId) || null;
   const currentMarkers = markers.filter(
@@ -77,7 +82,8 @@ export default function MapPanel({
   const filteredPdfMarkers = currentMarkers.filter((marker) => {
     if (!marker.reportId) return true;
 
-    const report = reports.find(r => r.id.toString() === marker.reportId.toString());
+    const reportWrapper = reports.find(r => (r.Report?.id || r?.id)?.toString() === marker.reportId.toString());
+    const report = reportWrapper?.Report || reportWrapper;
     if (!report) return true;
 
     const matchesStatus =
@@ -90,29 +96,6 @@ export default function MapPanel({
 
     return matchesStatus && matchesPriority;
   });
-
-  const fetchReports = async () => {
-    try {
-      const res = await fetch(NOTIFICATIONS_URL);
-      const data = await res.json();
-      const mappedReports = (Array.isArray(data.data) ? data.data : [])
-        .map((n) => ({
-          id: n.id || n.notificationId,
-          event: n.Subject,
-          priority: n.Prioriteit,
-          status: n.Status,
-          team: n.Team,
-          location: n.Location,
-          description: n.Note,
-          reportedBy: n.ReportedBy,
-          time: n.Time,
-        }))
-        .filter((report) => report.id !== null && report.id !== undefined);
-      setReports(mappedReports);
-    } catch (err) {
-      console.error("Failed to fetch reports:", err);
-    }
-  };
 
   const getShortLabel = (description, maxLength = 25) => {
     if (!description) return "";
@@ -155,9 +138,7 @@ export default function MapPanel({
       setZoom(1);
       setPanPosition({ x: 0, y: 0 });
     }
-
-    fetchReports();
-  }, [initialMaps, selectedEventId, currentMapId]);
+  }, [initialMaps, selectedEventId]);
 
   // Check for a completed pending PDF marker (coming back from ReportScreen)
   useEffect(() => {
@@ -183,24 +164,50 @@ export default function MapPanel({
     }
   }, []);
 
+  const syncStateRef = useRef({
+    currentMapId,
+    pageNumber,
+    markers,
+    zoom,
+    panPosition,
+  });
+
   useEffect(() => {
-    broadcastMapState({ currentMapId });
+    if (syncStateRef.current.currentMapId !== currentMapId) {
+      syncStateRef.current.currentMapId = currentMapId;
+      broadcastMapState({ currentMapId });
+    }
   }, [currentMapId]);
 
   useEffect(() => {
-    broadcastMapState({ pageNumber });
+    if (syncStateRef.current.pageNumber !== pageNumber) {
+      syncStateRef.current.pageNumber = pageNumber;
+      broadcastMapState({ pageNumber });
+    }
   }, [pageNumber]);
 
   useEffect(() => {
-    broadcastMapState({ markers });
+    if (JSON.stringify(syncStateRef.current.markers) !== JSON.stringify(markers)) {
+      syncStateRef.current.markers = markers;
+      broadcastMapState({ markers });
+    }
   }, [markers]);
 
   useEffect(() => {
-    broadcastMapState({ zoom });
+    if (syncStateRef.current.zoom !== zoom) {
+      syncStateRef.current.zoom = zoom;
+      broadcastMapState({ zoom });
+    }
   }, [zoom]);
 
   useEffect(() => {
-    broadcastMapState({ panPosition });
+    if (
+      syncStateRef.current.panPosition?.x !== panPosition.x ||
+      syncStateRef.current.panPosition?.y !== panPosition.y
+    ) {
+      syncStateRef.current.panPosition = panPosition;
+      broadcastMapState({ panPosition });
+    }
   }, [panPosition]);
 
   useEffect(() => {
@@ -217,9 +224,10 @@ export default function MapPanel({
 
   useEffect(() => {
     if (!tempMarkerReportId) return;
-    const report = reports.find(
-      (r) => r.id.toString() === tempMarkerReportId.toString(),
+    const reportWrapper = reports.find(
+      (r) => (r.Report?.id || r?.id)?.toString() === tempMarkerReportId?.toString(),
     );
+    const report = reportWrapper?.Report || reportWrapper;
     if (report)
       setTempMarkerLabel(getShortLabel(report.description || report.event, 25));
   }, [tempMarkerReportId, reports]);
@@ -230,11 +238,32 @@ export default function MapPanel({
     const applyState = (next) => {
       if (!next) return;
 
-      if (next.currentMapId !== undefined) setCurrentMapId(next.currentMapId);
-      if (next.pageNumber !== undefined) setPageNumber(next.pageNumber);
-      if (next.zoom !== undefined) setZoom(next.zoom);
-      if (next.panPosition !== undefined) setPanPosition(next.panPosition);
-      if (next.markers !== undefined) setMarkers(next.markers);
+      if (next.currentMapId !== undefined) {
+        syncStateRef.current.currentMapId = next.currentMapId;
+        setCurrentMapId((prev) => (prev === next.currentMapId ? prev : next.currentMapId));
+      }
+      if (next.pageNumber !== undefined) {
+        syncStateRef.current.pageNumber = next.pageNumber;
+        setPageNumber((prev) => (prev === next.pageNumber ? prev : next.pageNumber));
+      }
+      if (next.zoom !== undefined) {
+        syncStateRef.current.zoom = next.zoom;
+        setZoom((prev) => (prev === next.zoom ? prev : next.zoom));
+      }
+      if (next.panPosition !== undefined) {
+        syncStateRef.current.panPosition = next.panPosition;
+        setPanPosition((prev) =>
+          prev.x === next.panPosition.x && prev.y === next.panPosition.y
+            ? prev
+            : next.panPosition
+        );
+      }
+      if (next.markers !== undefined) {
+        syncStateRef.current.markers = next.markers;
+        setMarkers((prev) =>
+          JSON.stringify(prev) === JSON.stringify(next.markers) ? prev : next.markers
+        );
+      }
     };
 
     const onStorage = (e) => {
@@ -355,23 +384,12 @@ export default function MapPanel({
         page: pageNumber,
         mapId: currentMapId,
       };
-      sessionStorage.setItem(
-        "pendingPdfMarker",
-        JSON.stringify(pendingPdfMarker),
-      );
 
+      setPendingLinkData({ type: "pdf", data: pendingPdfMarker });
+      setShowLinkModal(true);
       setIsAddingMarker(false);
       setMessage(null);
 
-      navigate("/melding", {
-        state: {
-          report: {
-            Prioriteit: "Laag",
-            Status: "Open",
-          },
-          from: "pdf-map",
-        },
-      });
       return;
     }
 
@@ -517,34 +535,63 @@ export default function MapPanel({
 
   // Google Maps click handler
   const handleMapClick = (coords) => {
-    navigate("/melding", {
-      state: {
-        report: {
-          Location: `${coords.lat}, ${coords.lng}`,
-          Prioriteit: "Groen",
-          Status: "Open",
-        },
-        from: "google-maps",
-      },
-    });
+    if (!isAddingMarker) return;
+    setPendingLinkData({ type: "google", coords });
+    setShowLinkModal(true);
+    setIsAddingMarker(false);
   };
 
-  const getMarkerColor = (marker, reports = [], colorMode = "priority") => {
-    if (!marker?.reportId) return "#9ca3af";
-
-    const report = reports.find(r => r.id.toString() === marker.reportId.toString());
-    if (!report) return "#9ca3af";
-
-    if (colorMode === "priority") {
-      const normalized = normalizePriority(report.priority || report.Prioriteit);
-      return PRIORITY_COLORS[normalized] || PRIORITY_COLORS.default;
+  const handleCreateNewReport = () => {
+    setShowLinkModal(false);
+    if (pendingLinkData?.type === "pdf") {
+      sessionStorage.setItem("pendingPdfMarker", JSON.stringify(pendingLinkData.data));
+      navigate("/melding", {
+        state: { report: { Prioriteit: "Laag", Status: "Open" }, from: "pdf-map" }
+      });
+    } else if (pendingLinkData?.type === "google") {
+      navigate("/melding", {
+        state: {
+          report: { Location: `${pendingLinkData.coords.lat}, ${pendingLinkData.coords.lng}`, Prioriteit: "Laag", Status: "Open" },
+          from: "google-maps"
+        }
+      });
     }
-    else if (colorMode === "status") {
-      const normalized = normalizeReportStatus(report.status || report.Status);
-      return REPORT_STATUS_COLORS[normalized] || REPORT_STATUS_COLORS.default;
-    }
+  };
 
-    return "#9ca3af";
+  const handleLinkReport = (selectedReportIdToLink) => {
+    if (!selectedReportIdToLink) return;
+    setShowLinkModal(false);
+
+    // Logic to save the marker for the selected report
+    if (pendingLinkData?.type === "pdf") {
+      const { x, y, page, mapId } = pendingLinkData.data;
+      const markerId = Date.now().toString();
+      const reportId = selectedReportIdToLink;
+      const label = reports?.find((r) => String((r.Report || r).id) === String(reportId))?.Report?.Subject || "Nieuwe Marker";
+
+      const newMarker = {
+        id: markerId,
+        x,
+        y,
+        label,
+        page,
+        mapId,
+        reportId,
+      };
+
+      const updated = [...markers, newMarker];
+      setMarkers(updated);
+    } else if (pendingLinkData?.type === "google") {
+      const reportToUpdate = reports?.find((r) => String((r.Report || r).id) === String(selectedReportIdToLink));
+      if (reportToUpdate) {
+        const rep = reportToUpdate.Report || reportToUpdate;
+        const updatedReport = { ...rep, Location: `${pendingLinkData.coords.lat}, ${pendingLinkData.coords.lng}` };
+
+        navigate("/melding", {
+          state: { report: { ...updatedReport }, from: "google-maps" }
+        });
+      }
+    }
   };
 
   return (
@@ -554,6 +601,14 @@ export default function MapPanel({
           {message.text}
         </div>
       )}
+
+      <LinkReportModal
+        isOpen={showLinkModal}
+        onClose={() => setShowLinkModal(false)}
+        reports={reports}
+        onLink={handleLinkReport}
+        onCreateNew={handleCreateNewReport}
+      />
 
       <div className="map-type-tabs">
         <button
@@ -571,13 +626,48 @@ export default function MapPanel({
       </div>
 
       {mapType === "GoogleMaps" ? (
-        <GoogleMapsPanel
-          onMapClick={handleMapClick}
-          reports={dashboardReports}
-          onMarkerDragEnd={updateReportLocation}
-          colorMode={colorMode}
-          activeLegendFilters={activeLegendFilters}
-        />
+        <div
+          className="map-wrapper"
+          style={{
+            cursor: isAddingMarker ? "crosshair" : "default",
+          }}
+        >
+          <GoogleMapsPanel
+            onMapClick={handleMapClick}
+            reports={reports}
+            onMarkerDragEnd={updateReportLocation}
+            colorMode={colorMode}
+            activeLegendFilters={activeLegendFilters}
+            isAddingMarker={isAddingMarker}
+            onMarkerClick={(m) => {
+              openMarkerModal({
+                id: `gmap-${m.id}`,
+                label: m.title,
+                reportId: m.id,
+              });
+            }}
+            onMarkersUpdate={setGoogleMapMarkers}
+          />
+          {!isPopout && (
+            <div className="map-buttons">
+              <button
+                className={isAddingMarker ? "btn-marker-active" : ""}
+                onClick={() => setIsAddingMarker(!isAddingMarker)}
+              >
+                {isAddingMarker ? "Annuleren" : "Voeg Marker toe"}
+              </button>
+              <button
+                onClick={() => {
+                  setEditingMarker(null);
+                  setShowMarkerModal(true);
+                }}
+              >
+                Markers ({googleMapMarkers.length})
+              </button>
+              <button onClick={openMapPopout}>Pop-out</button>
+            </div>
+          )}
+        </div>
       ) : (
         <div
           ref={wrapperRef}
@@ -613,27 +703,14 @@ export default function MapPanel({
                   renderTextLayer={false}
                 />
                 {filteredPdfMarkers.map((marker) => (
-                  <div
+                  <Marker
                     key={marker.id}
-                    style={{
-                      left: marker.x,
-                      top: marker.y,
-                      position: "absolute",
-                      zIndex: selectedMarkerId === marker.id ? 20 : 10,
-                    }}
-                    onMouseDown={(e) => handleMarkerMouseDown(e, marker)}
-                  >
-                    <svg width="24" height="32" viewBox="0 0 24 32">
-                      <path
-                        d="M12 0C7.6 0 4 3.6 4 8c0 5.4 8 16 8 16s8-10.6 8-16c0-4.4-3.6-8-8-8z"
-                        fill={getMarkerColor(marker, reports, colorMode)}
-                        stroke="#fff"
-                        strokeWidth="2"
-                      />
-                      <circle cx="12" cy="8" r="3" fill="#fff" />
-                    </svg>
-                    <div className="marker-label">{marker.label}</div>
-                  </div>
+                    marker={marker}
+                    reports={reports}
+                    colorMode={colorMode}
+                    isSelected={selectedMarkerId === marker.id}
+                    onMouseDown={handleMarkerMouseDown}
+                  />
                 ))}
               </div>
             </Document>
@@ -724,20 +801,32 @@ export default function MapPanel({
         show={showMarkerModal}
         onClose={() => setShowMarkerModal(false)}
         editingMarker={editingMarker}
-        markers={currentMarkers}
+        markers={mapType === "GoogleMaps" ? googleMapMarkers.map(m => ({ id: `gmap-${m.id}`, label: m.title, reportId: m.id })) : currentMarkers}
         localReports={reports}
         selectedEventId={selectedEventId}
         onSave={(updatedMarker) => {
-          setMarkers((prev) =>
-            prev.map((m) => (m.id === updatedMarker.id ? updatedMarker : m)),
-          );
-          setEditingMarker(null);
-          setShowMarkerModal(false);
+          if (mapType === "GoogleMaps") {
+            alert("Bewerken van Google Maps markers via deze lijst is nog niet ondersteund. Wijzig de melding direct.");
+            setShowMarkerModal(false);
+          } else {
+            setMarkers((prev) =>
+              prev.map((m) => (m.id === updatedMarker.id ? updatedMarker : m)),
+            );
+            setEditingMarker(null);
+            setShowMarkerModal(false);
+          }
         }}
         onDelete={(markerId) => {
-          setMarkers((prev) => prev.filter((m) => m.id !== markerId));
-          setEditingMarker(null);
-          setShowMarkerModal(false);
+          if (mapType === "GoogleMaps") {
+            const realId = markerId.toString().replace("gmap-", "");
+            updateReportLocation(realId, "");
+            setEditingMarker(null);
+            setShowMarkerModal(false);
+          } else {
+            setMarkers((prev) => prev.filter((m) => m.id !== markerId));
+            setEditingMarker(null);
+            setShowMarkerModal(false);
+          }
         }}
         onEditMarker={(marker) => {
           setEditingMarker(marker);
