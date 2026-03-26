@@ -54,13 +54,13 @@ export default function ReportsTableContainer({
   useEffect(() => {
     let reportsToFilter = [...allEventReports];
 
-    if (statusFilter && statusFilter !== "All") {
+    if (statusFilter && statusFilter !== "Alles") {
       reportsToFilter = reportsToFilter.filter(
         (r) => r.Status === statusFilter,
       );
     }
 
-    if (priorityFilter && priorityFilter !== "All") {
+    if (priorityFilter && priorityFilter !== "Alles") {
       reportsToFilter = reportsToFilter.filter(
         (r) => r.Prioriteit === priorityFilter,
       );
