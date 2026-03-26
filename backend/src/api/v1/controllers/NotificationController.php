@@ -11,7 +11,7 @@ use App\Entity\SITRAP;
 use App\Entity\NotificationStatus;
 use App\Entity\Status;
 use App\Entity\AidWorker;
-use DoctrineProxies\__CG__\App\Entity\Event;
+use App\Entity\Event;
 use TypeError;
 use ValueError;
 use DateTime;

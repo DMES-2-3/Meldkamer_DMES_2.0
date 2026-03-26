@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import {
   getStoredMapState,
   saveStoredMapState,
@@ -13,12 +13,13 @@ import MapModal from "./MapModal";
 import MarkerModal from "./MarkerModal";
 import Marker from "./Marker";
 import { getPriorityColor, PRIORITY_COLORS, REPORT_STATUS_COLORS, normalizePriority, normalizeReportStatus } from "../../utils/utils";
+import { apiUrl } from "../../config/api";
 
 pdfjs.GlobalWorkerOptions.workerSrc =
   "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 
-const MAPS_URL = "http://localhost:8080/src/api/v1/maps";
-const NOTIFICATIONS_URL = "http://localhost:8080/src/api/v1/notification";
+const MAPS_URL = apiUrl("/src/api/v1/maps");
+const NOTIFICATIONS_URL = apiUrl("/src/api/v1/notification");
 const ZOOM_LIMITS = { min: 0.25, max: 4 };
 const ZOOM_STEP = 1.1;
 const WHEEL_SENSITIVITY = 0.0015;
@@ -55,7 +56,7 @@ export default function MapPanel({
   const [showMapModal, setShowMapModal] = useState(false);
   const [showMarkerModal, setShowMarkerModal] = useState(false);
   const [editingMarker, setEditingMarker] = useState(null);
-  const [tempMarkerLabel, setTempMarkerLabel] = useState("");
+  const [, setTempMarkerLabel] = useState("");
   const [tempMarkerReportId, setTempMarkerReportId] = useState("");
   const [selectedMarkerId, setSelectedMarkerId] = useState(null);
 
@@ -320,14 +321,16 @@ export default function MapPanel({
     }
   };
 
-  const handleWheel = (e) => {
+  const handleWheel = useCallback((e) => {
     e.preventDefault();
+
     const rect = wrapperRef.current?.getBoundingClientRect();
     if (!rect) return;
 
     const offsetX = e.clientX - rect.left;
     const offsetY = e.clientY - rect.top;
     const prevZoom = zoom;
+
     const newZoom = Math.min(
       Math.max(zoom * (1 - e.deltaY * WHEEL_SENSITIVITY), ZOOM_LIMITS.min),
       ZOOM_LIMITS.max,
@@ -338,7 +341,18 @@ export default function MapPanel({
 
     setZoom(newZoom);
     setPanPosition({ x: panPosition.x - dx, y: panPosition.y - dy });
-  };
+  }, [zoom, panPosition]);
+
+    useEffect(() => {
+    const el = wrapperRef.current;
+    if (!el) return;
+
+    el.addEventListener("wheel", handleWheel, { passive: false });
+
+    return () => {
+      el.removeEventListener("wheel", handleWheel);
+    };
+  }, [handleWheel]);
 
   const zoomIn = () => setZoom((z) => Math.min(z * ZOOM_STEP, ZOOM_LIMITS.max));
   const zoomOut = () =>
@@ -370,7 +384,7 @@ export default function MapPanel({
         page: pageNumber,
         mapId: currentMapId,
       };
-      
+
       setPendingLinkData({ type: "pdf", data: pendingPdfMarker });
       setShowLinkModal(true);
       setIsAddingMarker(false);
@@ -449,20 +463,6 @@ export default function MapPanel({
     setShowMarkerModal(true);
   };
 
-  const saveMarker = (updatedMarker) => {
-    setMarkers((prev) =>
-      prev.map((m) => (m.id === updatedMarker.id ? updatedMarker : m)),
-    );
-    setEditingMarker(null);
-    setShowMarkerModal(false);
-  };
-
-  const deleteMarker = (markerId) => {
-    setMarkers((prev) => prev.filter((m) => m.id !== markerId));
-    setEditingMarker(null);
-    setShowMarkerModal(false);
-  };
-
   const handleMapSelect = (map) => {
     if (currentMapId === map.mapId) return setShowMapModal(false);
     setCurrentMapId(map.mapId);
@@ -492,22 +492,41 @@ export default function MapPanel({
     formData.append("eventId", selectedEventId);
 
     try {
-      const res = await fetch(MAPS_URL, { method: "POST", body: formData });
-      const data = await res.json();
-      if (!res.ok)
-        setMessage({ type: "error", text: data.error || "Upload mislukt" });
-      else {
-        setMessage({ type: "success", text: "Upload succesvol!" });
-        const newMap = data.data;
-        const updatedMaps = [...maps, newMap];
-        setMaps(updatedMaps);
-        onMapsUpdate(updatedMaps);
-        setCurrentMapId(newMap.mapId);
-        setPageNumber(1);
+      const res = await fetch(MAPS_URL, {
+        method: "POST",
+        body: formData,
+      });
+
+      const text = await res.text();
+      let data = {};
+
+      try {
+        data = text ? JSON.parse(text) : {};
+      } catch {
+        throw new Error(`Invalid response: ${text.substring(0, 200)}`);
       }
+
+      if (!res.ok) {
+        setMessage({
+          type: "error",
+          text: data.error || "Upload failed",
+        });
+        return;
+      }
+
+      const newMap = data.data;
+      const updatedMaps = [...maps, newMap];
+      setMaps(updatedMaps);
+      onMapsUpdate(updatedMaps);
+      setCurrentMapId(newMap.mapId);
+      setPageNumber(1);
+      setMessage({ type: "success", text: "Upload successful!" });
     } catch (err) {
       console.error(err);
-      setMessage({ type: "error", text: "Upload failed" });
+      setMessage({
+        type: "error",
+        text: err.message || "Upload failed",
+      });
     } finally {
       setUploading(false);
       e.target.value = "";
@@ -542,14 +561,14 @@ export default function MapPanel({
   const handleLinkReport = (selectedReportIdToLink) => {
     if (!selectedReportIdToLink) return;
     setShowLinkModal(false);
-    
+
     // Logic to save the marker for the selected report
     if (pendingLinkData?.type === "pdf") {
       const { x, y, page, mapId } = pendingLinkData.data;
       const markerId = Date.now().toString();
       const reportId = selectedReportIdToLink;
       const label = reports?.find((r) => String((r.Report || r).id) === String(reportId))?.Report?.Subject || "Nieuwe Marker";
-      
+
       const newMarker = {
         id: markerId,
         x,
@@ -567,7 +586,7 @@ export default function MapPanel({
       if (reportToUpdate) {
         const rep = reportToUpdate.Report || reportToUpdate;
         const updatedReport = { ...rep, Location: `${pendingLinkData.coords.lat}, ${pendingLinkData.coords.lng}` };
-        
+
         navigate("/melding", {
           state: { report: { ...updatedReport }, from: "google-maps" }
         });
@@ -653,7 +672,6 @@ export default function MapPanel({
         <div
           ref={wrapperRef}
           className="map-wrapper"
-          onWheel={handleWheel}
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
@@ -668,12 +686,8 @@ export default function MapPanel({
         >
           {currentMapId && currentMap?.hasFile ? (
             <Document
-              key={currentMapId}
-              file={`${MAPS_URL}/${currentMapId}/file`}
-              onLoadSuccess={({ numPages }) => {
-                setNumPages(numPages);
-                if (pageNumber > numPages) setPageNumber(1);
-              }}
+              file={apiUrl(`/src/api/v1/maps/${currentMapId}/file`)}
+              onLoadSuccess={({ numPages }) => setNumPages(numPages)}
             >
               <div
                 ref={pdfPageRef}

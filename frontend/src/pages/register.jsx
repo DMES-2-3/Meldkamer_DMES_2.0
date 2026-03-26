@@ -1,11 +1,14 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { apiUrl } from "../config/api";
 import "../login.css";
 import { useAuth } from "../contexts/AuthContext";
+import { getCsrfToken } from "../config/csrf";
 
 function Register() {
   const navigate = useNavigate();
-  const { refreshSession } = useAuth();
+  const { user, loading: authLoading, refreshSession } = useAuth();
+
   const [form, setForm] = useState({
     firstname: "",
     lastname: "",
@@ -14,10 +17,17 @@ function Register() {
     email: "",
     pass: "",
   });
+
   const [errors, setErrors] = useState([]);
   const [msg, setMsg] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPass, setShowPass] = useState(false);
+
+  useEffect(() => {
+    if (!authLoading && (!user || !user.isAdmin)) {
+      navigate("/evenementen", { replace: true });
+    }
+  }, [user, authLoading, navigate]);
 
   const handleInputChange = (e) => {
     setErrors([]);
@@ -30,15 +40,22 @@ function Register() {
     setMsg("");
 
     try {
-      const res = await fetch(
-        "http://localhost:8080/src/api/v1/user/register",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify(form),
+      const csrfToken = await getCsrfToken();
+
+      const res = await fetch(apiUrl("src/api/v1/user/register"), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRF-Token": csrfToken,
         },
-      );
+        credentials: "include",
+        body: JSON.stringify(form),
+      });
+
+      const contentType = res.headers.get("content-type") || "";
+      if (!contentType.includes("application/json")) {
+        throw new Error("Server gaf geen geldige JSON response terug.");
+      }
 
       const data = await res.json();
 
@@ -58,16 +75,21 @@ function Register() {
     }
   };
 
+  if (authLoading || !user || !user.isAdmin) return null;
+
   return (
     <div className="login-page">
       <div className="form">
         <h1>Registreer Gebruiker</h1>
+
         {errors.map((e, i) => (
           <p key={i} className="error">
             {e}
           </p>
         ))}
+
         {msg && <p className="success">{msg}</p>}
+
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -89,6 +111,7 @@ function Register() {
             onChange={handleInputChange}
             disabled={loading}
           />
+
           <label>Achternaam</label>
           <input
             type="text"
@@ -97,6 +120,7 @@ function Register() {
             onChange={handleInputChange}
             disabled={loading}
           />
+
           <label>Gebruikersnaam</label>
           <input
             type="text"
@@ -105,6 +129,7 @@ function Register() {
             onChange={handleInputChange}
             disabled={loading}
           />
+
           <label>Geboortedatum</label>
           <input
             type="date"
@@ -113,6 +138,7 @@ function Register() {
             onChange={handleInputChange}
             disabled={loading}
           />
+
           <label>Email</label>
           <input
             type="email"
@@ -121,6 +147,7 @@ function Register() {
             onChange={handleInputChange}
             disabled={loading}
           />
+
           <label>Wachtwoord</label>
           <input
             type={showPass ? "text" : "password"}
@@ -129,6 +156,7 @@ function Register() {
             onChange={handleInputChange}
             disabled={loading}
           />
+
           <label className="show-pass">
             <input
               type="checkbox"
@@ -138,10 +166,12 @@ function Register() {
             />
             Toon wachtwoord
           </label>
+
           <button className="button" type="submit" disabled={loading}>
             {loading ? "Registreren..." : "Registreren"}
           </button>
         </form>
+
         <p className="clickable" onClick={() => navigate("/evenementen")}>
           Terug naar evenementen
         </p>

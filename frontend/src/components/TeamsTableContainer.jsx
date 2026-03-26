@@ -3,8 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { STATUSES } from "../constants";
 import TeamsTable from "./TeamsTable";
 import StatusPickerModal from "./StatusPickerModal";
+import { API_BASE_URL } from "../config/api";
 
-const API_URL = "http://localhost:8080/src/api/v1";
+const API_URL = `${API_BASE_URL}/src/api/v1`;
 
 const getStatusColor = (status) => {
   const statusConfig = {
@@ -61,7 +62,7 @@ export default function TeamsTableContainer() {
     try {
       setLoading(true);
 
-      const eventId = selectedEvent?.id;
+      const eventId = selectedEvent?.id ?? null;
       const url = eventId
         ? `${API_URL}/aidteam?eventId=${eventId}`
         : `${API_URL}/aidteam`;
@@ -85,7 +86,7 @@ export default function TeamsTableContainer() {
       setError(null);
     } catch (err) {
       console.error("Failed to fetch teams:", err);
-      setError(err.message);
+      setError(err.message || "Onbekende fout");
     } finally {
       setLoading(false);
     }

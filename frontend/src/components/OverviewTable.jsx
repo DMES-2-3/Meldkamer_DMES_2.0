@@ -24,7 +24,6 @@ const OverviewTable = ({ reports = [], units = [], placeholderRows = 5, onRowCli
 
   const dataRows = hasData
     ? reports.map((r, index) => {
-    // Support both { Report: {...} } and the plain object directly
     const base = r.Report ?? r;
     const mapped = mapReportToRow(base);
     return { id: index, raw: base, ...mapped };
