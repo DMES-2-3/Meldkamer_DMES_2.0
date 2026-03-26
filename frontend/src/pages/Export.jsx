@@ -119,13 +119,13 @@ const ExportPage = ({ title = "Export" }) => {
                        {activeExport === "zip" ? "Bezig met exporteren..." : "Exporteer ZIP"}
                     </button>
 
-                    <button
-                        onClick={handleExportExcel}
-                        disabled={loading}
-                        className="btn btn-outline"
-                    >
-                        {activeExport === "excel" ? "Bezig met exporteren..." : "Exporteer Excel"}
-                    </button>
+                        {/* <button
+                            onClick={handleExportExcel}
+                            disabled={loading}
+                            className="btn btn-outline"
+                        >
+                            {activeExport === "excel" ? "Bezig met exporteren..." : "Exporteer Excel"}
+                        </button> */}
                 </div>
 
                 {error && (
