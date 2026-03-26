@@ -3,7 +3,8 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import { AuthProvider } from "./contexts/AuthContext";
 import { NotepadProvider } from "./contexts/NotepadContexts";
-import { getReports, getUnits } from "./services/reportsApi";
+import { getReports } from "./services/reportsApi";
+import { getUnits } from "./services/unitsApi";
 
 import TopNav from "./components/layout/TopNav";
 import Protected from "./components/protected";
@@ -50,7 +51,8 @@ function App() {
       const reportsData = await getReports();
       const unitsData = await getUnits();
       setReports(reportsData || []);
-      setUnits(unitsData || []);
+      const finalUnits = Array.isArray(unitsData?.data) ? unitsData.data : Array.isArray(unitsData) ? unitsData : [];
+      setUnits(finalUnits);
     } catch (err) {
       console.error("Failed to load overview data", err);
     }
@@ -58,6 +60,14 @@ function App() {
 
   useEffect(() => {
     reloadData();
+
+    const handleStorage = (e) => {
+      if (e.key === "shared_report_update") {
+        reloadData();
+      }
+    };
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
   }, [reloadData]);
 
   return (

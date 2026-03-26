@@ -9,6 +9,10 @@ export default function MapPopoutScreen({
 }) {
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [mapColorMode, setMapColorMode] = useState("priority");
+  const [activeLegendFilters, setActiveLegendFilters] = useState({
+    status: [],
+    priority: [],
+  });
 
   useEffect(() => {
     document.title = "Map Pop-out";
@@ -83,6 +87,7 @@ export default function MapPopoutScreen({
         colorMode={mapColorMode}
         initialMapType="PDF"
         isPopout={true}
+        activeLegendFilters={activeLegendFilters}
       />
     </div>
   );
