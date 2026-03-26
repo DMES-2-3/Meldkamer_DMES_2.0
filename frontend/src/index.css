@@ -278,7 +278,7 @@ button {
 .input-group {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 6px;
 }
 
 .input-group label {
@@ -329,8 +329,20 @@ button {
     margin-top: 4px;
 }
 
+.priority-extra-assistance {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: #6b7280;
+    margin-top: 4px;
+    padding-top: 8px;
+    color:  red;
+    font-weight: 600;
+}
+
 .priority-group {
-    flex-direction: row;
+    flex-direction: row-reverse;
     align-items: center;
     justify-content: space-between;
 }
@@ -371,7 +383,7 @@ button {
 
 .section-title {
     font-weight: 600;
-    font-size: 14px;
+    font-size: 8px;
     margin-bottom: 8px;
     color: white;
 }
@@ -417,12 +429,17 @@ button {
 
 .time-input {
     font-weight: 700;
-    font-size: 16px;
     padding: 8px;
-    background: #f3f4f6;
+    background: #f1f1f1;
     border: 1px solid #d1d5db;
     border-radius: 4px;
     width: 120px;
+    height: 2.2rem;
+    padding: 10px 10px;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    font-size: 16px;
+    margin-block: 8px;
 }
 
 .button-row {
