@@ -19,8 +19,10 @@ export default function Dashboard({ reports, reloadData, setReports }) {
   const [mapColorMode, setMapColorMode] = useState("priority"); // "priority" or "status"
   const [mainTab, setMainTab] = useState(MAIN_TABS.TEAMS);
   const [reportsTab, setReportsTab] = useState(REPORT_TABS.ALL);
-  const [statusFilter, setStatusFilter] = useState("All");
-  const [priorityFilter, setPriorityFilter] = useState("All");
+
+  // FIX: gebruik overal "Alles" i.p.v. "All"
+  const [statusFilter, setStatusFilter] = useState("Alles");
+  const [priorityFilter, setPriorityFilter] = useState("Alles");
 
   const [activeLegendFilters, setActiveLegendFilters] = useState({
     status: [],
@@ -31,7 +33,6 @@ export default function Dashboard({ reports, reloadData, setReports }) {
   const [kladblokContext, setKladblokContext] = useState(null);
   const [selectedEvent, setSelectedEvent] = useState(null);
 
-  // Get selected event from localStorage
   React.useEffect(() => {
     const stored = localStorage.getItem("selected_event");
     if (stored) {
@@ -44,8 +45,7 @@ export default function Dashboard({ reports, reloadData, setReports }) {
     }
   }, []);
 
-  const onOpenNotepad = () => 
-  {
+  const onOpenNotepad = () => {
     const eventName = selectedEvent?.name;
     if (!eventName) {
       alert("Geen event geselecteerd.");
@@ -55,8 +55,7 @@ export default function Dashboard({ reports, reloadData, setReports }) {
     setShowKladblok(true);
   };
 
-  const onOpenReportNotepad = (reportId) => 
-  {
+  const onOpenReportNotepad = (reportId) => {
     if (!reportId) return;
     setKladblokContext({ type: "report", reportId });
     setShowKladblok(true);
@@ -69,8 +68,7 @@ export default function Dashboard({ reports, reloadData, setReports }) {
 
   useEffect(() => {
     const handleKeyDown = (e) => {
-      // Alt + N om een nieuwe melding te maken
-      if (e.altKey && e.key.toLowerCase() === 'n') {
+      if (e.altKey && e.key.toLowerCase() === "n") {
         e.preventDefault();
         if (document.activeElement instanceof HTMLElement) {
           document.activeElement.blur();
@@ -138,7 +136,7 @@ export default function Dashboard({ reports, reloadData, setReports }) {
       await saveReport(updatedWrapper.Report);
 
       setReports((prevReports) =>
-        prevReports.map((r) => (r.Report.id === id ? updatedWrapper : r)),
+        prevReports.map((r) => (r.Report.id === id ? updatedWrapper : r))
       );
 
       await reloadData();
@@ -174,7 +172,6 @@ export default function Dashboard({ reports, reloadData, setReports }) {
       </div>
 
       <div className="dashboard-right">
-        {/* Main tabs */}
         <div className="tabs">
           {mainTabs.map((tab) => (
             <button
@@ -187,12 +184,12 @@ export default function Dashboard({ reports, reloadData, setReports }) {
           ))}
         </div>
 
-        {/* Tab content */}
         {mainTab === MAIN_TABS.TEAMS && <TeamsTableContainer />}
-        {mainTab === MAIN_TABS.AIDWORKERS && <AidWorkersTableContainer selectedEventId={selectedEvent?.id} />}
+        {mainTab === MAIN_TABS.AIDWORKERS && (
+          <AidWorkersTableContainer selectedEventId={selectedEvent?.id} />
+        )}
         {mainTab === MAIN_TABS.REPORTS && (
           <>
-            {/* Subtabs and filters */}
             <div
               style={{
                 display: "flex",
@@ -202,12 +199,12 @@ export default function Dashboard({ reports, reloadData, setReports }) {
                 paddingRight: 8,
               }}
             >
-            <FilterControls
-              statusFilter={statusFilter}
-              priorityFilter={priorityFilter}
-              onStatusChange={setStatusFilter}
-              onPriorityChange={setPriorityFilter}
-            />
+              <FilterControls
+                statusFilter={statusFilter}
+                priorityFilter={priorityFilter}
+                onStatusChange={setStatusFilter}
+                onPriorityChange={setPriorityFilter}
+              />
               <button
                 className="btn-small"
                 style={{
@@ -247,11 +244,11 @@ export default function Dashboard({ reports, reloadData, setReports }) {
             Kladblok
           </button>
         </div>
-          <FloatingNotepad
-            open={showKladblok}
-            context={kladblokContext}
-            onClose={() => setShowKladblok(false)}
-          />
+        <FloatingNotepad
+          open={showKladblok}
+          context={kladblokContext}
+          onClose={() => setShowKladblok(false)}
+        />
       </div>
     </div>
   );
