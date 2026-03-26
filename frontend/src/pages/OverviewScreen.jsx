@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import Section from "../components/layout/Section";
 import OverviewTable from "../components/OverviewTable";
@@ -11,7 +11,8 @@ export default function OverviewScreen({ reports, units, reloadData }) {
 
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (e.altKey && e.key.toLowerCase() === "n") {
+      // Alt + N om een nieuwe melding te maken
+      if (e.altKey && e.key.toLowerCase() === 'n') {
         e.preventDefault();
         if (document.activeElement instanceof HTMLElement) {
           document.activeElement.blur();
@@ -24,6 +25,16 @@ export default function OverviewScreen({ reports, units, reloadData }) {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [navigate]);
 
+  const mappedUnits = useMemo(() => {
+    if (!units) return [];
+    return units.map((u) => ({
+      ...u,
+      id: u.aidTeamId || u.id,
+      name: u.aidTeamName || u.name,
+      teamName: u.aidTeamName || u.name,
+    }));
+  }, [units]);
+
   useEffect(() => {
     const stored = localStorage.getItem("selected_event");
     if (!stored) {
@@ -35,45 +46,9 @@ export default function OverviewScreen({ reports, units, reloadData }) {
       setSelectedEvent(parsed);
     } catch {
       navigate("/events");
+      return;
     }
   }, [navigate]);
-
-  useEffect(() => {
-    if (!reloadData) return;
-
-    const refresh = async () => {
-      try {
-        await reloadData();
-      } catch (err) {
-        console.error("Failed to reload overview data:", err);
-      }
-    };
-
-    // Alleen bij openen van de overview
-    refresh();
-
-    const handleStorage = (e) => {
-      if (e.key === "shared_report_update") {
-        refresh();
-      }
-    };
-
-    window.addEventListener("storage", handleStorage);
-
-    return () => {
-      window.removeEventListener("storage", handleStorage);
-    };
-  }, [reloadData]);
-
-  const mappedUnits = useMemo(() => {
-    if (!units) return [];
-    return units.map((u) => ({
-      ...u,
-      id: u.aidTeamId || u.id,
-      name: u.aidTeamName || u.name,
-      teamName: u.aidTeamName || u.name,
-    }));
-  }, [units]);
 
   const availableUnits = useMemo(() => {
     return mappedUnits.filter((u) => {
@@ -94,6 +69,7 @@ export default function OverviewScreen({ reports, units, reloadData }) {
     (reports || []).forEach((wrapper) => {
       const report = wrapper.Report ?? wrapper;
 
+      // Filter by event
       if (
         selectedEvent &&
         selectedEvent.name &&
@@ -122,8 +98,9 @@ export default function OverviewScreen({ reports, units, reloadData }) {
   }, [reports, selectedEvent]);
 
   const handleReportClick = (report) => {
+    // It's better to navigate with the original report data if possible
     const originalWrapper = reports.find(
-      (r) => (r.Report ?? r).id === report.id
+      (r) => (r.Report ?? r).id === report.id,
     );
     navigate("/melding", { state: { report: originalWrapper || report } });
   };
@@ -132,10 +109,9 @@ export default function OverviewScreen({ reports, units, reloadData }) {
     if (!report?.id) return;
 
     const originalWrapper = reports.find(
-      (r) => (r.Report ?? r).id === report.id
+      (r) => (r.Report ?? r).id === report.id,
     );
     if (!originalWrapper) return;
-
     const originalReport = originalWrapper.Report ?? originalWrapper;
 
     let newStatus = "";
@@ -144,6 +120,7 @@ export default function OverviewScreen({ reports, units, reloadData }) {
 
     if (!newStatus) return;
 
+    // If closing the report, also set the team status to AVAILABLE
     if (newStatus === "Gesloten") {
       const teamName = originalReport.Team;
       if (teamName) {
@@ -161,22 +138,23 @@ export default function OverviewScreen({ reports, units, reloadData }) {
     const updatedReport = { ...originalReport, Status: newStatus };
     await saveReport(updatedReport);
     localStorage.setItem("shared_report_update", Date.now().toString());
-    if (reloadData) await reloadData();
+    reloadData();
   };
 
   const handleTeamUpdate = async (report, newTeamName) => {
     if (!report?.id) return;
 
     const originalWrapper = reports.find(
-      (r) => (r.Report ?? r).id === report.id
+      (r) => (r.Report ?? r).id === report.id,
     );
     if (!originalWrapper) return;
-
     const originalReport = originalWrapper.Report ?? originalWrapper;
+
     const oldTeamName = originalReport.Team;
 
     if (oldTeamName === newTeamName) return;
 
+    // 1. Release the old team
     if (oldTeamName) {
       const oldTeam = mappedUnits.find((u) => u.name === oldTeamName);
       if (oldTeam) {
@@ -188,6 +166,7 @@ export default function OverviewScreen({ reports, units, reloadData }) {
       }
     }
 
+    // 2. Occupy the new team
     if (newTeamName) {
       const newTeam = mappedUnits.find((u) => u.name === newTeamName);
       if (newTeam) {
@@ -202,38 +181,37 @@ export default function OverviewScreen({ reports, units, reloadData }) {
     const updatedReport = { ...originalReport, Team: newTeamName };
     await saveReport(updatedReport);
     localStorage.setItem("shared_report_update", Date.now().toString());
-    if (reloadData) await reloadData();
+    reloadData();
   };
 
   const handlePriorityUpdate = async (report, newPriority) => {
     if (!report?.id) return;
 
     const originalWrapper = reports.find(
-      (r) => (r.Report ?? r).id === report.id
+      (r) => (r.Report ?? r).id === report.id,
     );
     if (!originalWrapper) return;
-
     const originalReport = originalWrapper.Report ?? originalWrapper;
-    const updatedReport = { ...originalReport, Prioriteit: newPriority };
 
+    const updatedReport = { ...originalReport, Prioriteit: newPriority };
     await saveReport(updatedReport);
     localStorage.setItem("shared_report_update", Date.now().toString());
-    if (reloadData) await reloadData();
+    reloadData();
   };
 
   const handleDropReport = async (report, targetStatus) => {
     if (!report?.id) return;
 
     const originalWrapper = reports.find(
-      (r) => (r.Report ?? r).id === report.id
+      (r) => (r.Report ?? r).id === report.id,
     );
     if (!originalWrapper) return;
-
     const originalReport = originalWrapper.Report ?? originalWrapper;
-    const currentStatus = originalReport.Status || "Open";
 
+    const currentStatus = originalReport.Status || "Open";
     if (currentStatus === targetStatus) return;
 
+    // If closing the report, also set the team status to AVAILABLE
     if (targetStatus === "Gesloten") {
       const teamName = originalReport.Team;
       if (teamName) {
@@ -251,7 +229,7 @@ export default function OverviewScreen({ reports, units, reloadData }) {
     const updatedReport = { ...originalReport, Status: targetStatus };
     await saveReport(updatedReport);
     localStorage.setItem("shared_report_update", Date.now().toString());
-    if (reloadData) await reloadData();
+    reloadData();
   };
 
   return (
@@ -278,9 +256,7 @@ export default function OverviewScreen({ reports, units, reloadData }) {
           onStatusUpdate={handleStatusUpdate}
           onTeamUpdate={handleTeamUpdate}
           onPriorityUpdate={handlePriorityUpdate}
-          onDropReport={(report) =>
-            handleDropReport(report, "In behandeling")
-          }
+          onDropReport={(report) => handleDropReport(report, "In behandeling")}
         />
       </Section>
 

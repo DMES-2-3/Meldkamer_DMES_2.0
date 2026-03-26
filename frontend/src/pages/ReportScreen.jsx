@@ -328,8 +328,6 @@ export default function ReportScreen({ reloadData }) {
 
       const savedResult = await saveReport(formData);
 
-      localStorage.setItem("shared_report_update", Date.now().toString());
-
       const newReportId =
         savedResult?.data?.id ??
         savedResult?.data?.notificationId ??
