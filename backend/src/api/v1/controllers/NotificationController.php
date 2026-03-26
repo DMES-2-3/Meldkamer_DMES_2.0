@@ -195,6 +195,25 @@ class NotificationController extends BaseController implements IController
                 $notification->setAssistance($Assistance);
             }
 
+            // Setup Logbook
+            if (isset($input["Logbook"]) && is_array($input["Logbook"])) {
+                foreach ($input["Logbook"] as $logbookData) {
+                    $logbook = new \App\Entity\Logbook();
+                    $logbook->setNotification($notification);
+                    $logbook->setEvent($logbookData["event"] ?? "");
+
+                    $timeStr = $logbookData["time"] ?? "";
+                    $time = \DateTime::createFromFormat("H:i", $timeStr);
+                    if (!$time) {
+                        $time = new \DateTime();
+                    }
+
+                    $logbook->setTime($time);
+                    $this->entityManager->persist($logbook);
+                    $notification->addLogbook($logbook);
+                }
+            }
+
             // Persist all entities
             $this->entityManager->persist($notification);
             $this->entityManager->flush();
