@@ -18,7 +18,10 @@ export default function GoogleMapsPanel({
   reports,
   onMarkerDragEnd,
   colorMode,
-  activeLegendFilters
+  activeLegendFilters,
+  isAddingMarker,
+  onMarkerClick,
+  onMarkersUpdate
 }) {
   const navigate = useNavigate();
 
@@ -89,17 +92,25 @@ export default function GoogleMapsPanel({
     setMarkers(newMarkers);
   }, [reports, selectedEvent]);
 
-  const filteredMarkers = markers.filter((m) => {
-    const matchesStatus =
-      !activeLegendFilters?.status?.length ||
-      activeLegendFilters.status.includes(m.status);
+  const filteredMarkers = React.useMemo(() => {
+    return markers.filter((m) => {
+      const matchesStatus =
+        !activeLegendFilters?.status?.length ||
+        activeLegendFilters.status.includes(m.status);
 
-    const matchesPriority =
-      !activeLegendFilters?.priority?.length ||
-      activeLegendFilters.priority.includes(m.priority);
+      const matchesPriority =
+        !activeLegendFilters?.priority?.length ||
+        activeLegendFilters.priority.includes(m.priority);
 
-    return matchesStatus && matchesPriority;
-  });
+      return matchesStatus && matchesPriority;
+    });
+  }, [markers, activeLegendFilters]);
+
+  useEffect(() => {
+    if (onMarkersUpdate) {
+      onMarkersUpdate(filteredMarkers);
+    }
+  }, [filteredMarkers, onMarkersUpdate]);
 
   // if (loadError) {
   //   return (
@@ -161,6 +172,9 @@ export default function GoogleMapsPanel({
         mapContainerClassName="google-map-inner"
         center={center}
         zoom={15}
+        options={{
+          draggableCursor: isAddingMarker ? "crosshair" : "default",
+        }}
         onClick={(e) => {
           if (onMapClick) {
             onMapClick({
@@ -180,11 +194,21 @@ export default function GoogleMapsPanel({
           }
 
           const icon = createMarkerIcon(color);
+          const shortLabel = m.title
+            ? m.title.length <= 25
+              ? m.title
+              : m.title.slice(0, 25).trim() + "..."
+            : "";
+            
           return (
             <Marker
               key={m.id}
               position={m.position}
               title={m.title}
+              label={{
+                text: shortLabel,
+                className: "marker-label",
+              }}
               icon={icon}
               draggable={true}
               onDragEnd={(e) => {
@@ -192,15 +216,19 @@ export default function GoogleMapsPanel({
                 if (onMarkerDragEnd) onMarkerDragEnd(m.id, newLocation);
               }}
               onClick={() => {
-                const reportWrapper = reports.find(
-                  (r) => String((r.Report || r).id) === String(m.id),
-                );
-                navigate("/melding", {
-                  state: {
-                    report: reportWrapper,
-                    from: "google-maps",
-                  },
-                });
+                if (onMarkerClick) {
+                  onMarkerClick(m);
+                } else {
+                  const reportWrapper = reports.find(
+                    (r) => String((r.Report || r).id) === String(m.id),
+                  );
+                  navigate("/melding", {
+                    state: {
+                      report: reportWrapper,
+                      from: "google-maps",
+                    },
+                  });
+                }
               }}
             />
           );
