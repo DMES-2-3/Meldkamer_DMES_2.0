@@ -9,9 +9,10 @@ import { getUnits, updateUnit } from "../services/unitsApi";
 import TeamSelect from "../components/TeamSelect";
 import { useNotepad } from "../contexts/NotepadContexts";
 
-// Module-level constant: stable for useEffect dependency analysis
-const DEFAULT_FORM_STATE = {
-  ReportedBy: "", // Default to a valid user firstname to prevent backend errors
+const getCurrentTime = () => new Date().toTimeString().slice(0, 5);
+
+const createDefaultFormState = () => ({
+  ReportedBy: "",
   NameEvent: "",
   Subject: "",
   Location: "",
@@ -39,8 +40,8 @@ const DEFAULT_FORM_STATE = {
     Team: "",
   },
   Ambulance: false,
-  Time: new Date().toTimeString().slice(0, 5),
-};
+  Time: getCurrentTime(),
+});
 
 export default function ReportScreen({ reloadData }) {
   const location = useLocation();
@@ -57,11 +58,12 @@ export default function ReportScreen({ reloadData }) {
 
   React.useEffect(() => {
     const handleGlobalEnter = (e) => {
-      // Als je enter drukt en je zit nog niet in een specifiek invoerveld (bijv. op de body)
       const activeTag = document.activeElement?.tagName;
       if (
-        e.key === "Enter" && !e.ctrlKey &&
-        (!activeTag || !["INPUT", "TEXTAREA", "SELECT", "BUTTON", "A"].includes(activeTag))
+        e.key === "Enter" &&
+        !e.ctrlKey &&
+        (!activeTag ||
+          !["INPUT", "TEXTAREA", "SELECT", "BUTTON", "A"].includes(activeTag))
       ) {
         e.preventDefault();
         subjectRef.current?.focus();
@@ -70,6 +72,7 @@ export default function ReportScreen({ reloadData }) {
     window.addEventListener("keydown", handleGlobalEnter);
     return () => window.removeEventListener("keydown", handleGlobalEnter);
   }, []);
+
   const initialReport = location.state?.report;
   const fromGoogleMaps = location.state?.from === "google-maps";
   const fromPdfMap = location.state?.from === "pdf-map";
@@ -78,11 +81,8 @@ export default function ReportScreen({ reloadData }) {
   const [units, setUnits] = useState([]);
   const [aidWorkers, setAidWorkers] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState(null);
-  const [formData, setFormData] = useState(DEFAULT_FORM_STATE);
+  const [formData, setFormData] = useState(createDefaultFormState);
   const [isSaving, setIsSaving] = useState(false);
-  const [currentTime, setCurrentTime] = useState(
-    initialReport?.Report?.Time || new Date().toTimeString().slice(0, 5)
-  );
 
   const { notes, setNotes, setActiveKey } = useNotepad();
 
@@ -95,7 +95,9 @@ export default function ReportScreen({ reloadData }) {
   const draftKey = React.useMemo(() => {
     let k = sessionStorage.getItem("draft_report_notepad_key");
     if (!k) {
-      k = `notepad:report:draft:${Date.now()}-${Math.random().toString(16).slice(2)}`;
+      k = `notepad:report:draft:${Date.now()}-${Math.random()
+        .toString(16)
+        .slice(2)}`;
       sessionStorage.setItem("draft_report_notepad_key", k);
     }
     return k;
@@ -143,7 +145,7 @@ export default function ReportScreen({ reloadData }) {
   }, []);
 
   useEffect(() => {
-    let base = { ...DEFAULT_FORM_STATE };
+    let base = createDefaultFormState();
 
     const inner =
       initialReport && initialReport.Report
@@ -152,7 +154,7 @@ export default function ReportScreen({ reloadData }) {
 
     if (inner) {
       base = {
-        ...DEFAULT_FORM_STATE,
+        ...createDefaultFormState(),
         ...inner,
         id: inner.id ?? null,
         ReportedBy: inner.ReportedBy ?? inner.reporter ?? "",
@@ -163,10 +165,11 @@ export default function ReportScreen({ reloadData }) {
         Prioriteit: inner.Prioriteit ?? inner.priority ?? "",
         Status: inner.Status ?? inner.status ?? "",
         Team: inner.Team ?? inner.team ?? "",
-        SITrap: { ...DEFAULT_FORM_STATE.SITrap, ...(inner.SITrap || {}) },
-        AVPU: { ...DEFAULT_FORM_STATE.AVPU, ...(inner.AVPU || {}) },
+        Time: inner.Time ?? inner.time ?? getCurrentTime(),
+        SITrap: { ...createDefaultFormState().SITrap, ...(inner.SITrap || {}) },
+        AVPU: { ...createDefaultFormState().AVPU, ...(inner.AVPU || {}) },
         Assistance: {
-          ...DEFAULT_FORM_STATE.Assistance,
+          ...createDefaultFormState().Assistance,
           ...(inner.Assistance || {}),
         },
       };
@@ -188,18 +191,58 @@ export default function ReportScreen({ reloadData }) {
     setFormData(base);
   }, [initialReport, selectedEvent, units]);
 
+  const isExistingReport =
+    !!(formData.id ?? initialReport?.Report?.id ?? initialReport?.id);
+
+  useEffect(() => {
+    const refreshTime = () => {
+      if (!isExistingReport) {
+        setFormData((prev) => ({
+          ...prev,
+          Time: getCurrentTime(),
+        }));
+      }
+    };
+
+    refreshTime();
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        refreshTime();
+      }
+    };
+
+    const handleFocus = () => {
+      refreshTime();
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("focus", handleFocus);
+
+    return () => {
+      document.removeEventListener(
+        "visibilitychange",
+        handleVisibilityChange
+      );
+      window.removeEventListener("focus", handleFocus);
+    };
+  }, [isExistingReport]);
+
   const handleChange = (field, value) =>
     setFormData((prev) => ({ ...prev, [field]: value }));
+
   const handleSITrapChange = (field, value) =>
     setFormData((prev) => ({
       ...prev,
       SITrap: { ...prev.SITrap, [field]: value },
     }));
+
   const handleAVPUChange = (field) =>
     setFormData((prev) => ({
       ...prev,
       AVPU: { ...prev.AVPU, [field]: !prev.AVPU[field] },
     }));
+
   const handleAssistanceChange = (field, value) =>
     setFormData((prev) => ({
       ...prev,
@@ -228,7 +271,6 @@ export default function ReportScreen({ reloadData }) {
         originalReportData.current?.Assistance?.Team;
       const newAssistanceTeamName = formData.Assistance.Team;
 
-      // 1. If main team was changed, set old team to AVAILABLE
       if (originalTeamName && originalTeamName !== newTeamName) {
         const originalTeam = units.find((u) => u.name === originalTeamName);
         if (originalTeam) {
@@ -239,7 +281,6 @@ export default function ReportScreen({ reloadData }) {
         }
       }
 
-      // 2. Set new main team's status based on report status
       if (newTeamName) {
         const newTeam = units.find((u) => u.name === newTeamName);
         if (newTeam) {
@@ -252,13 +293,12 @@ export default function ReportScreen({ reloadData }) {
         }
       }
 
-      // 3. If assistance team was changed, set old team to AVAILABLE
       if (
         originalAssistanceTeamName &&
         originalAssistanceTeamName !== newAssistanceTeamName
       ) {
         const originalAssistanceTeam = units.find(
-          (u) => u.name === originalAssistanceTeamName,
+          (u) => u.name === originalAssistanceTeamName
         );
         if (originalAssistanceTeam) {
           const payload = { ...originalAssistanceTeam, status: "AVAILABLE" };
@@ -268,10 +308,9 @@ export default function ReportScreen({ reloadData }) {
         }
       }
 
-      // 4. Set new assistance team's status based on report status
       if (newAssistanceTeamName) {
         const newAssistanceTeam = units.find(
-          (u) => u.name === newAssistanceTeamName,
+          (u) => u.name === newAssistanceTeamName
         );
         if (newAssistanceTeam) {
           const newStatus =
@@ -325,7 +364,7 @@ export default function ReportScreen({ reloadData }) {
                   : shortLabel;
               sessionStorage.setItem(
                 "pendingPdfMarker",
-                JSON.stringify(pending),
+                JSON.stringify(pending)
               );
             }
           }
@@ -365,9 +404,7 @@ export default function ReportScreen({ reloadData }) {
     }
   };
 
-  const unitsForEvent = units.filter(
-    (u) => u.eventId === selectedEvent?.id
-  );
+  const unitsForEvent = units.filter((u) => u.eventId === selectedEvent?.id);
 
   React.useEffect(() => {
     const handleGlobalSave = (e) => {
@@ -379,6 +416,7 @@ export default function ReportScreen({ reloadData }) {
     window.addEventListener("keydown", handleGlobalSave);
     return () => window.removeEventListener("keydown", handleGlobalSave);
   });
+
   const availableUnitsForEvent = unitsForEvent.filter(
     (u) => u.status === "AVAILABLE"
   );
@@ -397,17 +435,20 @@ export default function ReportScreen({ reloadData }) {
         </div>
         <div className="column-content">
           <div className="form-row">
-            <input
-              type="time"
-              className="time-input"
-              value={formData.Time}
-              onChange={(e) => handleChange("Time", e.target.value)}
-            />
             <div className="input-group">
-              <label>Melder</label>
+              <label>Tijd</label>
+              <input
+                type="time"
+                className="time-input"
+                value={formData.Time}
+                onChange={(e) => handleChange("Time", e.target.value)}
+              />
+            </div>
+
+            <div className="input-group">
+              <label>Roepnummer</label>
               <input
                 type="text"
-                placeholder="Naam van melder"
                 value={formData.ReportedBy}
                 onChange={(e) => handleChange("ReportedBy", e.target.value)}
                 onKeyDown={(e) => {
@@ -471,7 +512,9 @@ export default function ReportScreen({ reloadData }) {
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();
-                  const teamInput = teamRef.current?.querySelector('input, select');
+                  const teamInput = teamRef.current?.querySelector(
+                    "input, select"
+                  );
                   if (teamInput) teamInput.focus();
                   else teamRef.current?.focus();
                 }
@@ -483,19 +526,27 @@ export default function ReportScreen({ reloadData }) {
             <label>Prioriteit:</label>
             <div className="priority-flags">
               <button
-                className={`flag green ${formData.Prioriteit?.toLowerCase() === "laag" ? "active" : ""}`}
+                className={`flag green ${
+                  formData.Prioriteit?.toLowerCase() === "laag" ? "active" : ""
+                }`}
                 onClick={() => handleChange("Prioriteit", "Laag")}
               >
                 ⚑
               </button>
               <button
-                className={`flag orange ${formData.Prioriteit?.toLowerCase() === "gemiddeld" ? "active" : ""}`}
+                className={`flag orange ${
+                  formData.Prioriteit?.toLowerCase() === "gemiddeld"
+                    ? "active"
+                    : ""
+                }`}
                 onClick={() => handleChange("Prioriteit", "Gemiddeld")}
               >
                 ⚑
               </button>
               <button
-                className={`flag red ${formData.Prioriteit?.toLowerCase() === "hoog" ? "active" : ""}`}
+                className={`flag red ${
+                  formData.Prioriteit?.toLowerCase() === "hoog" ? "active" : ""
+                }`}
                 onClick={() => handleChange("Prioriteit", "Hoog")}
               >
                 ⚑
@@ -504,12 +555,14 @@ export default function ReportScreen({ reloadData }) {
           </div>
 
           <div className="input-group" ref={teamRef} tabIndex={-1}>
-            <div onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                genderRef.current?.focus();
-              }
-            }}>
+            <div
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  genderRef.current?.focus();
+                }
+              }}
+            >
               <TeamSelect
                 units={availableUnitsForEvent}
                 value={formData.Team}
@@ -530,15 +583,27 @@ export default function ReportScreen({ reloadData }) {
           </div>
 
           <div className="button-row">
-            <button className="btn-save" onClick={handleSave} disabled={isSaving}>
+            <button
+              className="btn-save"
+              onClick={handleSave}
+              disabled={isSaving}
+            >
               Opslaan
             </button>
             {formData.id && (
-              <button className="btn-delete" onClick={handleDelete} disabled={isSaving}>
+              <button
+                className="btn-delete"
+                onClick={handleDelete}
+                disabled={isSaving}
+              >
                 Verwijderen
               </button>
             )}
-            <button className="btn-cancel" onClick={handleCancel} disabled={isSaving}>
+            <button
+              className="btn-cancel"
+              onClick={handleCancel}
+              disabled={isSaving}
+            >
               Annuleren
             </button>
           </div>
@@ -563,10 +628,10 @@ export default function ReportScreen({ reloadData }) {
                 }
               }}
             >
-              <option value="">Man / vrouw</option>
+              <option value="">Man / Vrouw</option>
               <option value="Man">Man</option>
               <option value="Vrouw">Vrouw</option>
-              <option value="X">X</option>
+              <option value="X">Anders</option>
             </select>
           </div>
 
@@ -622,8 +687,7 @@ export default function ReportScreen({ reloadData }) {
             <div className="section-title">
               <h3>Assistentie</h3>
             </div>
-            <div className="input-group"
-                  style={{ marginBottom: "12px" }}>
+            <div className="input-group" style={{ marginBottom: "12px" }}>
               <label>Optioneel extra team</label>
               <TeamSelect
                 units={availableUnitsForEvent}
@@ -639,7 +703,7 @@ export default function ReportScreen({ reloadData }) {
                   onChange={() =>
                     handleAssistanceChange(
                       "Coordinator",
-                      !formData.Assistance.Coordinator,
+                      !formData.Assistance.Coordinator
                     )
                   }
                 />{" "}
@@ -652,7 +716,7 @@ export default function ReportScreen({ reloadData }) {
                   onChange={() =>
                     handleAssistanceChange(
                       "Doctor",
-                      !formData.Assistance.Doctor,
+                      !formData.Assistance.Doctor
                     )
                   }
                 />{" "}
@@ -665,7 +729,7 @@ export default function ReportScreen({ reloadData }) {
                   onChange={() =>
                     handleAssistanceChange(
                       "Spoedzorg",
-                      !formData.Assistance.Spoedzorg,
+                      !formData.Assistance.Spoedzorg
                     )
                   }
                 />{" "}
@@ -678,22 +742,25 @@ export default function ReportScreen({ reloadData }) {
                   onChange={() =>
                     handleAssistanceChange(
                       "BasiszorgVPK",
-                      !formData.Assistance.BasiszorgVPK,
+                      !formData.Assistance.BasiszorgVPK
                     )
                   }
                 />{" "}
                 Basiszorg VPK
               </label>
+              <div className="priority-extra-assistance">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={formData.Ambulance}
+                    onChange={(e) =>
+                      handleChange("Ambulance", e.target.checked)
+                    }
+                  />
+                  Ambulance nodig?
+                </label>
+              </div>
             </div>
-          </div>
-
-          <div className="input-group priority-group">
-            <label>Ambulance nodig?</label>
-            <input
-              type="checkbox"
-              checked={formData.Ambulance}
-              onChange={(e) => handleChange("Ambulance", e.target.checked)}
-            />
           </div>
         </div>
       </div>
