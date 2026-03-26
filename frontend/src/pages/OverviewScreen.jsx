@@ -11,7 +11,6 @@ export default function OverviewScreen({ reports, units, reloadData }) {
 
   useEffect(() => {
     const handleKeyDown = (e) => {
-      // Alt + N om een nieuwe melding te maken
       if (e.altKey && e.key.toLowerCase() === "n") {
         e.preventDefault();
         if (document.activeElement instanceof HTMLElement) {
@@ -50,18 +49,8 @@ export default function OverviewScreen({ reports, units, reloadData }) {
       }
     };
 
-    // meteen bij openen van overview
+    // Alleen bij openen van de overview
     refresh();
-
-    const handleFocus = () => {
-      refresh();
-    };
-
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible") {
-        refresh();
-      }
-    };
 
     const handleStorage = (e) => {
       if (e.key === "shared_report_update") {
@@ -69,13 +58,9 @@ export default function OverviewScreen({ reports, units, reloadData }) {
       }
     };
 
-    window.addEventListener("focus", handleFocus);
-    document.addEventListener("visibilitychange", handleVisibilityChange);
     window.addEventListener("storage", handleStorage);
 
     return () => {
-      window.removeEventListener("focus", handleFocus);
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
       window.removeEventListener("storage", handleStorage);
     };
   }, [reloadData]);
@@ -109,7 +94,6 @@ export default function OverviewScreen({ reports, units, reloadData }) {
     (reports || []).forEach((wrapper) => {
       const report = wrapper.Report ?? wrapper;
 
-      // Filter by event
       if (
         selectedEvent &&
         selectedEvent.name &&
