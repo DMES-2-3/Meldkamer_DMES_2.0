@@ -465,7 +465,7 @@ export default function ReportScreen({ reloadData }) {
             </div>
 
             <div className="input-group">
-              <label>Roepnummer</label>
+              <label>Gemeld door</label>
               <input
                 type="text"
                 value={formData.ReportedBy}
