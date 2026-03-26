@@ -90,18 +90,6 @@ export default function OverviewScreen({ reports, units, reloadData }) {
       }
     });
 
-    const sortByTime = (a, b) => {
-      const reportA = a.Report ?? a;
-      const reportB = b.Report ?? b;
-      const timeA = (reportA.Time || "").toString();
-      const timeB = (reportB.Time || "").toString();
-      return timeA.localeCompare(timeB);
-    };
-
-    newR.sort(sortByTime);
-    inProgressR.sort(sortByTime);
-    closedR.sort(sortByTime);
-
     return {
       newReports: newR,
       inProgressReports: inProgressR,
@@ -211,6 +199,39 @@ export default function OverviewScreen({ reports, units, reloadData }) {
     reloadData();
   };
 
+  const handleDropReport = async (report, targetStatus) => {
+    if (!report?.id) return;
+
+    const originalWrapper = reports.find(
+      (r) => (r.Report ?? r).id === report.id,
+    );
+    if (!originalWrapper) return;
+    const originalReport = originalWrapper.Report ?? originalWrapper;
+
+    const currentStatus = originalReport.Status || "Open";
+    if (currentStatus === targetStatus) return;
+
+    // If closing the report, also set the team status to AVAILABLE
+    if (targetStatus === "Gesloten") {
+      const teamName = originalReport.Team;
+      if (teamName) {
+        const team = mappedUnits.find((u) => u.name === teamName);
+        if (team) {
+          const payload = { ...team, status: "AVAILABLE" };
+          delete payload.id;
+          delete payload.name;
+          delete payload.teamName;
+          await updateUnit(team.id, payload);
+        }
+      }
+    }
+
+    const updatedReport = { ...originalReport, Status: targetStatus };
+    await saveReport(updatedReport);
+    localStorage.setItem("shared_report_update", Date.now().toString());
+    reloadData();
+  };
+
   return (
     <div>
       <Section title="Nieuwe meldingen" color="#00A651">
@@ -222,6 +243,7 @@ export default function OverviewScreen({ reports, units, reloadData }) {
           onStatusUpdate={handleStatusUpdate}
           onTeamUpdate={handleTeamUpdate}
           onPriorityUpdate={handlePriorityUpdate}
+          onDropReport={(report) => handleDropReport(report, "Open")}
         />
       </Section>
 
@@ -234,6 +256,7 @@ export default function OverviewScreen({ reports, units, reloadData }) {
           onStatusUpdate={handleStatusUpdate}
           onTeamUpdate={handleTeamUpdate}
           onPriorityUpdate={handlePriorityUpdate}
+          onDropReport={(report) => handleDropReport(report, "In behandeling")}
         />
       </Section>
 
@@ -246,6 +269,7 @@ export default function OverviewScreen({ reports, units, reloadData }) {
           onStatusUpdate={handleStatusUpdate}
           onTeamUpdate={handleTeamUpdate}
           onPriorityUpdate={handlePriorityUpdate}
+          onDropReport={(report) => handleDropReport(report, "Gesloten")}
         />
       </Section>
     </div>
