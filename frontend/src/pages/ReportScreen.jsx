@@ -887,13 +887,13 @@ export default function ReportScreen({ reloadData }) {
             <div
               className="logbook-timeline"
               style={{
-                maxHeight: "200px",
+                maxHeight: "400px",
                 overflowY: "auto",
                 border: "1px solid #d1d5db",
                 borderRadius: "4px",
                 padding: "10px 12px",
                 background: "#f9fafb",
-                minHeight: "150px",
+                minHeight: "400px",
                 fontSize: "14px",
               }}
             >
