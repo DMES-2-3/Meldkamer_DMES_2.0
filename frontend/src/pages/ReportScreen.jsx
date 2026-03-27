@@ -58,23 +58,6 @@ export default function ReportScreen({ reloadData }) {
   const conditionRef = React.useRef(null);
   const notepadRef = React.useRef(null);
 
-  React.useEffect(() => {
-    const handleGlobalEnter = (e) => {
-      const activeTag = document.activeElement?.tagName;
-      if (
-        e.key === "Enter" &&
-        !e.ctrlKey &&
-        (!activeTag ||
-          !["INPUT", "TEXTAREA", "SELECT", "BUTTON", "A"].includes(activeTag))
-      ) {
-        e.preventDefault();
-        subjectRef.current?.focus();
-      }
-    };
-    window.addEventListener("keydown", handleGlobalEnter);
-    return () => window.removeEventListener("keydown", handleGlobalEnter);
-  }, []);
-
   const initialReport = location.state?.report;
   const fromGoogleMaps = location.state?.from === "google-maps";
   const fromPdfMap = location.state?.from === "pdf-map";
@@ -491,12 +474,6 @@ export default function ReportScreen({ reloadData }) {
                 type="text"
                 value={formData.ReportedBy}
                 onChange={(e) => handleChange("ReportedBy", e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    subjectRef.current?.focus();
-                  }
-                }}
               />
             </div>
           </div>
@@ -518,12 +495,6 @@ export default function ReportScreen({ reloadData }) {
               ref={subjectRef}
               value={formData.Subject}
               onChange={(e) => handleChange("Subject", e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  locationRef.current?.focus();
-                }
-              }}
             />
           </div>
 
@@ -554,12 +525,6 @@ export default function ReportScreen({ reloadData }) {
                   ? "Locked because it contains map coordinates"
                   : ""
               }
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  noteRef.current?.focus();
-                }
-              }}
             />
           </div>
 
@@ -569,15 +534,6 @@ export default function ReportScreen({ reloadData }) {
               ref={noteRef}
               value={formData.Note}
               onChange={(e) => handleChange("Note", e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  const teamInput =
-                    teamRef.current?.querySelector("input, select");
-                  if (teamInput) teamInput.focus();
-                  else teamRef.current?.focus();
-                }
-              }}
             />
           </div>
 
@@ -614,20 +570,11 @@ export default function ReportScreen({ reloadData }) {
           </div>
 
           <div className="input-group" ref={teamRef} tabIndex={-1}>
-            <div
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  genderRef.current?.focus();
-                }
-              }}
-            >
-              <TeamSelect
-                units={availableUnitsForEvent}
-                value={formData.Team}
-                onChange={(val) => handleChange("Team", val)}
-              />
-            </div>
+            <TeamSelect
+              units={availableUnitsForEvent}
+              value={formData.Team}
+              onChange={(val) => handleChange("Team", val)}
+            />
           </div>
 
           <div className="input-group">
@@ -680,12 +627,6 @@ export default function ReportScreen({ reloadData }) {
               ref={genderRef}
               value={formData.SITrap.Gender}
               onChange={(e) => handleSITrapChange("Gender", e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  eventRef.current?.focus();
-                }
-              }}
             >
               <option value="">Man / Vrouw</option>
               <option value="Man">Man</option>
@@ -700,12 +641,6 @@ export default function ReportScreen({ reloadData }) {
               ref={eventRef}
               value={formData.SITrap.Event}
               onChange={(e) => handleSITrapChange("Event", e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  conditionRef.current?.focus();
-                }
-              }}
             />
           </div>
 
@@ -715,12 +650,6 @@ export default function ReportScreen({ reloadData }) {
               ref={conditionRef}
               value={formData.SITrap.Condition}
               onChange={(e) => handleSITrapChange("Condition", e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  notepadRef.current?.focus();
-                }
-              }}
             />
           </div>
 
