@@ -114,8 +114,8 @@ foreach ($notifications as &$row) {
     $statusMap = [
         "REGISTERED" => "Open",
         "NEW" => "Open",
-        "NOTIFICATION" => "In behandeling",
-        "SIGNED_OUT" => "Gesloten",
+        "PENDING" => "In behandeling",
+        "CLOSED" => "Gesloten",
     ];
     $row["status"] = $statusMap[$row["status"]] ?? $row["status"];
 
@@ -126,9 +126,9 @@ foreach ($notifications as &$row) {
 
     if (
         !empty($row["mapLocation"]) &&
-        preg_match('/^-?\d+(\.\d+)?,-?\d+(\.\d+)?$/', $row["mapLocation"])
+        preg_match('/^-?\d+(\.\d+)?,\s*-?\d+(\.\d+)?$/', $row["mapLocation"])
     ) {
-        $row["mapLocation"] = "";
+        $row["mapLocation"] = "Coordinaten";
     }
 
     $avpu = [];

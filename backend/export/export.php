@@ -110,12 +110,12 @@ foreach ($notifications as &$row) {
         $row["time"] = date("d-m-Y H:i:s", strtotime($row["time"]));
     }
 
-    // STATUS vertalen (database: REGISTERED/NEW, NOTIFICATION, SIGNED_OUT)
+    // STATUS vertalen (database: REGISTERED/NEW, PENDING, CLOSED)
     $statusMap = [
         "REGISTERED" => "Open",
         "NEW" => "Open",
-        "NOTIFICATION" => "In behandeling",
-        "SIGNED_OUT" => "Gesloten",
+        "PENDING" => "In behandeling",
+        "CLOSED" => "Gesloten",
     ];
     $row["status"] = $statusMap[$row["status"]] ?? $row["status"];
 
@@ -133,9 +133,9 @@ foreach ($notifications as &$row) {
     // Locatie filteren indien coordinaten
     if (
         !empty($row["mapLocation"]) &&
-        preg_match('/^-?\d+(\.\d+)?,-?\d+(\.\d+)?$/', $row["mapLocation"])
+        preg_match('/^-?\d+(\.\d+)?,\s*-?\d+(\.\d+)?$/', $row["mapLocation"])
     ) {
-        $row["mapLocation"] = "";
+        $row["mapLocation"] = "Coordinaten";
     }
 
     // AVPU samenvoegen
