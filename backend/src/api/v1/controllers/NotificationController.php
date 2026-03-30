@@ -48,7 +48,12 @@ class NotificationController extends BaseController implements IController
     private function handleGet($id = null)
     {
         if ($id === null) {
-            $response = $this->repo->findAll();
+            $eventId = $_GET["eventId"] ?? null;
+            if ($eventId) {
+                $response = $this->repo->findBy(["event" => $eventId]);
+            } else {
+                $response = $this->repo->findAll();
+            }
             $this->sendResponse(array_map(fn($r) => $r->toArray(), $response));
         } else {
             $response = $this->repo->findOneBy(["notificationId" => $id]);

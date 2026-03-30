@@ -121,7 +121,16 @@ export default function ReportScreen({ reloadData }) {
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
-        const unitsData = await getUnits();
+        const stored = localStorage.getItem("selected_event");
+        let eventId = null;
+        if (stored) {
+          try {
+            const parsed = JSON.parse(stored);
+            eventId = parsed.id;
+          } catch (e) {}
+        }
+
+        const unitsData = await getUnits(eventId);
         const mappedUnits = (unitsData || []).map((u) => ({
           ...u,
           id: u.aidTeamId || u.id,
@@ -129,7 +138,7 @@ export default function ReportScreen({ reloadData }) {
         }));
         setUnits(mappedUnits);
 
-        const workersData = await getAidWorkers();
+        const workersData = await getAidWorkers({ eventId });
         setAidWorkers(workersData);
       } catch (error) {
         console.error("Failed to fetch initial data:", error);

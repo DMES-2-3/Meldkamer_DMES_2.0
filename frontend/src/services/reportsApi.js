@@ -182,8 +182,13 @@ function mapFormToReportPayload(form) {
 
 // ---- Notifications (Reports) ---------------------------------------------
 
-export async function getReports() {
-  const res = await fetch(apiUrl("src/api/v1/notification"), {
+export async function getReports(eventId = null) {
+  let url = "src/api/v1/notification";
+  if (eventId) {
+    url += `?eventId=${encodeURIComponent(eventId)}`;
+  }
+
+  const res = await fetch(apiUrl(url), {
     method: "GET",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
@@ -258,8 +263,8 @@ export async function getAidWorkers({ eventId } = {}) {
   return data;
 }
 
-export async function getUnits() {
-  const data = await getAidWorkers();
+export async function getUnits(eventId = null) {
+  const data = await getAidWorkers({ eventId });
 
   const teamNames = new Set(
     data.map((worker) => worker.teamName).filter(Boolean),

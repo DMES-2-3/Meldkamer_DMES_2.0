@@ -28,7 +28,7 @@ export default function ReportsTableContainer({
     const fetchReportsForEvent = async () => {
       setLoading(true);
       try {
-        const fetchedReports = await getReports();
+        const fetchedReports = await getReports(selectedEvent?.id);
         const unwrappedReports = fetchedReports.map((r) => r.Report ?? r);
 
         if (selectedEvent && selectedEvent.name) {
