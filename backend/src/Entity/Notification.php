@@ -2,6 +2,8 @@
 
 namespace App\Entity;
 
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Doctrine\ORM\Mapping\Entity;
 use Doctrine\ORM\Mapping\Column;
@@ -108,6 +110,15 @@ class Notification
     #[Column(type: "text", nullable: true)]
     private ?string $notepad;
 
+    #[
+        ORM\OneToMany(
+            mappedBy: "notification",
+            targetEntity: Logbook::class,
+            cascade: ["persist", "remove"],
+        ),
+    ]
+    private Collection $logbooks;
+
     public function __construct()
     {
         $this->reportedBy = null;
@@ -119,6 +130,7 @@ class Notification
         $this->description = null;
         $this->notepad = null;
         $this->gender = null;
+        $this->logbooks = new ArrayCollection();
     }
 
     public function getNotificationId(): int
@@ -281,6 +293,27 @@ class Notification
         $this->notepad = $notepad;
     }
 
+    public function getLogbooks(): Collection
+    {
+        return $this->logbooks;
+    }
+
+    public function addLogbook(Logbook $logbook): self
+    {
+        if (!$this->logbooks->contains($logbook)) {
+            $this->logbooks[] = $logbook;
+            $logbook->setNotification($this);
+        }
+
+        return $this;
+    }
+
+    public function removeLogbook(Logbook $logbook): self
+    {
+        $this->logbooks->removeElement($logbook);
+        return $this;
+    }
+
     public function toArray(): array
     {
         return [
@@ -316,6 +349,10 @@ class Notification
                     ?->getAidTeam()
                     ?->getAidTeamName(),
             ],
+            "Logbook" => array_map(
+                fn($logbook) => $logbook->toArray(),
+                $this->getLogbooks()->toArray(),
+            ),
         ];
     }
 }
