@@ -8,10 +8,23 @@ export default function MapPopoutScreen({
   setReports,
 }) {
   const [selectedEvent, setSelectedEvent] = useState(null);
-  const [mapColorMode, setMapColorMode] = useState("priority");
-  const [activeLegendFilters, setActiveLegendFilters] = useState({
-    status: [],
-    priority: [],
+  const [mapColorMode, setMapColorMode] = useState(() => {
+    return localStorage.getItem("dashboard_mapColorMode") || "priority";
+  });
+  const [activeLegendFilters, setActiveLegendFilters] = useState(() => {
+    const saved = localStorage.getItem("dashboard_activeLegendFilters");
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error("Failed to parse activeLegendFilters", e);
+      }
+    }
+    return {
+      status: [],
+      priority: [],
+      teams: [],
+    };
   });
 
   useEffect(() => {
@@ -33,6 +46,20 @@ export default function MapPopoutScreen({
     const onStorage = (e) => {
       if (e.key === "selected_event") {
         loadSelectedEvent();
+      }
+      if (e.key === "dashboard_mapColorMode") {
+        setMapColorMode(e.newValue || "priority");
+      }
+      if (e.key === "dashboard_activeLegendFilters") {
+        if (e.newValue) {
+          try {
+            setActiveLegendFilters(JSON.parse(e.newValue));
+          } catch (err) {
+            console.error("Failed to parse activeLegendFilters from storage event", err);
+          }
+        } else {
+          setActiveLegendFilters({ status: [], priority: [] });
+        }
       }
     };
 

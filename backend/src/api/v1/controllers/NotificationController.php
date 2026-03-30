@@ -48,7 +48,12 @@ class NotificationController extends BaseController implements IController
     private function handleGet($id = null)
     {
         if ($id === null) {
-            $response = $this->repo->findAll();
+            $eventId = $_GET["eventId"] ?? null;
+            if ($eventId) {
+                $response = $this->repo->findBy(["event" => $eventId]);
+            } else {
+                $response = $this->repo->findAll();
+            }
             $this->sendResponse(array_map(fn($r) => $r->toArray(), $response));
         } else {
             $response = $this->repo->findOneBy(["notificationId" => $id]);
@@ -103,7 +108,10 @@ class NotificationController extends BaseController implements IController
             if ($team) {
                 $notification->setAidTeam($team);
                 $statusVal = $input["Status"] ?? null;
-                $newStatus = ($statusVal === \App\Entity\NotificationStatus::CLOSED->value) ? \App\Entity\Status::AVAILABLE : \App\Entity\Status::NOTIFICATION;
+                $newStatus =
+                    $statusVal === \App\Entity\NotificationStatus::CLOSED->value
+                        ? \App\Entity\Status::AVAILABLE
+                        : \App\Entity\Status::NOTIFICATION;
                 $team->setStatus($newStatus);
                 $this->entityManager->persist($team);
             }
@@ -127,7 +135,10 @@ class NotificationController extends BaseController implements IController
             if (!empty($input["Time"])) {
                 $dt = DateTime::createFromFormat("H:i", $input["Time"]);
                 if ($dt === false) {
-                    $this->sendError("Invalid time format, expected HH:mm", 400);
+                    $this->sendError(
+                        "Invalid time format, expected HH:mm",
+                        400,
+                    );
                     return;
                 }
                 $notification->setTime($dt);
@@ -176,13 +187,36 @@ class NotificationController extends BaseController implements IController
                     if ($assistanceTeam) {
                         $Assistance->setAidTeam($assistanceTeam);
                         $statusVal = $input["Status"] ?? null;
-                        $newStatus = ($statusVal === \App\Entity\NotificationStatus::CLOSED->value) ? \App\Entity\Status::AVAILABLE : \App\Entity\Status::NOTIFICATION;
+                        $newStatus =
+                            $statusVal ===
+                            \App\Entity\NotificationStatus::CLOSED->value
+                                ? \App\Entity\Status::AVAILABLE
+                                : \App\Entity\Status::NOTIFICATION;
                         $assistanceTeam->setStatus($newStatus);
                         $this->entityManager->persist($assistanceTeam);
                     }
                 }
 
                 $notification->setAssistance($Assistance);
+            }
+
+            // Setup Logbook
+            if (isset($input["Logbook"]) && is_array($input["Logbook"])) {
+                foreach ($input["Logbook"] as $logbookData) {
+                    $logbook = new \App\Entity\Logbook();
+                    $logbook->setNotification($notification);
+                    $logbook->setEvent($logbookData["event"] ?? "");
+
+                    $timeStr = $logbookData["time"] ?? "";
+                    $time = \DateTime::createFromFormat("H:i", $timeStr);
+                    if (!$time) {
+                        $time = new \DateTime();
+                    }
+
+                    $logbook->setTime($time);
+                    $this->entityManager->persist($logbook);
+                    $notification->addLogbook($logbook);
+                }
             }
 
             // Persist all entities
@@ -192,9 +226,16 @@ class NotificationController extends BaseController implements IController
             $this->sendResponse($notification->toArray());
         } catch (ValueError | TypeError $e) {
             $this->sendError(
-                "Invalid value provided: " . $e->getMessage(),
+                "Ongeldige waarde ingevoerd: " . $e->getMessage(),
                 422,
             );
+        } catch (\Exception $e) {
+            $message = $e->getMessage();
+            if (strpos($message, 'Data too long') !== false) {
+                $this->sendError("Invoer te groot voor één van de velden.", 400);
+            } else {
+                $this->sendError("Er is een interne fout opgetreden: " . $message, 500);
+            }
         }
     }
 
@@ -229,9 +270,16 @@ class NotificationController extends BaseController implements IController
             $this->sendResponse($notification->toArray());
         } catch (ValueError | TypeError $e) {
             $this->sendError(
-                "Invalid value provided: " . $e->getMessage(),
+                "Ongeldige waarde ingevoerd: " . $e->getMessage(),
                 422,
             );
+        } catch (\Exception $e) {
+            $message = $e->getMessage();
+            if (strpos($message, 'Data too long') !== false) {
+                $this->sendError("Invoer te groot voor één van de velden.", 400);
+            } else {
+                $this->sendError("Er is een interne fout opgetreden: " . $message, 500);
+            }
         }
     }
 
@@ -314,8 +362,15 @@ class NotificationController extends BaseController implements IController
                     return;
                 }
                 $notification->setAidTeam($team);
-                $statusVal = $input["Status"] ?? ($notification->getStatus() ? $notification->getStatus()->value : null);
-                $newStatus = ($statusVal === \App\Entity\NotificationStatus::CLOSED->value) ? \App\Entity\Status::AVAILABLE : \App\Entity\Status::NOTIFICATION;
+                $statusVal =
+                    $input["Status"] ??
+                    ($notification->getStatus()
+                        ? $notification->getStatus()->value
+                        : null);
+                $newStatus =
+                    $statusVal === \App\Entity\NotificationStatus::CLOSED->value
+                        ? \App\Entity\Status::AVAILABLE
+                        : \App\Entity\Status::NOTIFICATION;
                 $team->setStatus($newStatus);
                 $this->entityManager->persist($team);
             }
@@ -416,12 +471,44 @@ class NotificationController extends BaseController implements IController
                         ->findOneBy(["aidTeamName" => $assistanceData["Team"]]);
                     if ($assistanceTeam) {
                         $assistance->setAidTeam($assistanceTeam);
-                        $statusVal = $input["Status"] ?? ($notification->getStatus() ? $notification->getStatus()->value : null);
-                        $newStatus = ($statusVal === \App\Entity\NotificationStatus::CLOSED->value) ? \App\Entity\Status::AVAILABLE : \App\Entity\Status::NOTIFICATION;
+                        $statusVal =
+                            $input["Status"] ??
+                            ($notification->getStatus()
+                                ? $notification->getStatus()->value
+                                : null);
+                        $newStatus =
+                            $statusVal ===
+                            \App\Entity\NotificationStatus::CLOSED->value
+                                ? \App\Entity\Status::AVAILABLE
+                                : \App\Entity\Status::NOTIFICATION;
                         $assistanceTeam->setStatus($newStatus);
                         $this->entityManager->persist($assistanceTeam);
                     }
                 }
+            }
+        }
+
+        if (isset($input["Logbook"]) && is_array($input["Logbook"])) {
+            $existingLogbooks = $notification->getLogbooks();
+            foreach ($existingLogbooks as $logbook) {
+                $this->entityManager->remove($logbook);
+            }
+            $notification->getLogbooks()->clear();
+
+            foreach ($input["Logbook"] as $logbookData) {
+                $logbook = new \App\Entity\Logbook();
+                $logbook->setNotification($notification);
+                $logbook->setEvent($logbookData["event"] ?? "");
+
+                $timeStr = $logbookData["time"] ?? "";
+                $time = \DateTime::createFromFormat("H:i", $timeStr);
+                if (!$time) {
+                    $time = new \DateTime();
+                }
+
+                $logbook->setTime($time);
+                $this->entityManager->persist($logbook);
+                $notification->addLogbook($logbook);
             }
         }
     }
@@ -440,14 +527,18 @@ class NotificationController extends BaseController implements IController
 
         $team = $notification->getAidTeam();
         if ($team) {
-            $activeForTeam = $this->repo->createQueryBuilder('n')
-                ->leftJoin('n.assistance', 'a')
-                ->where('(n.AidTeam = :team OR a.aidTeam = :team)')
-                ->andWhere('n.status != :closed')
-                ->andWhere('n.notificationId != :id')
-                ->setParameter('team', $team)
-                ->setParameter('closed', \App\Entity\NotificationStatus::CLOSED->value)
-                ->setParameter('id', $notification->getNotificationId())
+            $activeForTeam = $this->repo
+                ->createQueryBuilder("n")
+                ->leftJoin("n.assistance", "a")
+                ->where("(n.AidTeam = :team OR a.aidTeam = :team)")
+                ->andWhere("n.status != :closed")
+                ->andWhere("n.notificationId != :id")
+                ->setParameter("team", $team)
+                ->setParameter(
+                    "closed",
+                    \App\Entity\NotificationStatus::CLOSED->value,
+                )
+                ->setParameter("id", $notification->getNotificationId())
                 ->getQuery()
                 ->getResult();
 
@@ -460,14 +551,18 @@ class NotificationController extends BaseController implements IController
         $assistance = $notification->getAssistance();
         if ($assistance && $assistance->getAidTeam()) {
             $assistanceTeam = $assistance->getAidTeam();
-            $activeForAssistanceTeam = $this->repo->createQueryBuilder('n')
-                ->leftJoin('n.assistance', 'a')
-                ->where('(n.AidTeam = :team OR a.aidTeam = :team)')
-                ->andWhere('n.status != :closed')
-                ->andWhere('n.notificationId != :id')
-                ->setParameter('team', $assistanceTeam)
-                ->setParameter('closed', \App\Entity\NotificationStatus::CLOSED->value)
-                ->setParameter('id', $notification->getNotificationId())
+            $activeForAssistanceTeam = $this->repo
+                ->createQueryBuilder("n")
+                ->leftJoin("n.assistance", "a")
+                ->where("(n.AidTeam = :team OR a.aidTeam = :team)")
+                ->andWhere("n.status != :closed")
+                ->andWhere("n.notificationId != :id")
+                ->setParameter("team", $assistanceTeam)
+                ->setParameter(
+                    "closed",
+                    \App\Entity\NotificationStatus::CLOSED->value,
+                )
+                ->setParameter("id", $notification->getNotificationId())
                 ->getQuery()
                 ->getResult();
 

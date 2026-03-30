@@ -80,8 +80,17 @@ function App() {
 
   const reloadData = useCallback(async () => {
     try {
-      const reportsData = await getReports();
-      const unitsData = await getUnits();
+      const stored = localStorage.getItem("selected_event");
+      let eventId = null;
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          eventId = parsed.id;
+        } catch (err) {}
+      }
+
+      const reportsData = await getReports(eventId);
+      const unitsData = await getUnits(eventId);
       setReports(reportsData || []);
       const finalUnits = Array.isArray(unitsData?.data) ? unitsData.data : Array.isArray(unitsData) ? unitsData : [];
       setUnits(finalUnits);

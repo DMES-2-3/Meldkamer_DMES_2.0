@@ -7,14 +7,14 @@ import { API_BASE_URL } from "../config/api";
 
 const API_URL = `${API_BASE_URL}/src/api/v1`;
 
-const getStatusColor = (status) => {
+export const getStatusColor = (status) => {
   const statusConfig = {
     REGISTERED: "#10B981",
     AVAILABLE: "#10B981",
     NOTIFICATION: "#F59E0B",
     WAIT: "#3B82F6",
-    SHORT_BREAK: "#3B82F6",
-    LONG_BREAK: "#3B82F6",
+    SHORT_BREAK: "#6B7280",
+    LONG_BREAK: "#6B7280",
     SIGNED_OUT: "#6B7280",
     ACTIVE: "#10B981",
     BUSY: "#F59E0B",

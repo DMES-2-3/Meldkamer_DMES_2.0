@@ -27,7 +27,7 @@ class AidWorker
     #[Column(type: "string", length: 255)]
     private string $lastname;
 
-    #[Column(type: "string", length: 7)]
+    #[Column(type: "string", length: 40)]
     private string $callSign;
 
     #[Column(enumType: Status::class)]
