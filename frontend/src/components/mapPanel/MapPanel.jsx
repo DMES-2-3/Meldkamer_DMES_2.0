@@ -12,6 +12,7 @@ import LinkReportModal from "./LinkReportModal";
 import LinkTeamModal from "./LinkTeamModal";
 import MapModal from "./MapModal";
 import MarkerModal from "./MarkerModal";
+import ActiveMarkersModal from "./ActiveMarkersModal";
 import Marker from "./Marker";
 import TeamMarker from "./TeamMarker";
 import TeamModal from "../TeamModal";
@@ -58,6 +59,7 @@ export default function MapPanel({
 
   const [showMapModal, setShowMapModal] = useState(false);
   const [showMarkerModal, setShowMarkerModal] = useState(false);
+  const [showActiveMarkersModal, setShowActiveMarkersModal] = useState(false);
   const [editingMarker, setEditingMarker] = useState(null);
   const [showTeamMarkerModal, setShowTeamMarkerModal] = useState(false);
   const [editingTeamMarker, setEditingTeamMarker] = useState(null);
@@ -486,6 +488,8 @@ export default function MapPanel({
   };
 
   const openMarkerModal = (marker) => {
+    if (isPopout) return;
+
     if (marker.teamId) {
       setEditingTeamMarker(marker);
       setShowTeamMarkerModal(true);
@@ -756,13 +760,8 @@ export default function MapPanel({
               >
                 {isAddingTeamMarker ? "Annuleren" : "Voeg Team Marker toe"}
               </button>
-              <button
-                onClick={() => {
-                  setEditingMarker(null);
-                  setShowMarkerModal(true);
-                }}
-              >
-                Markers ({googleMapMarkers.length})
+              <button onClick={() => setShowActiveMarkersModal(true)}>
+                Markers ({googleMapMarkers.length + markers.filter(m => m.isGoogle && m.teamId).length})
               </button>
               <button onClick={openMapPopout}>Pop-out</button>
             </div>
@@ -878,12 +877,7 @@ export default function MapPanel({
                 >
                   {isAddingTeamMarker ? "Annuleren" : "Voeg Team Marker toe"}
                 </button>
-                <button
-                  onClick={() => {
-                    setEditingMarker(null);
-                    setShowMarkerModal(true);
-                  }}
-                >
+                <button onClick={() => setShowActiveMarkersModal(true)}>
                   Markers ({currentMarkers.length})
                 </button>
                 <button onClick={() => setShowMapModal(true)}>Maps</button>
@@ -959,25 +953,22 @@ export default function MapPanel({
         />
       )}
 
+      <ActiveMarkersModal
+        show={showActiveMarkersModal}
+        onClose={() => setShowActiveMarkersModal(false)}
+        markers={mapType === "GoogleMaps" ? [
+          ...googleMapMarkers.map(m => ({ id: `gmap-${m.id}`, label: m.title, reportId: m.id })),
+          ...markers.filter(m => m.isGoogle && m.teamId)
+        ] : currentMarkers}
+        localReports={reports}
+        onMarkerClick={openMarkerModal}
+      />
+
       <MarkerModal
         show={showMarkerModal}
         onClose={() => setShowMarkerModal(false)}
         editingMarker={editingMarker}
-        markers={mapType === "GoogleMaps" ? googleMapMarkers.map(m => ({ id: `gmap-${m.id}`, label: m.title, reportId: m.id })) : currentMarkers}
         localReports={reports}
-        selectedEventId={selectedEventId}
-        onSave={(updatedMarker) => {
-          if (mapType === "GoogleMaps") {
-            alert("Bewerken van Google Maps markers via deze lijst is nog niet ondersteund. Wijzig de melding direct.");
-            setShowMarkerModal(false);
-          } else {
-            setMarkers((prev) =>
-              prev.map((m) => (m.id === updatedMarker.id ? updatedMarker : m)),
-            );
-            setEditingMarker(null);
-            setShowMarkerModal(false);
-          }
-        }}
         onDelete={(markerId) => {
           if (mapType === "GoogleMaps") {
             const realId = markerId.toString().replace("gmap-", "");

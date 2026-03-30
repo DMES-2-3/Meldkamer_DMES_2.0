@@ -5,24 +5,18 @@ export default function MarkerModal({
   show,
   onClose,
   editingMarker,
-  markers = [],
   localReports = [],
-  selectedEventId,
-  onSave,
   onDelete,
-  onEditMarker,
 }) {
   const navigate = useNavigate();
 
-  if (!show) return null;
+  if (!show || !editingMarker) return null;
 
   // Look up full details for currently linked report
-  const linkedReportId = editingMarker?.reportId || "";
-  const linkedReportWrapper = editingMarker
-    ? localReports.find(
-        (r) => (r.Report?.id || r?.id)?.toString() === linkedReportId.toString()
-      )
-    : null;
+  const linkedReportId = editingMarker.reportId || "";
+  const linkedReportWrapper = localReports.find(
+    (r) => (r.Report?.id || r?.id)?.toString() === linkedReportId.toString()
+  );
   const linkedReport = linkedReportWrapper?.Report || linkedReportWrapper;
 
   const formatAVPU = (avpu) => {
@@ -46,50 +40,16 @@ export default function MarkerModal({
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h3>{editingMarker ? "Melding Details" : "Markers"}</h3>
+          <h3>Melding Details</h3>
           <button className="modal-close" onClick={onClose}>
             &times;
           </button>
         </div>
 
-        {!editingMarker && (
-          <div className="marker-list">
-            {markers.length === 0 && (
-              <p style={{ fontStyle: "italic", color: "#777" }}>
-                Geen markers op de kaart
-              </p>
-            )}
-            {markers.map((marker) => {
-              const reportWrapper = marker.reportId
-                ? localReports.find(
-                    (r) => (r.Report?.id || r?.id)?.toString() === marker.reportId.toString()
-                  )
-                : null;
-              const report = reportWrapper?.Report || reportWrapper;
-
-              return (
-                <div
-                  key={marker.id}
-                  className="marker-list-item"
-                  onClick={() => onEditMarker(marker)}
-                >
-                  <strong>{marker.label}</strong>
-                  {report && (
-                    <span className="ellipsis" style={{ marginLeft: 8, fontSize: 12, opacity: 0.7 }}>
-                      ({report.Subject || report.subject || `Melding ${marker.reportId}`})
-                    </span>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {editingMarker && (
-          <>
-            <div className="marker-edit-form">
-              {linkedReport ? (
-                <div className="report-details" style={{ marginTop: 12 }}>
+        <>
+          <div className="marker-edit-form">
+            {linkedReport ? (
+              <div className="report-details" style={{ marginTop: 12 }}>
                   <div style={{ marginBottom: "8px" }}>
                     <b>Tijd:</b> {linkedReport.time || linkedReport.Time || "-"}
                   </div>
@@ -121,36 +81,35 @@ export default function MarkerModal({
               ) : (
                 <div style={{ marginTop: 12 }}>
                   <p>Geen gekoppelde melding gevonden voor deze marker.</p>
-                </div>
-              )}
-            </div>
+              </div>
+            )}
+          </div>
 
-            <div className="marker-form-actions" style={{ display: "flex", gap: "10px", marginTop: "20px" }}>
-              <button
-                className="btn-save"
-                onClick={() => {
-                  if (linkedReportWrapper) {
-                    navigate("/melding", {
-                      state: {
-                        report: linkedReportWrapper,
-                        from: "map",
-                      },
-                    });
-                  }
-                }}
-                disabled={!linkedReportWrapper}
-              >
-                Bewerken
-              </button>
-              <button
-                className="btn-delete"
-                onClick={() => onDelete(editingMarker.id)}
-              >
-                Verwijderen
-              </button>
-            </div>
-          </>
-        )}
+          <div className="marker-form-actions" style={{ display: "flex", gap: "10px", marginTop: "20px" }}>
+            <button
+              className="btn-save"
+              onClick={() => {
+                if (linkedReportWrapper) {
+                  navigate("/melding", {
+                    state: {
+                      report: linkedReportWrapper,
+                      from: "map",
+                    },
+                  });
+                }
+              }}
+              disabled={!linkedReportWrapper}
+            >
+              Bewerken
+            </button>
+            <button
+              className="btn-delete"
+              onClick={() => onDelete(editingMarker.id)}
+            >
+              Verwijderen
+            </button>
+          </div>
+        </>
       </div>
     </div>
   );
