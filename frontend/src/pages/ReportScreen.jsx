@@ -68,6 +68,10 @@ export default function ReportScreen({ reloadData }) {
   const [aidWorkers, setAidWorkers] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [formData, setFormData] = useState(createDefaultFormState);
+
+  const [reporterType, setReporterType] = useState("");
+  const [customReporter, setCustomReporter] = useState("");
+
   const [isSaving, setIsSaving] = useState(false);
   const [logbookInput, setLogbookInput] = useState("");
 
@@ -193,6 +197,24 @@ export default function ReportScreen({ reloadData }) {
     }
 
     setFormData(base);
+
+    const reporter = base.ReportedBy || "";
+
+    const teamNames = unitsForEvent.map(u => u.name);
+
+    if (teamNames.includes(reporter)) {
+      setReporterType(reporter);
+    }
+    else if (reporter === "Beveiliging") {
+      setReporterType("Beveiliging");
+    }
+    else if (reporter === "Organisatie") {
+      setReporterType("Organisatie");
+    }
+    else if (reporter) {
+      setReporterType("Anders");
+      setCustomReporter(reporter);
+    }
   }, [initialReport, selectedEvent, units]);
 
   const isExistingReport = !!(
@@ -469,13 +491,52 @@ export default function ReportScreen({ reloadData }) {
             </div>
 
             <div className="input-group">
-              <label>Roepnummer</label>
-              <input
-                type="text"
-                value={formData.ReportedBy}
-                onChange={(e) => handleChange("ReportedBy", e.target.value)}
-              />
+              <label>Melder</label>
+              <select
+                className="reporter-dropdown"
+                value={reporterType}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setReporterType(value);
+
+                  if (value === "Anders") {
+                    handleChange("ReportedBy", customReporter);
+                  }
+                  else {
+                    setCustomReporter("");
+                    handleChange("ReportedBy", value);
+                  }
+                }}
+              >
+                <option value="">Selecteer melder</option>
+
+                {unitsForEvent.map((team) => (
+                  <option key={team.id} value={team.name}>
+                    {team.name}
+                  </option>
+                ))}
+
+                <option value="Beveiliging">Beveiliging</option>
+                <option value="Organisatie">Organisatie</option>
+                <option value="Anders">Anders</option>
+              </select>
             </div>
+
+            {reporterType === "Anders" && (
+              <div className="input-group">
+                <label>Specificatie melder</label>
+                <input
+                  type="text"
+                  className="custom-reporter-input"
+                  placeholder="Bijv. roepnummer"
+                  value={customReporter}
+                  onChange={(e) => {
+                    setCustomReporter(e.target.value);
+                    handleChange("ReportedBy", e.target.value);
+                  }}
+                />
+              </div>
+            )}
           </div>
 
           <div className="input-group">
