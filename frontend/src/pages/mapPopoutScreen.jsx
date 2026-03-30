@@ -12,6 +12,7 @@ export default function MapPopoutScreen({
   const [activeLegendFilters, setActiveLegendFilters] = useState({
     status: [],
     priority: [],
+    teams: [],
   });
 
   useEffect(() => {

@@ -27,6 +27,7 @@ export default function Dashboard({ reports, reloadData, setReports }) {
   const [activeLegendFilters, setActiveLegendFilters] = useState({
     status: [],
     priority: [],
+    teams: [],
   });
 
   const [showKladblok, setShowKladblok] = useState(false);

@@ -75,12 +75,12 @@ export default function GoogleMapsPanel({
         const locationStr = r.location || r.Location;
         console.log("Report location:", locationStr, "for report:", r.id); // Debug log
         const coords = parseCoordinates(locationStr);
-        
+
         if (!coords) {
           console.warn("Could not parse coordinates for report:", r.id, locationStr);
           return null;
         }
-        
+
         return {
           id: r.id,
           position: coords,
@@ -115,56 +115,20 @@ export default function GoogleMapsPanel({
     }
   }, [filteredMarkers, onMarkersUpdate]);
 
-  // if (loadError) {
-  //   return (
-  //     <div className="map-error">
-  //       <h3>Google Maps kon niet geladen worden</h3>
-  //       <p>
-  //         {loadError.message?.includes("InvalidKeyMapError") ||
-  //         loadError.message?.includes("ApiNotActivatedMapError")
-  //           ? "Google Maps API key is niet geldig of de API is niet geactiveerd."
-  //           : "Er is een fout opgetreden bij het laden van Google Maps."}
-  //       </p>
-  //       <p>
-  //         Controleer of je Google Maps API key correct is ingesteld in het .env
-  //         bestand en of de Maps JavaScript API en Geocoding API zijn
-  //         geactiveerd.
-  //       </p>
-  //     </div>
-  //   );
-  // }
+  const filteredTeamMarkers = React.useMemo(() => {
+    return teamMarkers.filter((m) => {
+      if (!activeLegendFilters?.teams?.length) return true;
+      const team = teams.find(t => String(t.id) === String(m.teamId));
+      const teamStatus = team?.status || "UNAVAILABLE";
 
-  // if (
-  //   !process.env.REACT_APP_GOOGLE_MAPS_API_KEY ||
-  //   process.env.REACT_APP_GOOGLE_MAPS_API_KEY ===
-  //     "placeholder_key_replace_with_actual_key"
-  // ) {
-  //   return (
-  //     <div className="map-error">
-  //       <h3>Google Maps API key ontbreekt</h3>
-  //       <p>Om Google Maps te gebruiken, moet je een API key instellen:</p>
-  //       <ol>
-  //         <li>
-  //           Ga naar{" "}
-  //           <a
-  //             href="https://console.cloud.google.com/"
-  //             target="_blank"
-  //             rel="noopener noreferrer"
-  //           >
-  //             Google Cloud Console
-  //           </a>
-  //         </li>
-  //         <li>Activeer de Maps JavaScript API en Geocoding API</li>
-  //         <li>Maak een API key aan</li>
-  //         <li>
-  //           Voeg deze toe aan het .env bestand:
-  //           REACT_APP_GOOGLE_MAPS_API_KEY=je_api_key
-  //         </li>
-  //         <li>Herstart de ontwikkelserver</li>
-  //       </ol>
-  //     </div>
-  //   );
-  // }
+      let filterCategory = "unavailable";
+      if (["AVAILABLE", "ACTIVE", "REGISTERED"].includes(teamStatus)) filterCategory = "available";
+      else if (["NOTIFICATION", "BUSY"].includes(teamStatus)) filterCategory = "busy";
+      else if (["WAIT"].includes(teamStatus)) filterCategory = "wait";
+
+      return activeLegendFilters.teams.includes(filterCategory);
+    });
+  }, [teamMarkers, teams, activeLegendFilters]);
 
   if (!isLoaded)
     return <div className="map-loading">Google Maps wordt geladen…</div>;
@@ -202,7 +166,7 @@ export default function GoogleMapsPanel({
               ? m.title
               : m.title.slice(0, 25).trim() + "..."
             : "";
-            
+
           return (
             <Marker
               key={m.id}
@@ -236,10 +200,10 @@ export default function GoogleMapsPanel({
             />
           );
         })}
-        {teamMarkers.map((m) => {
+        {filteredTeamMarkers.map((m) => {
           const team = teams.find(t => String(t.id) === String(m.teamId));
           let color = "#6B7280"; // default gray
-          
+
           if (team && team.status) {
             const statusConfig = {
               REGISTERED: "#10B981",
@@ -256,7 +220,7 @@ export default function GoogleMapsPanel({
             };
             color = statusConfig[team.status] || "#6B7280";
           }
-          
+
           const icon = {
             url:
               "data:image/svg+xml;charset=UTF-8," +
@@ -271,10 +235,10 @@ export default function GoogleMapsPanel({
             anchor: window.google ? new window.google.maps.Point(12, 32) : null,
             labelOrigin: window.google ? new window.google.maps.Point(12, 36) : null,
           };
-          
+
           const title = team?.name || m.label || "Team Marker";
           const shortLabel = title.length <= 25 ? title : title.slice(0, 25).trim() + "...";
-          
+
           return (
             <Marker
               key={m.id}

@@ -37,10 +37,30 @@ export default function Legend({ colorMode, setColorMode, activeLegendFilters, s
     <div className="legend">
       <h3>Teams & Hulpverleners – Status</h3>
       <div className="legend-grid">
-        <LegendItem color="#10B981" label="Beschikbaar" />
-        <LegendItem color="#F59E0B" label="Bezet" />
-        <LegendItem color="#3B82F6" label="Wacht" />
-        <LegendItem color="#6B7280" label="Niet beschikbaar" />
+        <LegendItem
+          color="#10B981"
+          label="Beschikbaar"
+          onClick={() => toggleFilter("teams", "available")}
+          active={activeLegendFilters.teams?.includes("available")}
+        />
+        <LegendItem
+          color="#F59E0B"
+          label="Bezet"
+          onClick={() => toggleFilter("teams", "busy")}
+          active={activeLegendFilters.teams?.includes("busy")}
+        />
+        <LegendItem
+          color="#3B82F6"
+          label="Wacht"
+          onClick={() => toggleFilter("teams", "wait")}
+          active={activeLegendFilters.teams?.includes("wait")}
+        />
+        <LegendItem
+          color="#6B7280"
+          label="Niet beschikbaar"
+          onClick={() => toggleFilter("teams", "unavailable")}
+          active={activeLegendFilters.teams?.includes("unavailable")}
+        />
       </div>
 
       <h3

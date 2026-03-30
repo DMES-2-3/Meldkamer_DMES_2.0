@@ -90,6 +90,20 @@ export default function MapPanel({
   );
 
   const filteredPdfMarkers = currentMarkers.filter((marker) => {
+    if (marker.teamId) {
+      if (!activeLegendFilters?.teams?.length) return true;
+      const team = teams.find(t => String(t.id) === String(marker.teamId));
+      const teamStatus = team?.status || "UNAVAILABLE";
+
+      let filterCategory = "unavailable";
+      if (["AVAILABLE", "ACTIVE", "REGISTERED"].includes(teamStatus)) filterCategory = "available";
+      else if (["NOTIFICATION", "BUSY"].includes(teamStatus)) filterCategory = "busy";
+      else if (["WAIT"].includes(teamStatus)) filterCategory = "wait";
+      else filterCategory = "unavailable";
+
+      return activeLegendFilters.teams.includes(filterCategory);
+    }
+
     if (!marker.reportId) return true;
 
     const reportWrapper = reports.find(r => (r.Report?.id || r?.id)?.toString() === marker.reportId.toString());
@@ -393,7 +407,7 @@ export default function MapPanel({
         page: pageNumber,
         mapId: currentMapId,
       };
-      
+
       if (isAddingTeamMarker) {
         setPendingLinkTeamData({ type: "pdf", data: pendingPdfMarker });
         setShowLinkTeamModal(true);
@@ -620,14 +634,14 @@ export default function MapPanel({
   const handleLinkReport = (selectedReportIdToLink) => {
     if (!selectedReportIdToLink) return;
     setShowLinkModal(false);
-    
+
     // Logic to save the marker for the selected report
     if (pendingLinkData?.type === "pdf") {
       const { x, y, page, mapId } = pendingLinkData.data;
       const markerId = Date.now().toString();
       const reportId = selectedReportIdToLink;
       const label = reports?.find((r) => String((r.Report || r).id) === String(reportId))?.Report?.Subject || "Nieuwe Marker";
-      
+
       const newMarker = {
         id: markerId,
         x,
@@ -645,7 +659,7 @@ export default function MapPanel({
       if (reportToUpdate) {
         const rep = reportToUpdate.Report || reportToUpdate;
         const updatedReport = { ...rep, Location: `${pendingLinkData.coords.lat}, ${pendingLinkData.coords.lng}` };
-        
+
         navigate("/melding", {
           state: { report: { ...updatedReport }, from: "google-maps" }
         });
