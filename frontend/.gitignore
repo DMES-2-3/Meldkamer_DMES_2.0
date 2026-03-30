@@ -25,12 +25,6 @@ yarn-error.log*
 #uploads
 backend/uploads
 
-#backups
-/db-backups
-db-backup.sh
-*.sql
-*.sql.gz
-
 .env
 frontend\.env
 .pdf
