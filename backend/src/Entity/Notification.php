@@ -95,6 +95,12 @@ class Notification
     #[Column(type: "datetime")]
     private \DateTimeInterface $time;
 
+    #[Column(type: "datetime", nullable: true)]
+    private ?\DateTimeInterface $assignedAt;
+
+    #[Column(type: "datetime", nullable: true)]
+    private ?\DateTimeInterface $closedAt;
+
     #[column(enumType: NotificationStatus::class)]
     private NotificationStatus $status;
 
@@ -243,6 +249,26 @@ class Notification
         $this->time = $time;
     }
 
+    public function getAssignedAt(): ?\DateTimeInterface
+    {
+        return $this->assignedAt;
+    }
+
+    public function setAssignedAt(?\DateTimeInterface $assignedAt): void
+    {
+        $this->assignedAt = $assignedAt;
+    }
+
+    public function getClosedAt(): ?\DateTimeInterface
+    {
+        return $this->closedAt;
+    }
+
+    public function setClosedAt(?\DateTimeInterface $closedAt): void
+    {
+        $this->closedAt = $closedAt;
+    }
+
     public function getStatus(): NotificationStatus
     {
         return $this->status;
@@ -328,6 +354,8 @@ class Notification
             "Prioriteit" => $this->getPriority(),
             "Status" => $this->getStatus(),
             "Time" => $this->getTime()->format("H:i"),
+            "AssignedAt" => $this->getAssignedAt()?->format("H:i"),
+            "ClosedAt" => $this->getClosedAt()?->format("H:i"),
             "Ambulance" => $this->isAmbulanceNeeded(),
             "SITRAP" => [
                 "Gender" => $this->getGender()?->value,

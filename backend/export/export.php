@@ -66,6 +66,8 @@ $notificationsQuery = "
         n.priority,
         n.ambulanceNeeded,
         n.description,
+        n.assignedAt,
+        n.closedAt,
 
         (SELECT GROUP_CONCAT(CONCAT(DATE_FORMAT(l.time, '%H:%i'), ' : ', l.event) SEPARATOR '\n')
          FROM Logbook l
@@ -108,6 +110,23 @@ foreach ($notifications as &$row) {
     // Datum formatteren
     if (!empty($row["time"])) {
         $row["time"] = date("d-m-Y H:i:s", strtotime($row["time"]));
+    }
+
+    // AssignedAt en ClosedAt formatteren + duur berekenen
+    if (!empty($row["assignedAt"])) {
+        $row["assignedAt"] = date("d-m-Y H:i:s", strtotime($row["assignedAt"]));
+    }
+
+    if (!empty($row["closedAt"])) {
+        $row["closedAt"] = date("d-m-Y H:i:s", strtotime($row["closedAt"]));
+    }
+
+    if (!empty($row["time"]) && !empty($row["closedAt"])) {
+        $start = strtotime($row["time"]);
+        $end = strtotime($row["closedAt"]);
+        $row["Duur (minuten)"] = round(($end - $start) / 60); 
+    } else {
+        $row["Duur (minuten)"] = "";
     }
 
     // STATUS vertalen (database: REGISTERED/NEW, PENDING, CLOSED)
@@ -248,7 +267,9 @@ if (!empty($notifications)) {
         "reportedBy" => "Gemeld door",
         "subject" => "Onderwerp",
         "mapLocation" => "Locatie",
-        "time" => "Tijdstip",
+        "time" => "Melding aangemaakt",
+        "assignedAt" => "Toegewezen op",
+        "closedAt" => "Gesloten op",
         "status" => "Status",
         "priority" => "Prioriteit",
         "ambulanceNeeded" => "Ambulance nodig",
