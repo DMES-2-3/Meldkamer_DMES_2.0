@@ -8,6 +8,17 @@
     --color-bg: #f5f5f5;
 }
 
+.map-wrapper div[style*="position: absolute"]:hover svg {
+    filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3));
+    transition: all 0.2s ease-in-out;
+    cursor: pointer;
+}
+
+.map-wrapper div[style*="position: absolute"]:hover .marker-label {
+    font-weight: bold;
+    transition: all 0.2s ease-in-out;
+}
+
 .dashboard {
     display: flex;
     gap: 16px;

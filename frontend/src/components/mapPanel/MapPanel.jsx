@@ -9,9 +9,13 @@ import { useNavigate } from "react-router-dom";
 import { Document, Page, pdfjs } from "react-pdf";
 import GoogleMapsPanel from "../GoogleMapsPanel";
 import LinkReportModal from "./LinkReportModal";
+import LinkTeamModal from "./LinkTeamModal";
 import MapModal from "./MapModal";
 import MarkerModal from "./MarkerModal";
 import Marker from "./Marker";
+import TeamMarker from "./TeamMarker";
+import TeamModal from "../TeamModal";
+import { getUnits } from "../../services/unitsApi";
 import { getPriorityColor, PRIORITY_COLORS, REPORT_STATUS_COLORS, normalizePriority, normalizeReportStatus } from "../../utils/utils";
 
 pdfjs.GlobalWorkerOptions.workerSrc =
@@ -55,6 +59,8 @@ export default function MapPanel({
   const [showMapModal, setShowMapModal] = useState(false);
   const [showMarkerModal, setShowMarkerModal] = useState(false);
   const [editingMarker, setEditingMarker] = useState(null);
+  const [showTeamMarkerModal, setShowTeamMarkerModal] = useState(false);
+  const [editingTeamMarker, setEditingTeamMarker] = useState(null);
   const [tempMarkerLabel, setTempMarkerLabel] = useState("");
   const [tempMarkerReportId, setTempMarkerReportId] = useState("");
   const [selectedMarkerId, setSelectedMarkerId] = useState(null);
@@ -66,12 +72,17 @@ export default function MapPanel({
   const [draggingMarkerId, setDraggingMarkerId] = useState(null);
   const [markerDragOffset, setMarkerDragOffset] = useState({ x: 0, y: 0 });
   const [isAddingMarker, setIsAddingMarker] = useState(false);
+  const [isAddingTeamMarker, setIsAddingTeamMarker] = useState(false);
   const [markerClickCandidate, setMarkerClickCandidate] = useState(null);
   const [mapType, setMapType] = useState(initialMapType); // "PDF" or "GoogleMaps"
   const [googleMapMarkers, setGoogleMapMarkers] = useState([]);
 
   const [showLinkModal, setShowLinkModal] = useState(false);
   const [pendingLinkData, setPendingLinkData] = useState(null);
+
+  const [showLinkTeamModal, setShowLinkTeamModal] = useState(false);
+  const [pendingLinkTeamData, setPendingLinkTeamData] = useState(null);
+  const [teams, setTeams] = useState([]);
 
   const currentMap = maps.find((m) => m.mapId === currentMapId) || null;
   const currentMarkers = markers.filter(
@@ -111,6 +122,17 @@ export default function MapPanel({
     }, 3000);
     return () => clearTimeout(timer);
   }, [message]);
+
+  useEffect(() => {
+    if (selectedEventId) {
+      getUnits(selectedEventId)
+        .then((res) => {
+          const list = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
+          setTeams(list);
+        })
+        .catch(console.error);
+    }
+  }, [selectedEventId]);
 
   useEffect(() => {
     if (initialMapType) {
@@ -351,10 +373,11 @@ export default function MapPanel({
   const DRAG_THRESHOLD = 5;
 
   const handleMouseDown = (e) => {
-    if (isAddingMarker) {
+    if (isAddingMarker || isAddingTeamMarker) {
       if (!currentMapId || !currentMap?.hasFile) {
         setMessage({ type: "error", text: "Cannot add marker: No map loaded" });
         setIsAddingMarker(false);
+        setIsAddingTeamMarker(false);
         return;
       }
 
@@ -371,9 +394,15 @@ export default function MapPanel({
         mapId: currentMapId,
       };
       
-      setPendingLinkData({ type: "pdf", data: pendingPdfMarker });
-      setShowLinkModal(true);
-      setIsAddingMarker(false);
+      if (isAddingTeamMarker) {
+        setPendingLinkTeamData({ type: "pdf", data: pendingPdfMarker });
+        setShowLinkTeamModal(true);
+        setIsAddingTeamMarker(false);
+      } else {
+        setPendingLinkData({ type: "pdf", data: pendingPdfMarker });
+        setShowLinkModal(true);
+        setIsAddingMarker(false);
+      }
       setMessage(null);
 
       return;
@@ -443,10 +472,15 @@ export default function MapPanel({
   };
 
   const openMarkerModal = (marker) => {
-    setEditingMarker(marker);
-    setTempMarkerLabel(marker.label);
-    setTempMarkerReportId(marker.reportId || "");
-    setShowMarkerModal(true);
+    if (marker.teamId) {
+      setEditingTeamMarker(marker);
+      setShowTeamMarkerModal(true);
+    } else {
+      setEditingMarker(marker);
+      setTempMarkerLabel(marker.label);
+      setTempMarkerReportId(marker.reportId || "");
+      setShowMarkerModal(true);
+    }
   };
 
   const saveMarker = (updatedMarker) => {
@@ -516,6 +550,12 @@ export default function MapPanel({
 
   // Google Maps click handler
   const handleMapClick = (coords) => {
+    if (isAddingTeamMarker) {
+      setPendingLinkTeamData({ type: "google", coords });
+      setShowLinkTeamModal(true);
+      setIsAddingTeamMarker(false);
+      return;
+    }
     if (!isAddingMarker) return;
     setPendingLinkData({ type: "google", coords });
     setShowLinkModal(true);
@@ -536,6 +576,44 @@ export default function MapPanel({
           from: "google-maps"
         }
       });
+    }
+  };
+
+  const handleLinkTeam = (selectedTeamIdToLink) => {
+    if (!selectedTeamIdToLink) return;
+    setShowLinkTeamModal(false);
+
+    const team = teams.find(t => String(t.id) === String(selectedTeamIdToLink));
+    const label = team?.name || "Team Marker";
+
+    if (pendingLinkTeamData?.type === "pdf") {
+      const { x, y, page, mapId } = pendingLinkTeamData.data;
+      const markerId = Date.now().toString();
+
+      const newMarker = {
+        id: markerId,
+        x,
+        y,
+        label,
+        page,
+        mapId,
+        teamId: selectedTeamIdToLink,
+      };
+
+      const updated = [...markers, newMarker];
+      setMarkers(updated);
+    } else if (pendingLinkTeamData?.type === "google") {
+      const markerId = Date.now().toString();
+      const newMarker = {
+        id: markerId,
+        lat: pendingLinkTeamData.coords.lat,
+        lng: pendingLinkTeamData.coords.lng,
+        label,
+        teamId: selectedTeamIdToLink,
+        isGoogle: true
+      };
+      const updated = [...markers, newMarker];
+      setMarkers(updated);
     }
   };
 
@@ -590,6 +668,12 @@ export default function MapPanel({
         onLink={handleLinkReport}
         onCreateNew={handleCreateNewReport}
       />
+      <LinkTeamModal
+        isOpen={showLinkTeamModal}
+        onClose={() => setShowLinkTeamModal(false)}
+        teams={teams.filter(t => !t.eventId || String(t.eventId) === String(selectedEventId))}
+        onLink={handleLinkTeam}
+      />
 
       <div className="map-type-tabs">
         <button
@@ -610,7 +694,7 @@ export default function MapPanel({
         <div
           className="map-wrapper"
           style={{
-            cursor: isAddingMarker ? "crosshair" : "default",
+            cursor: (isAddingMarker || isAddingTeamMarker) ? "crosshair" : "default",
           }}
         >
           <GoogleMapsPanel
@@ -619,13 +703,22 @@ export default function MapPanel({
             onMarkerDragEnd={updateReportLocation}
             colorMode={colorMode}
             activeLegendFilters={activeLegendFilters}
-            isAddingMarker={isAddingMarker}
+            isAddingMarker={isAddingMarker || isAddingTeamMarker}
+            teamMarkers={markers.filter(m => m.isGoogle && m.teamId)}
+            teams={teams}
+            onTeamMarkerDragEnd={(markerId, coords) => {
+              setMarkers(prev => prev.map(m => m.id === markerId ? { ...m, lat: coords.lat, lng: coords.lng } : m));
+            }}
             onMarkerClick={(m) => {
-              openMarkerModal({
-                id: `gmap-${m.id}`,
-                label: m.title,
-                reportId: m.id,
-              });
+              if (m.teamId) {
+                openMarkerModal(m);
+              } else {
+                openMarkerModal({
+                  id: `gmap-${m.id}`,
+                  label: m.title,
+                  reportId: m.id,
+                });
+              }
             }}
             onMarkersUpdate={setGoogleMapMarkers}
           />
@@ -633,9 +726,21 @@ export default function MapPanel({
             <div className="map-buttons">
               <button
                 className={isAddingMarker ? "btn-marker-active" : ""}
-                onClick={() => setIsAddingMarker(!isAddingMarker)}
+                onClick={() => {
+                  setIsAddingMarker(!isAddingMarker);
+                  setIsAddingTeamMarker(false);
+                }}
               >
                 {isAddingMarker ? "Annuleren" : "Voeg Marker toe"}
+              </button>
+              <button
+                className={isAddingTeamMarker ? "btn-marker-active" : ""}
+                onClick={() => {
+                  setIsAddingTeamMarker(!isAddingTeamMarker);
+                  setIsAddingMarker(false);
+                }}
+              >
+                {isAddingTeamMarker ? "Annuleren" : "Voeg Team Marker toe"}
               </button>
               <button
                 onClick={() => {
@@ -688,16 +793,29 @@ export default function MapPanel({
                   renderAnnotationLayer={false}
                   renderTextLayer={false}
                 />
-                {filteredPdfMarkers.map((marker) => (
-                  <Marker
-                    key={marker.id}
-                    marker={marker}
-                    reports={reports}
-                    colorMode={colorMode}
-                    isSelected={selectedMarkerId === marker.id}
-                    onMouseDown={handleMarkerMouseDown}
-                  />
-                ))}
+                {filteredPdfMarkers.map((marker) => {
+                    if (marker.teamId) {
+                      return (
+                        <TeamMarker
+                          key={marker.id}
+                          marker={marker}
+                          teams={teams}
+                          isSelected={marker.id === selectedMarkerId}
+                          onMouseDown={handleMarkerMouseDown}
+                        />
+                      );
+                    }
+                    return (
+                      <Marker
+                        key={marker.id}
+                        marker={marker}
+                        reports={reports}
+                        colorMode={colorMode}
+                        isSelected={marker.id === selectedMarkerId}
+                        onMouseDown={handleMarkerMouseDown}
+                      />
+                    );
+                  })}
               </div>
             </Document>
           ) : (
@@ -728,10 +846,23 @@ export default function MapPanel({
                 <button onClick={resetZoom}>Reset</button>
                 <button
                   className={isAddingMarker ? "btn-marker-active" : ""}
-                  onClick={() => setIsAddingMarker(!isAddingMarker)}
+                  onClick={() => {
+                    setIsAddingMarker(!isAddingMarker);
+                    setIsAddingTeamMarker(false);
+                  }}
                   disabled={!currentMapId || !currentMap?.hasFile}
                 >
                   {isAddingMarker ? "Annuleren" : "Voeg Marker toe"}
+                </button>
+                <button
+                  className={isAddingTeamMarker ? "btn-marker-active" : ""}
+                  onClick={() => {
+                    setIsAddingTeamMarker(!isAddingTeamMarker);
+                    setIsAddingMarker(false);
+                  }}
+                  disabled={!currentMapId || !currentMap?.hasFile}
+                >
+                  {isAddingTeamMarker ? "Annuleren" : "Voeg Team Marker toe"}
                 </button>
                 <button
                   onClick={() => {
@@ -782,6 +913,37 @@ export default function MapPanel({
         }}
         currentMapId={currentMapId}
       />
+
+      {showTeamMarkerModal && (
+        <TeamModal
+          eventId={selectedEventId}
+          team={
+            editingTeamMarker
+              ? { ...teams.find((t) => String(t.id) === String(editingTeamMarker.teamId)), markerId: editingTeamMarker.id }
+              : null
+          }
+          onClose={() => {
+            setShowTeamMarkerModal(false);
+            setEditingTeamMarker(null);
+          }}
+          onSaved={() => {
+            getUnits(selectedEventId)
+              .then((res) => {
+                const list = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
+                setTeams(list);
+              })
+              .catch(console.error);
+            setShowTeamMarkerModal(false);
+            setEditingTeamMarker(null);
+          }}
+          isMapContext={true}
+          onDeleteMarker={(id) => {
+            setMarkers((prev) => prev.filter((m) => m.id !== id));
+            setShowTeamMarkerModal(false);
+            setEditingTeamMarker(null);
+          }}
+        />
+      )}
 
       <MarkerModal
         show={showMarkerModal}

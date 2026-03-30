@@ -37,10 +37,10 @@ export default function Legend({ colorMode, setColorMode, activeLegendFilters, s
     <div className="legend">
       <h3>Teams & Hulpverleners – Status</h3>
       <div className="legend-grid">
-        <LegendItem color={TEAM_STATUS_COLORS.available} label="Beschikbaar" />
-        <LegendItem color={TEAM_STATUS_COLORS.active} label="Actief" />
-        <LegendItem color={TEAM_STATUS_COLORS.break} label="Pauze" />
-        <LegendItem color={TEAM_STATUS_COLORS.busy} label="Bezet" />
+        <LegendItem color="#10B981" label="Beschikbaar" />
+        <LegendItem color="#F59E0B" label="Bezet" />
+        <LegendItem color="#3B82F6" label="Wacht" />
+        <LegendItem color="#6B7280" label="Niet beschikbaar" />
       </div>
 
       <h3

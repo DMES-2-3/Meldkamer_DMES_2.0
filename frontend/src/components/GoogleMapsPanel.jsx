@@ -21,7 +21,10 @@ export default function GoogleMapsPanel({
   activeLegendFilters,
   isAddingMarker,
   onMarkerClick,
-  onMarkersUpdate
+  onMarkersUpdate,
+  teamMarkers = [],
+  teams = [],
+  onTeamMarkerDragEnd
 }) {
   const navigate = useNavigate();
 
@@ -228,6 +231,72 @@ export default function GoogleMapsPanel({
                       from: "google-maps",
                     },
                   });
+                }
+              }}
+            />
+          );
+        })}
+        {teamMarkers.map((m) => {
+          const team = teams.find(t => String(t.id) === String(m.teamId));
+          let color = "#6B7280"; // default gray
+          
+          if (team && team.status) {
+            const statusConfig = {
+              REGISTERED: "#10B981",
+              AVAILABLE: "#10B981",
+              NOTIFICATION: "#F59E0B",
+              WAIT: "#3B82F6",
+              SHORT_BREAK: "#3B82F6",
+              LONG_BREAK: "#3B82F6",
+              SIGNED_OUT: "#6B7280",
+              ACTIVE: "#10B981",
+              BUSY: "#F59E0B",
+              RESOLVED: "#6B7280",
+              UNAVAILABLE: "#6B7280",
+            };
+            color = statusConfig[team.status] || "#6B7280";
+          }
+          
+          const icon = {
+            url:
+              "data:image/svg+xml;charset=UTF-8," +
+              encodeURIComponent(`
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="32" viewBox="0 0 24 32">
+                  <path fill="${color}" stroke="#fff" stroke-width="2" d="M12 0C7.6 0 4 3.6 4 8c0 5.4 8 16 8 16s8-10.6 8-16c0-4.4-3.6-8-8-8z"/>
+                  <path fill="#fff" d="M12 3a2.5 2.5 0 100 5 2.5 2.5 0 000-5zm-4.5 9a4.5 4.5 0 019 0v1h-9v-1z"/>
+                </svg>
+              `),
+            scaledSize: window.google ? new window.google.maps.Size(24, 32) : null,
+            origin: window.google ? new window.google.maps.Point(0, 0) : null,
+            anchor: window.google ? new window.google.maps.Point(12, 32) : null,
+            labelOrigin: window.google ? new window.google.maps.Point(12, 36) : null,
+          };
+          
+          const title = team?.name || m.label || "Team Marker";
+          const shortLabel = title.length <= 25 ? title : title.slice(0, 25).trim() + "...";
+          
+          return (
+            <Marker
+              key={m.id}
+              position={{ lat: m.lat, lng: m.lng }}
+              title={title}
+              label={{
+                text: shortLabel,
+                className: "marker-label",
+              }}
+              icon={icon}
+              draggable={!!onTeamMarkerDragEnd}
+              onDragEnd={(e) => {
+                if (onTeamMarkerDragEnd) {
+                  onTeamMarkerDragEnd(m.id, {
+                    lat: e.latLng.lat(),
+                    lng: e.latLng.lng(),
+                  });
+                }
+              }}
+              onClick={() => {
+                if (onMarkerClick) {
+                  onMarkerClick({ ...m, title, teamId: m.teamId });
                 }
               }}
             />
