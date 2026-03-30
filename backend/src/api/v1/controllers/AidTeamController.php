@@ -179,10 +179,14 @@ class AidTeamController
             http_response_code(201);
             echo json_encode($team->toArray());
         } catch (\Exception $e) {
-            http_response_code(500);
-            echo json_encode([
-                "error" => "Error creating team: " . $e->getMessage(),
-            ]);
+            $message = $e->getMessage();
+            if (strpos($message, 'Data too long') !== false) {
+                http_response_code(400);
+                echo json_encode(["error" => "Invoer te groot voor één van de velden."]);
+            } else {
+                http_response_code(500);
+                echo json_encode(["error" => "Er is een interne fout opgetreden: " . $message]);
+            }
         }
     }
 
@@ -280,10 +284,14 @@ class AidTeamController
 
             echo json_encode($team->toArray());
         } catch (\Exception $e) {
-            http_response_code(500);
-            echo json_encode([
-                "error" => "Error updating team: " . $e->getMessage(),
-            ]);
+            $message = $e->getMessage();
+            if (strpos($message, 'Data too long') !== false) {
+                http_response_code(400);
+                echo json_encode(["error" => "Invoer te groot voor één van de velden."]);
+            } else {
+                http_response_code(500);
+                echo json_encode(["error" => "Er is een interne fout opgetreden: " . $message]);
+            }
         }
     }
 

@@ -154,9 +154,16 @@ class AidWorkerController extends BaseController implements IController
             $this->sendResponse($worker->toArray(), 201);
         } catch (ValueError | TypeError $e) {
             $this->sendError(
-                "Invalid or missing argument(s): " . $e->getMessage(),
+                "Invalid of ontbrekend argument: " . $e->getMessage(),
                 422,
             );
+        } catch (\Exception $e) {
+            $message = $e->getMessage();
+            if (strpos($message, 'Data too long') !== false) {
+                $this->sendError("Invoer te groot voor één van de velden (bijv. roepnummer of naam).", 400);
+            } else {
+                $this->sendError("Er is een interne fout opgetreden: " . $message, 500);
+            }
         }
     }
 
@@ -250,9 +257,16 @@ class AidWorkerController extends BaseController implements IController
             $this->sendResponse($worker->toArray());
         } catch (ValueError | TypeError $e) {
             $this->sendError(
-                "Invalid value provided: " . $e->getMessage(),
+                "Ongeldige waarde ingevoerd: " . $e->getMessage(),
                 422,
             );
+        } catch (\Exception $e) {
+            $message = $e->getMessage();
+            if (strpos($message, 'Data too long') !== false) {
+                $this->sendError("Invoer te groot voor één van de velden (bijv. roepnummer of naam).", 400);
+            } else {
+                $this->sendError("Er is een interne fout opgetreden: " . $message, 500);
+            }
         }
     }
 
@@ -347,9 +361,16 @@ class AidWorkerController extends BaseController implements IController
             $this->sendResponse($worker->toArray());
         } catch (ValueError | TypeError $e) {
             $this->sendError(
-                "Invalid value provided: " . $e->getMessage(),
+                "Ongeldige waarde ingevoerd: " . $e->getMessage(),
                 422,
             );
+        } catch (\Exception $e) {
+            $message = $e->getMessage();
+            if (strpos($message, 'Data too long') !== false) {
+                $this->sendError("Invoer te groot voor één van de velden (bijv. roepnummer of naam).", 400);
+            } else {
+                $this->sendError("Er is een interne fout opgetreden: " . $message, 500);
+            }
         }
     }
 

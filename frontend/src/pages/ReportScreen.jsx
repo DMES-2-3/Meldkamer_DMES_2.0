@@ -121,7 +121,16 @@ export default function ReportScreen({ reloadData }) {
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
-        const unitsData = await getUnits();
+        const stored = localStorage.getItem("selected_event");
+        let eventId = null;
+        if (stored) {
+          try {
+            const parsed = JSON.parse(stored);
+            eventId = parsed.id;
+          } catch (e) {}
+        }
+
+        const unitsData = await getUnits(eventId);
         const mappedUnits = (unitsData || []).map((u) => ({
           ...u,
           id: u.aidTeamId || u.id,
@@ -129,7 +138,7 @@ export default function ReportScreen({ reloadData }) {
         }));
         setUnits(mappedUnits);
 
-        const workersData = await getAidWorkers();
+        const workersData = await getAidWorkers({ eventId });
         setAidWorkers(workersData);
       } catch (error) {
         console.error("Failed to fetch initial data:", error);
@@ -407,7 +416,13 @@ export default function ReportScreen({ reloadData }) {
       goBack();
     } catch (err) {
       console.error("Failed to save report:", err);
-      alert(`Opslaan mislukt: ${err.message}`);
+      let errMsg = err.message || "";
+      if (errMsg.toLowerCase().includes("data too long") || errMsg.includes("1406") || errMsg.toLowerCase().includes("invoer te groot")) {
+        errMsg = "Fout: Invoer te groot.";
+      } else {
+        errMsg = "Fout: Kan gegevens niet opslaan. Probeer het later opnieuw.";
+      }
+      alert(`Opslaan mislukt: ${errMsg}`);
       setIsSaving(false);
     }
   };

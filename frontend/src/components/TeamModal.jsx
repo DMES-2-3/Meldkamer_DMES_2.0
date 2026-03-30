@@ -180,7 +180,13 @@ export default function TeamModal({
       isEdit ? await updateUnit(team.id, payload) : await createUnit(payload);
       onSaved();
     } catch (err) {
-      setApiError(err.message);
+      let errMsg = err.message || "";
+      if (errMsg.toLowerCase().includes("data too long") || errMsg.includes("1406") || errMsg.toLowerCase().includes("invoer te groot")) {
+        errMsg = "Fout: Invoer te groot.";
+      } else {
+        errMsg = "Fout: Kan gegevens niet opslaan. Probeer het later opnieuw.";
+      }
+      setApiError(errMsg);
     } finally {
       setSaving(false);
     }
