@@ -78,6 +78,7 @@ function mapReportFromServer(reportWrapper) {
     ...report,
     ReportedBy: report.ReportedBy || "",
     Team: report.Team || "",
+    Logbook: report.Logbook || [],
     Prioriteit: priorityMap[report.Prioriteit] || report.Prioriteit,
     Status: statusMap[report.Status] || report.Status,
     SITrap: report.SITRAP
@@ -139,6 +140,8 @@ function mapFormToReportPayload(form) {
     Assistance,
     ...rest
   } = form;
+
+  rest.Logbook = form.Logbook || [];
 
   const sitrapPayload = {
     Gender: mapGenderToBackend(SITrap?.Gender),

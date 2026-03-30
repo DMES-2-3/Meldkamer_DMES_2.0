@@ -1,57 +1,63 @@
-<?php  
+<?php
 try {
     /** @var \Doctrine\ORM\EntityManagerInterface $entityManager */
-    $entityManager = require dirname(__DIR__) . '/bootstrap.php';
+    $entityManager = require dirname(__DIR__) . "/bootstrap.php";
     $conn = $entityManager->getConnection();
 } catch (Throwable $e) {
     http_response_code(500);
     echo "DB/Doctrine initialisatiefout: " . $e->getMessage();
-    exit;
+    exit();
 }
 
 // 1) Input lezen
-$input = json_decode(file_get_contents('php://input'), true) ?: [];
-$eventIdRaw = $_POST['eventId'] ?? $input['eventId'] ?? $_GET['eventId'] ?? 1;
-$eventId = max(1, (int)$eventIdRaw);
+$input = json_decode(file_get_contents("php://input"), true) ?: [];
+$eventIdRaw =
+    $_POST["eventId"] ?? ($input["eventId"] ?? ($_GET["eventId"] ?? 1));
+$eventId = max(1, (int) $eventIdRaw);
 
 // 2) Kerncijfers
 $summaryData = [];
 try {
-    $event = $conn->executeQuery(
-        "SELECT * FROM `Event` WHERE eventId = :eventId", 
-        ['eventId' => $eventId]
-    )->fetchAssociative();
+    $event = $conn
+        ->executeQuery("SELECT * FROM `Event` WHERE eventId = :eventId", [
+            "eventId" => $eventId,
+        ])
+        ->fetchAssociative();
 
     if ($event) {
-        $summaryData['Evenement'] = $event['eventName'];
-        $summaryData['Postcode'] = $event['postcode'] ?? '';
-        $summaryData['Aangemaakt op'] = $event['createdAt'] ?? '';
-        $summaryData['Laatst bijgewerkt'] = $event['updatedAt'] ?? '';
+        $summaryData["Evenement"] = $event["eventName"];
+        $summaryData["Postcode"] = $event["postcode"] ?? "";
+        $summaryData["Aangemaakt op"] = $event["createdAt"] ?? "";
+        $summaryData["Laatst bijgewerkt"] = $event["updatedAt"] ?? "";
     }
 
-    $summaryData['Totaal aantal meldingen'] =
-        (int)$conn->executeQuery(
+    $summaryData["Totaal aantal meldingen"] = (int) $conn
+        ->executeQuery(
             "SELECT COUNT(*) FROM `Notification` WHERE FK_event = :eventId",
-            ['eventId' => $eventId]
-    )->fetchOne();
+            ["eventId" => $eventId],
+        )
+        ->fetchOne();
 
-    $summaryData['Totaal aantal teams'] = (int)$conn->executeQuery(
-        "SELECT COUNT(*) FROM `AidTeam` WHERE FK_Event = :eventId",
-        ['eventId' => $eventId]
-    )->fetchOne();
+    $summaryData["Totaal aantal teams"] = (int) $conn
+        ->executeQuery(
+            "SELECT COUNT(*) FROM `AidTeam` WHERE FK_Event = :eventId",
+            ["eventId" => $eventId],
+        )
+        ->fetchOne();
 
-    $summaryData['Totaal aantal hulpverleners'] = (int)$conn->executeQuery(
-        "SELECT COUNT(*) FROM `AidWorker` WHERE FK_Event = :eventId",
-        ['eventId' => $eventId]
-    )->fetchOne();
-
+    $summaryData["Totaal aantal hulpverleners"] = (int) $conn
+        ->executeQuery(
+            "SELECT COUNT(*) FROM `AidWorker` WHERE FK_Event = :eventId",
+            ["eventId" => $eventId],
+        )
+        ->fetchOne();
 } catch (Throwable $e) {
     error_log("Fout bij kerncijfers: " . $e->getMessage());
 }
 
 // 3) Meldingen ophalen
 $notificationsQuery = "
-    SELECT 
+    SELECT
         n.reportedBy,
         n.subject,
         n.mapLocation,
@@ -60,6 +66,10 @@ $notificationsQuery = "
         n.priority,
         n.ambulanceNeeded,
         n.description,
+
+        (SELECT GROUP_CONCAT(CONCAT(DATE_FORMAT(l.time, '%H:%i'), ' : ', l.event) SEPARATOR '\n')
+         FROM Logbook l
+         WHERE l.FK_notification = n.notificationId) AS logbook,
 
         a.alert,
         a.verbal,
@@ -87,7 +97,7 @@ $notificationsQuery = "
 
 $notifications = [];
 try {
-    $stmt = $conn->executeQuery($notificationsQuery, ['eventId' => $eventId]);
+    $stmt = $conn->executeQuery($notificationsQuery, ["eventId" => $eventId]);
     $notifications = $stmt->fetchAllAssociative();
 } catch (Throwable $e) {
     error_log("Fout bij meldingen: " . $e->getMessage());
@@ -95,72 +105,98 @@ try {
 
 // 4) Data verwerken
 foreach ($notifications as &$row) {
-
     // Datum formatteren
-    if (!empty($row['time'])) {
-        $row['time'] = date('d-m-Y H:i:s', strtotime($row['time']));
+    if (!empty($row["time"])) {
+        $row["time"] = date("d-m-Y H:i:s", strtotime($row["time"]));
     }
 
     // STATUS vertalen (database: REGISTERED/NEW, NOTIFICATION, SIGNED_OUT)
     $statusMap = [
-        'REGISTERED'   => 'Open',
-        'NEW'        => 'Open',
-        'NOTIFICATION' => 'In behandeling',
-        'SIGNED_OUT'   => 'Gesloten'
+        "REGISTERED" => "Open",
+        "NEW" => "Open",
+        "NOTIFICATION" => "In behandeling",
+        "SIGNED_OUT" => "Gesloten",
     ];
-    $row['status'] = $statusMap[$row['status']] ?? $row['status'];
+    $row["status"] = $statusMap[$row["status"]] ?? $row["status"];
 
     // PRIORITY vertalen (database: GREEN, ORANGE, RED)
     $priorityMap = [
-        'GREEN'  => 'Groen',
-        'ORANGE' => 'Oranje',
-        'RED'    => 'Rood'
+        "GREEN" => "Groen",
+        "ORANGE" => "Oranje",
+        "RED" => "Rood",
     ];
-    $row['priority'] = $priorityMap[$row['priority']] ?? $row['priority'];
+    $row["priority"] = $priorityMap[$row["priority"]] ?? $row["priority"];
 
     // Ambulance ja/nee
-    $row['ambulanceNeeded'] = $row['ambulanceNeeded'] ? 'Ja' : 'Nee';
+    $row["ambulanceNeeded"] = $row["ambulanceNeeded"] ? "Ja" : "Nee";
 
     // Locatie filteren indien coordinaten
-    if (!empty($row['mapLocation']) &&
-        preg_match('/^-?\d+(\.\d+)?,-?\d+(\.\d+)?$/', $row['mapLocation'])) {
-        $row['mapLocation'] = '';
+    if (
+        !empty($row["mapLocation"]) &&
+        preg_match('/^-?\d+(\.\d+)?,-?\d+(\.\d+)?$/', $row["mapLocation"])
+    ) {
+        $row["mapLocation"] = "";
     }
 
     // AVPU samenvoegen
     $avpu = [];
-    if (!empty($row['alert'])) $avpu[] = 'Alert';
-    if (!empty($row['verbal'])) $avpu[] = 'Verbaal';
-    if (!empty($row['pain'])) $avpu[] = 'Pijn';
-    if (!empty($row['unresponsive'])) $avpu[] = 'Onresponsief';
-    $row['AVPU'] = implode(', ', $avpu);
+    if (!empty($row["alert"])) {
+        $avpu[] = "Alert";
+    }
+    if (!empty($row["verbal"])) {
+        $avpu[] = "Verbaal";
+    }
+    if (!empty($row["pain"])) {
+        $avpu[] = "Pijn";
+    }
+    if (!empty($row["unresponsive"])) {
+        $avpu[] = "Onresponsief";
+    }
+    $row["AVPU"] = implode(", ", $avpu);
 
     // Assistance samenvoegen
     $assistance = [];
-    if (!empty($row['coordinator'])) $assistance[] = 'Coordinator';
-    if (!empty($row['doctor'])) $assistance[] = 'Arts';
-    if (!empty($row['emergencyCare'])) $assistance[] = 'Spoedzorg';
-    if (!empty($row['basicCareVPK'])) $assistance[] = 'Basiszorg VPK';
-    $row['Assistance'] = implode(', ', $assistance);
+    if (!empty($row["coordinator"])) {
+        $assistance[] = "Coordinator";
+    }
+    if (!empty($row["doctor"])) {
+        $assistance[] = "Arts";
+    }
+    if (!empty($row["emergencyCare"])) {
+        $assistance[] = "Spoedzorg";
+    }
+    if (!empty($row["basicCareVPK"])) {
+        $assistance[] = "Basiszorg VPK";
+    }
+    $row["Assistance"] = implode(", ", $assistance);
 
     // SITRAP alleen indien gevuld
-    if (!empty($row['sitrapInjury']) || !empty($row['sitrapDescription'])) {
-        $row['SITRAP'] = trim($row['sitrapInjury'] . ' - ' . $row['sitrapDescription'], ' -');
+    if (!empty($row["sitrapInjury"]) || !empty($row["sitrapDescription"])) {
+        $row["SITRAP"] = trim(
+            $row["sitrapInjury"] . " - " . $row["sitrapDescription"],
+            " -",
+        );
     } else {
-        $row['SITRAP'] = '';
+        $row["SITRAP"] = "";
     }
 
     unset(
-        $row['alert'], $row['verbal'], $row['pain'], $row['unresponsive'],
-        $row['coordinator'], $row['doctor'], $row['emergencyCare'], $row['basicCareVPK'],
-        $row['sitrapInjury'], $row['sitrapDescription']
+        $row["alert"],
+        $row["verbal"],
+        $row["pain"],
+        $row["unresponsive"],
+        $row["coordinator"],
+        $row["doctor"],
+        $row["emergencyCare"],
+        $row["basicCareVPK"],
+        $row["sitrapInjury"],
+        $row["sitrapDescription"],
     );
 }
 unset($row);
 
 // 5) Lege kolommen volledig verwijderen
 if (!empty($notifications)) {
-
     $columnsToRemove = [];
 
     foreach (array_keys($notifications[0]) as $column) {
@@ -186,39 +222,42 @@ if (!empty($notifications)) {
 
 // 6) ZIP maken
 $zip = new ZipArchive();
-$zipFilePath = tempnam(sys_get_temp_dir(), 'export_zip_');
+$zipFilePath = tempnam(sys_get_temp_dir(), "export_zip_");
 $zip->open($zipFilePath, ZipArchive::OVERWRITE);
 
 $eventNameSafe = strtolower(
-    preg_replace('/[^a-zA-Z0-9_-]/', '_', $event['eventName'] ?? 'evenement')
+    preg_replace("/[^a-zA-Z0-9_-]/", "_", $event["eventName"] ?? "evenement"),
 );
 
 // Kerncijfers CSV
-$csvStream = fopen('php://temp', 'r+');
-fputcsv($csvStream, array_keys($summaryData), ';', '"', '\\');
-fputcsv($csvStream, array_values($summaryData), ';', '"', '\\');
+$csvStream = fopen("php://temp", "r+");
+fputcsv($csvStream, array_keys($summaryData), ";", '"', "\\");
+fputcsv($csvStream, array_values($summaryData), ";", '"', "\\");
 rewind($csvStream);
-$zip->addFromString("kerncijfers_{$eventNameSafe}.csv", stream_get_contents($csvStream));
+$zip->addFromString(
+    "kerncijfers_{$eventNameSafe}.csv",
+    stream_get_contents($csvStream),
+);
 fclose($csvStream);
 
 // Meldingen CSV
-$csvStream = fopen('php://temp', 'r+');
+$csvStream = fopen("php://temp", "r+");
 
 if (!empty($notifications)) {
-
     $headersNL = [
-        'reportedBy' => 'Gemeld door',
-        'subject' => 'Onderwerp',
-        'mapLocation' => 'Locatie',
-        'time' => 'Tijdstip',
-        'status' => 'Status',
-        'priority' => 'Prioriteit',
-        'ambulanceNeeded' => 'Ambulance nodig',
-        'description' => 'Beschrijving',
-        'AVPU' => 'Bewustzijn (AVPU)',
-        'Assistance' => 'Assistentie',
-        'SITRAP' => 'Situatierapport',
-        'teamName' => 'Team'
+        "reportedBy" => "Gemeld door",
+        "subject" => "Onderwerp",
+        "mapLocation" => "Locatie",
+        "time" => "Tijdstip",
+        "status" => "Status",
+        "priority" => "Prioriteit",
+        "ambulanceNeeded" => "Ambulance nodig",
+        "description" => "Beschrijving",
+        "logbook" => "Logboek",
+        "AVPU" => "Bewustzijn (AVPU)",
+        "Assistance" => "Assistentie",
+        "SITRAP" => "Situatierapport",
+        "teamName" => "Team",
     ];
 
     $headerRow = [];
@@ -226,29 +265,39 @@ if (!empty($notifications)) {
         $headerRow[] = $headersNL[$key] ?? $key;
     }
 
-    fputcsv($csvStream, $headerRow, ';', '"', '\\');
+    fputcsv($csvStream, $headerRow, ";", '"', "\\");
 
     foreach ($notifications as $row) {
-        fputcsv($csvStream, $row, ';', '"', '\\');
+        fputcsv($csvStream, $row, ";", '"', "\\");
     }
-
 } else {
-    fputcsv($csvStream, ["Geen meldingen gevonden"], ';', '"', '\\');
+    fputcsv($csvStream, ["Geen meldingen gevonden"], ";", '"', "\\");
 }
 
 rewind($csvStream);
-$zip->addFromString("meldingen_{$eventNameSafe}.csv", stream_get_contents($csvStream));
+$zip->addFromString(
+    "meldingen_{$eventNameSafe}.csv",
+    stream_get_contents($csvStream),
+);
 fclose($csvStream);
 
 $zip->close();
 
 // Output
-while (ob_get_level()) ob_end_clean();
+while (ob_get_level()) {
+    ob_end_clean();
+}
 
-header('Content-Type: application/zip');
-header('Content-Disposition: attachment; filename="export_evenement_'.$eventNameSafe.'_'.date("Ymd_His").'.zip"');
-header('Content-Length: ' . filesize($zipFilePath));
+header("Content-Type: application/zip");
+header(
+    'Content-Disposition: attachment; filename="export_evenement_' .
+        $eventNameSafe .
+        "_" .
+        date("Ymd_His") .
+        '.zip"',
+);
+header("Content-Length: " . filesize($zipFilePath));
 
 readfile($zipFilePath);
 @unlink($zipFilePath);
-exit;
+exit();
