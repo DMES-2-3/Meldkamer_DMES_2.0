@@ -19,6 +19,7 @@ const createDefaultFormState = () => ({
   Location: "",
   Note: "",
   Notepad: "",
+  Logbook: [],
   Team: "",
   Prioriteit: "Laag",
   Status: "Open",
@@ -57,23 +58,6 @@ export default function ReportScreen({ reloadData }) {
   const conditionRef = React.useRef(null);
   const notepadRef = React.useRef(null);
 
-  React.useEffect(() => {
-    const handleGlobalEnter = (e) => {
-      const activeTag = document.activeElement?.tagName;
-      if (
-        e.key === "Enter" &&
-        !e.ctrlKey &&
-        (!activeTag ||
-          !["INPUT", "TEXTAREA", "SELECT", "BUTTON", "A"].includes(activeTag))
-      ) {
-        e.preventDefault();
-        subjectRef.current?.focus();
-      }
-    };
-    window.addEventListener("keydown", handleGlobalEnter);
-    return () => window.removeEventListener("keydown", handleGlobalEnter);
-  }, []);
-
   const initialReport = location.state?.report;
   const fromGoogleMaps = location.state?.from === "google-maps";
   const fromPdfMap = location.state?.from === "pdf-map";
@@ -84,15 +68,37 @@ export default function ReportScreen({ reloadData }) {
   const [aidWorkers, setAidWorkers] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [formData, setFormData] = useState(createDefaultFormState);
+
+  const [reporterType, setReporterType] = useState("");
+  const [customReporter, setCustomReporter] = useState("");
+
   const [isSaving, setIsSaving] = useState(false);
+  const [logbookInput, setLogbookInput] = useState("");
+
+  const handleAddLogbook = () => {
+    if (!logbookInput.trim()) return;
+    const newEntry = {
+      time: getCurrentTime(),
+      event: logbookInput.trim(),
+    };
+    setFormData((prev) => ({
+      ...prev,
+      Logbook: [...(prev.Logbook || []), newEntry],
+    }));
+    setLogbookInput("");
+  };
+
+  const handleRemoveLogbook = (indexToRemove) => {
+    setFormData((prev) => ({
+      ...prev,
+      Logbook: (prev.Logbook || []).filter((_, idx) => idx !== indexToRemove),
+    }));
+  };
 
   const { notes, setNotes, setActiveKey } = useNotepad();
 
   const reportId =
-    formData.id ??
-    initialReport?.Report?.id ??
-    initialReport?.id ??
-    null;
+    formData.id ?? initialReport?.Report?.id ?? initialReport?.id ?? null;
 
   const draftKey = React.useMemo(() => {
     let k = sessionStorage.getItem("draft_report_notepad_key");
@@ -115,7 +121,16 @@ export default function ReportScreen({ reloadData }) {
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
-        const unitsData = await getUnits();
+        const stored = localStorage.getItem("selected_event");
+        let eventId = null;
+        if (stored) {
+          try {
+            const parsed = JSON.parse(stored);
+            eventId = parsed.id;
+          } catch (e) {}
+        }
+
+        const unitsData = await getUnits(eventId);
         const mappedUnits = (unitsData || []).map((u) => ({
           ...u,
           id: u.aidTeamId || u.id,
@@ -123,7 +138,7 @@ export default function ReportScreen({ reloadData }) {
         }));
         setUnits(mappedUnits);
 
-        const workersData = await getAidWorkers();
+        const workersData = await getAidWorkers({ eventId });
         setAidWorkers(workersData);
       } catch (error) {
         console.error("Failed to fetch initial data:", error);
@@ -191,10 +206,31 @@ export default function ReportScreen({ reloadData }) {
     }
 
     setFormData(base);
+
+    const reporter = base.ReportedBy || "";
+
+    const teamNames = unitsForEvent.map(u => u.name);
+
+    if (teamNames.includes(reporter)) {
+      setReporterType(reporter);
+    }
+    else if (reporter === "Beveiliging") {
+      setReporterType("Beveiliging");
+    }
+    else if (reporter === "Organisatie") {
+      setReporterType("Organisatie");
+    }
+    else if (reporter) {
+      setReporterType("Anders");
+      setCustomReporter(reporter);
+    }
   }, [initialReport, selectedEvent, units]);
 
-  const isExistingReport =
-    !!(formData.id ?? initialReport?.Report?.id ?? initialReport?.id);
+  const isExistingReport = !!(
+    formData.id ??
+    initialReport?.Report?.id ??
+    initialReport?.id
+  );
 
   useEffect(() => {
     const refreshTime = () => {
@@ -222,10 +258,7 @@ export default function ReportScreen({ reloadData }) {
     window.addEventListener("focus", handleFocus);
 
     return () => {
-      document.removeEventListener(
-        "visibilitychange",
-        handleVisibilityChange
-      );
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
       window.removeEventListener("focus", handleFocus);
     };
   }, [isExistingReport]);
@@ -302,7 +335,7 @@ export default function ReportScreen({ reloadData }) {
         originalAssistanceTeamName !== newAssistanceTeamName
       ) {
         const originalAssistanceTeam = units.find(
-          (u) => u.name === originalAssistanceTeamName
+          (u) => u.name === originalAssistanceTeamName,
         );
         if (originalAssistanceTeam) {
           const payload = { ...originalAssistanceTeam, status: "AVAILABLE" };
@@ -314,7 +347,7 @@ export default function ReportScreen({ reloadData }) {
 
       if (newAssistanceTeamName) {
         const newAssistanceTeam = units.find(
-          (u) => u.name === newAssistanceTeamName
+          (u) => u.name === newAssistanceTeamName,
         );
         if (newAssistanceTeam) {
           const newStatus =
@@ -370,7 +403,7 @@ export default function ReportScreen({ reloadData }) {
                   : shortLabel;
               sessionStorage.setItem(
                 "pendingPdfMarker",
-                JSON.stringify(pending)
+                JSON.stringify(pending),
               );
             }
           }
@@ -383,7 +416,13 @@ export default function ReportScreen({ reloadData }) {
       goBack();
     } catch (err) {
       console.error("Failed to save report:", err);
-      alert(`Opslaan mislukt: ${err.message}`);
+      let errMsg = err.message || "";
+      if (errMsg.toLowerCase().includes("data too long") || errMsg.includes("1406") || errMsg.toLowerCase().includes("invoer te groot")) {
+        errMsg = "Fout: Invoer te groot.";
+      } else {
+        errMsg = "Fout: Kan gegevens niet opslaan. Probeer het later opnieuw.";
+      }
+      alert(`Opslaan mislukt: ${errMsg}`);
       setIsSaving(false);
     }
   };
@@ -405,7 +444,7 @@ export default function ReportScreen({ reloadData }) {
         const mapState = getStoredMapState();
         if (mapState.markers) {
           const updatedMarkers = mapState.markers.filter(
-            (m) => m.reportId !== formData.id.toString()
+            (m) => m.reportId !== formData.id.toString(),
           );
           broadcastMapState({ markers: updatedMarkers });
         }
@@ -434,10 +473,12 @@ export default function ReportScreen({ reloadData }) {
   });
 
   const availableUnitsForEvent = unitsForEvent.filter(
-    (u) => u.status === "AVAILABLE"
+    (u) => u.status === "AVAILABLE",
   );
 
-  const isCoordinates = formData.Location && /^[-+]?\d{1,2}\.\d+,\s*[-+]?\d{1,3}\.\d+$/.test(formData.Location.trim());
+  const isCoordinates =
+    formData.Location &&
+    /^[-+]?\d{1,2}\.\d+,\s*[-+]?\d{1,3}\.\d+$/.test(formData.Location.trim());
   const isLocationReadOnly = fromGoogleMaps || isCoordinates;
 
   return (
@@ -465,19 +506,52 @@ export default function ReportScreen({ reloadData }) {
             </div>
 
             <div className="input-group">
-              <label>Gemeld door</label>
-              <input
-                type="text"
-                value={formData.ReportedBy}
-                onChange={(e) => handleChange("ReportedBy", e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    subjectRef.current?.focus();
+              <label>Melder</label>
+              <select
+                className="reporter-dropdown"
+                value={reporterType}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setReporterType(value);
+
+                  if (value === "Anders") {
+                    handleChange("ReportedBy", customReporter);
+                  }
+                  else {
+                    setCustomReporter("");
+                    handleChange("ReportedBy", value);
                   }
                 }}
-              />
+              >
+                <option value="">Selecteer melder</option>
+
+                {unitsForEvent.map((team) => (
+                  <option key={team.id} value={team.name}>
+                    {team.name}
+                  </option>
+                ))}
+
+                <option value="Beveiliging">Beveiliging</option>
+                <option value="Organisatie">Organisatie</option>
+                <option value="Anders">Anders</option>
+              </select>
             </div>
+
+            {reporterType === "Anders" && (
+              <div className="input-group">
+                <label>Specificatie melder</label>
+                <input
+                  type="text"
+                  className="custom-reporter-input"
+                  placeholder="Bijv. roepnummer"
+                  value={customReporter}
+                  onChange={(e) => {
+                    setCustomReporter(e.target.value);
+                    handleChange("ReportedBy", e.target.value);
+                  }}
+                />
+              </div>
+            )}
           </div>
 
           <div className="input-group">
@@ -497,12 +571,6 @@ export default function ReportScreen({ reloadData }) {
               ref={subjectRef}
               value={formData.Subject}
               onChange={(e) => handleChange("Subject", e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  locationRef.current?.focus();
-                }
-              }}
             />
           </div>
 
@@ -510,7 +578,13 @@ export default function ReportScreen({ reloadData }) {
             <label>
               Locatie
               {isLocationReadOnly && (
-                <span style={{ fontSize: "0.85em", color: "#888", marginLeft: "6px" }}>
+                <span
+                  style={{
+                    fontSize: "0.85em",
+                    color: "#888",
+                    marginLeft: "6px",
+                  }}
+                >
                   (Map Coördinaten)
                 </span>
               )}
@@ -522,13 +596,11 @@ export default function ReportScreen({ reloadData }) {
               onChange={(e) => handleChange("Location", e.target.value)}
               readOnly={isLocationReadOnly}
               disabled={isLocationReadOnly}
-              title={isLocationReadOnly ? "Locked because it contains map coordinates" : ""}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  noteRef.current?.focus();
-                }
-              }}
+              title={
+                isLocationReadOnly
+                  ? "Locked because it contains map coordinates"
+                  : ""
+              }
             />
           </div>
 
@@ -538,16 +610,6 @@ export default function ReportScreen({ reloadData }) {
               ref={noteRef}
               value={formData.Note}
               onChange={(e) => handleChange("Note", e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  const teamInput = teamRef.current?.querySelector(
-                    "input, select"
-                  );
-                  if (teamInput) teamInput.focus();
-                  else teamRef.current?.focus();
-                }
-              }}
             />
           </div>
 
@@ -584,20 +646,11 @@ export default function ReportScreen({ reloadData }) {
           </div>
 
           <div className="input-group" ref={teamRef} tabIndex={-1}>
-            <div
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  genderRef.current?.focus();
-                }
-              }}
-            >
-              <TeamSelect
-                units={availableUnitsForEvent}
-                value={formData.Team}
-                onChange={(val) => handleChange("Team", val)}
-              />
-            </div>
+            <TeamSelect
+              units={availableUnitsForEvent}
+              value={formData.Team}
+              onChange={(val) => handleChange("Team", val)}
+            />
           </div>
 
           <div className="input-group">
@@ -650,12 +703,6 @@ export default function ReportScreen({ reloadData }) {
               ref={genderRef}
               value={formData.SITrap.Gender}
               onChange={(e) => handleSITrapChange("Gender", e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  eventRef.current?.focus();
-                }
-              }}
             >
               <option value="">Man / Vrouw</option>
               <option value="Man">Man</option>
@@ -670,12 +717,6 @@ export default function ReportScreen({ reloadData }) {
               ref={eventRef}
               value={formData.SITrap.Event}
               onChange={(e) => handleSITrapChange("Event", e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  conditionRef.current?.focus();
-                }
-              }}
             />
           </div>
 
@@ -685,12 +726,6 @@ export default function ReportScreen({ reloadData }) {
               ref={conditionRef}
               value={formData.SITrap.Condition}
               onChange={(e) => handleSITrapChange("Condition", e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  notepadRef.current?.focus();
-                }
-              }}
             />
           </div>
 
@@ -732,7 +767,7 @@ export default function ReportScreen({ reloadData }) {
                   onChange={() =>
                     handleAssistanceChange(
                       "Coordinator",
-                      !formData.Assistance.Coordinator
+                      !formData.Assistance.Coordinator,
                     )
                   }
                 />{" "}
@@ -745,7 +780,7 @@ export default function ReportScreen({ reloadData }) {
                   onChange={() =>
                     handleAssistanceChange(
                       "Doctor",
-                      !formData.Assistance.Doctor
+                      !formData.Assistance.Doctor,
                     )
                   }
                 />{" "}
@@ -758,7 +793,7 @@ export default function ReportScreen({ reloadData }) {
                   onChange={() =>
                     handleAssistanceChange(
                       "Spoedzorg",
-                      !formData.Assistance.Spoedzorg
+                      !formData.Assistance.Spoedzorg,
                     )
                   }
                 />{" "}
@@ -771,7 +806,7 @@ export default function ReportScreen({ reloadData }) {
                   onChange={() =>
                     handleAssistanceChange(
                       "BasiszorgVPK",
-                      !formData.Assistance.BasiszorgVPK
+                      !formData.Assistance.BasiszorgVPK,
                     )
                   }
                 />{" "}
@@ -806,7 +841,105 @@ export default function ReportScreen({ reloadData }) {
             placeholder="Schrijf notitie"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
+            style={{ flex: 1, minHeight: "200px" }}
           />
+
+          <div
+            className="logbook-section"
+            style={{
+              marginTop: "20px",
+              display: "flex",
+              flexDirection: "column",
+              flexShrink: 0,
+            }}
+          >
+            <div className="column-header" style={{ marginBottom: "10px" }}>
+              <label>Logboek</label>
+            </div>
+            <div
+              className="input-group"
+              style={{
+                flexDirection: "row",
+                gap: "10px",
+                marginBottom: "10px",
+              }}
+            >
+              <input
+                type="text"
+                value={logbookInput}
+                onChange={(e) => setLogbookInput(e.target.value)}
+                placeholder="Nieuwe gebeurtenis..."
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleAddLogbook();
+                  }
+                }}
+              />
+              <button
+                className="btn-action"
+                onClick={handleAddLogbook}
+                type="button"
+                style={{
+                  flex: "0 0 auto",
+                  padding: "8px 16px",
+                  fontSize: "14px",
+                }}
+              >
+                Log
+              </button>
+            </div>
+            <div
+              className="logbook-timeline"
+              style={{
+                maxHeight: "400px",
+                overflowY: "auto",
+                border: "1px solid #d1d5db",
+                borderRadius: "4px",
+                padding: "10px 12px",
+                background: "#f9fafb",
+                minHeight: "400px",
+                fontSize: "14px",
+              }}
+            >
+              {(formData.Logbook || []).map((entry, idx) => (
+                <div
+                  key={idx}
+                  style={{
+                    marginBottom: "6px",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "flex-start",
+                  }}
+                >
+                  <div>
+                    <strong style={{ color: "#374151" }}>{entry.time}</strong>{" "}
+                    <span style={{ color: "#4b5563" }}>- {entry.event}</span>
+                  </div>
+                  <button
+                    onClick={() => handleRemoveLogbook(idx)}
+                    title="Verwijderen"
+                    style={{
+                      background: "transparent",
+                      border: "none",
+                      color: "#dc2626",
+                      cursor: "pointer",
+                      fontWeight: "bold",
+                      padding: "0 4px",
+                      lineHeight: "1",
+                    }}
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+              {(!formData.Logbook || formData.Logbook.length === 0) && (
+                <div style={{ color: "#9ca3af", fontStyle: "italic" }}>
+                  Geen logboek items...
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </div>

@@ -10,10 +10,6 @@ function Register() {
   const { user, loading: authLoading, refreshSession } = useAuth();
 
   const [form, setForm] = useState({
-    firstname: "",
-    lastname: "",
-    username: "",
-    birthday: "",
     email: "",
     pass: "",
   });
@@ -102,45 +98,9 @@ function Register() {
             }
           }}
         >
-          <label>Voornaam</label>
-          <input
-            autoFocus
-            type="text"
-            name="firstname"
-            value={form.firstname}
-            onChange={handleInputChange}
-            disabled={loading}
-          />
-
-          <label>Achternaam</label>
-          <input
-            type="text"
-            name="lastname"
-            value={form.lastname}
-            onChange={handleInputChange}
-            disabled={loading}
-          />
-
-          <label>Gebruikersnaam</label>
-          <input
-            type="text"
-            name="username"
-            value={form.username}
-            onChange={handleInputChange}
-            disabled={loading}
-          />
-
-          <label>Geboortedatum</label>
-          <input
-            type="date"
-            name="birthday"
-            value={form.birthday}
-            onChange={handleInputChange}
-            disabled={loading}
-          />
-
           <label>Email</label>
           <input
+            autoFocus
             type="email"
             name="email"
             value={form.email}

@@ -3,17 +3,17 @@
   "name": "DMES-Meldkamer - Meldingsysteem",
   "icons": [
     {
-      "src": "DMES_Logo.ico",
+      "src": "DMES_logo.ico",
       "sizes": "64x64 32x32 24x24 16x16",
       "type": "image/x-icon"
     },
     {
-      "src": "DMES_Logo192.png",
+      "src": "DMES_logo192.png",
       "type": "image/png",
       "sizes": "192x192"
     },
     {
-      "src": "DMES_Logo512.png",
+      "src": "DMES_logo512.png",
       "type": "image/png",
       "sizes": "512x512"
     }
