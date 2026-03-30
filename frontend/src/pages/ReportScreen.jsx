@@ -416,7 +416,13 @@ export default function ReportScreen({ reloadData }) {
       goBack();
     } catch (err) {
       console.error("Failed to save report:", err);
-      alert(`Opslaan mislukt: ${err.message}`);
+      let errMsg = err.message || "";
+      if (errMsg.toLowerCase().includes("data too long") || errMsg.includes("1406") || errMsg.toLowerCase().includes("invoer te groot")) {
+        errMsg = "Fout: Invoer te groot.";
+      } else {
+        errMsg = "Fout: Kan gegevens niet opslaan. Probeer het later opnieuw.";
+      }
+      alert(`Opslaan mislukt: ${errMsg}`);
       setIsSaving(false);
     }
   };

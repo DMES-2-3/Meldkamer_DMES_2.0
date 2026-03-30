@@ -226,9 +226,16 @@ class NotificationController extends BaseController implements IController
             $this->sendResponse($notification->toArray());
         } catch (ValueError | TypeError $e) {
             $this->sendError(
-                "Invalid value provided: " . $e->getMessage(),
+                "Ongeldige waarde ingevoerd: " . $e->getMessage(),
                 422,
             );
+        } catch (\Exception $e) {
+            $message = $e->getMessage();
+            if (strpos($message, 'Data too long') !== false) {
+                $this->sendError("Invoer te groot voor één van de velden.", 400);
+            } else {
+                $this->sendError("Er is een interne fout opgetreden: " . $message, 500);
+            }
         }
     }
 
@@ -263,9 +270,16 @@ class NotificationController extends BaseController implements IController
             $this->sendResponse($notification->toArray());
         } catch (ValueError | TypeError $e) {
             $this->sendError(
-                "Invalid value provided: " . $e->getMessage(),
+                "Ongeldige waarde ingevoerd: " . $e->getMessage(),
                 422,
             );
+        } catch (\Exception $e) {
+            $message = $e->getMessage();
+            if (strpos($message, 'Data too long') !== false) {
+                $this->sendError("Invoer te groot voor één van de velden.", 400);
+            } else {
+                $this->sendError("Er is een interne fout opgetreden: " . $message, 500);
+            }
         }
     }
 
