@@ -23,6 +23,7 @@ export default function MapPopoutScreen({
     return {
       status: [],
       priority: [],
+      teams: [],
     };
   });
 

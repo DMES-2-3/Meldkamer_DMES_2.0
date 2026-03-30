@@ -38,6 +38,7 @@ export default function Dashboard({ reports, reloadData, setReports }) {
     return {
       status: [],
       priority: [],
+      teams: [],
     };
   });
 
