@@ -16,7 +16,9 @@ export default function Dashboard({ reports, reloadData, setReports }) {
   const location = useLocation();
 
   const [currentMap, setCurrentMap] = useState(MAPS[0].src);
-  const [mapColorMode, setMapColorMode] = useState("priority"); // "priority" or "status"
+  const [mapColorMode, setMapColorMode] = useState(() => {
+    return localStorage.getItem("dashboard_mapColorMode") || "priority";
+  }); // "priority" or "status"
   const [mainTab, setMainTab] = useState(MAIN_TABS.TEAMS);
   const [reportsTab, setReportsTab] = useState(REPORT_TABS.ALL);
 
@@ -24,11 +26,28 @@ export default function Dashboard({ reports, reloadData, setReports }) {
   const [statusFilter, setStatusFilter] = useState("Alles");
   const [priorityFilter, setPriorityFilter] = useState("Alles");
 
-  const [activeLegendFilters, setActiveLegendFilters] = useState({
-    status: [],
-    priority: [],
-    teams: [],
+  const [activeLegendFilters, setActiveLegendFilters] = useState(() => {
+    const saved = localStorage.getItem("dashboard_activeLegendFilters");
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error("Failed to parse activeLegendFilters from localStorage", e);
+      }
+    }
+    return {
+      status: [],
+      priority: [],
+    };
   });
+
+  useEffect(() => {
+    localStorage.setItem("dashboard_mapColorMode", mapColorMode);
+  }, [mapColorMode]);
+
+  useEffect(() => {
+    localStorage.setItem("dashboard_activeLegendFilters", JSON.stringify(activeLegendFilters));
+  }, [activeLegendFilters]);
 
   const [showKladblok, setShowKladblok] = useState(false);
   const [kladblokContext, setKladblokContext] = useState(null);
