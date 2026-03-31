@@ -122,7 +122,7 @@ foreach ($notifications as &$row) {
     }
 
     if (!empty($row["time"]) && !empty($row["closedAt"])) {
-        $start = strtotime($row["time"]);
+        $start = strtotime($row["assignedAt"] ?? $row["time"]);
         $end = strtotime($row["closedAt"]);
         $row["Duur (minuten)"] = round(($end - $start) / 60); 
     } else {
