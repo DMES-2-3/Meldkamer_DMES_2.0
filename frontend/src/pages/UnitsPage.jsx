@@ -71,9 +71,7 @@ function SectionCards({ title, accent, items, emptyMsg }) {
         {items.length === 0 ? (
           <div className="up-td-empty">{emptyMsg}</div>
         ) : (
-          <div className="units-unit-list">
-            {items}
-          </div>
+          <div className="units-unit-list">{items}</div>
         )}
       </div>
     </section>
@@ -304,7 +302,9 @@ function WorkersTab({ eventId, workers = [], reloadData }) {
   const renderWorkerCard = (w, isAssigned) => (
     <div key={w.id} className="unit-card" onClick={() => setEditTarget(w)}>
       <div className="unit-card-header">
-        <span className="unit-team-name">{w.firstName} {w.lastName}</span>
+        <span className="unit-team-name">
+          {w.firstName} {w.lastName}
+        </span>
         <span
           className="up-delete-icon"
           onClick={(ev) => {
@@ -317,19 +317,25 @@ function WorkersTab({ eventId, workers = [], reloadData }) {
         </span>
       </div>
       <div className="unit-card-body">
-        <span className={`unit-label ${getStatusLabelClass(w.status)}`}>{w.callNumber}</span>
-        <span style={{ fontSize: '13px', fontWeight: 500 }}>{w.workerType}</span>
+        <span className={`unit-label ${getStatusLabelClass(w.status)}`}>
+          {w.callNumber}
+        </span>
+        <span style={{ fontSize: "13px", fontWeight: 500 }}>
+          {w.workerType}
+        </span>
       </div>
       {isAssigned && (
-        <div style={{ marginTop: '-4px' }}>
+        <div style={{ marginTop: "-4px" }}>
           <span className="up-team-badge">{w.teamName}</span>
         </div>
       )}
       <div className="unit-card-footer">
-        <span className={`up-status-pill up-status-pill--${w.status?.toLowerCase()}`}>
+        <span
+          className={`up-status-pill up-status-pill--${w.status?.toLowerCase()}`}
+        >
           {statusLabel(w.status)}
         </span>
-        <span className="up-td-muted" style={{ fontSize: '12px' }}>
+        <span className="up-td-muted" style={{ fontSize: "12px" }}>
           {w.updatedAt
             ? new Date(w.updatedAt).toLocaleTimeString("nl-NL", {
                 hour: "2-digit",
@@ -345,13 +351,15 @@ function WorkersTab({ eventId, workers = [], reloadData }) {
   const unassigned = workers.filter((w) => !w.teamId);
   const assigned = workers.filter((w) => !!w.teamId);
 
-  const unassignedCards = unassigned.map(w => renderWorkerCard(w, false));
-  const assignedCards = assigned.map(w => renderWorkerCard(w, true));
+  const unassignedCards = unassigned.map((w) => renderWorkerCard(w, false));
+  const assignedCards = assigned.map((w) => renderWorkerCard(w, true));
 
   return (
     <div className="up-tab-content">
       <div className="up-tab-toolbar">
-        <span className="up-tab-count">{localWorkers.length} hulpverlener(s)</span>
+        <span className="up-tab-count">
+          {localWorkers.length} hulpverlener(s)
+        </span>
         <button
           className="up-btn up-btn-primary"
           onClick={() => setShowAdd(true)}
@@ -392,7 +400,9 @@ function WorkersTab({ eventId, workers = [], reloadData }) {
           onSaved={() => {
             setShowAdd(false);
             if (reloadData) reloadData();
-            window.dispatchEvent(new StorageEvent("storage", { key: "shared_report_update" }));
+            window.dispatchEvent(
+              new StorageEvent("storage", { key: "shared_report_update" }),
+            );
           }}
         />
       )}
@@ -405,7 +415,9 @@ function WorkersTab({ eventId, workers = [], reloadData }) {
           onSaved={() => {
             setEditTarget(null);
             if (reloadData) reloadData();
-            window.dispatchEvent(new StorageEvent("storage", { key: "shared_report_update" }));
+            window.dispatchEvent(
+              new StorageEvent("storage", { key: "shared_report_update" }),
+            );
           }}
         />
       )}
@@ -545,10 +557,12 @@ function TeamsTab({ eventId, units = [], reloadData }) {
           </span>
         </div>
         <div className="unit-card-footer">
-          <span className={`up-status-pill up-status-pill--${t.status?.toLowerCase()}`}>
+          <span
+            className={`up-status-pill up-status-pill--${t.status?.toLowerCase()}`}
+          >
             {statusLabel(t.status)}
           </span>
-          <span className="up-td-muted" style={{ fontSize: '12px' }}>
+          <span className="up-td-muted" style={{ fontSize: "12px" }}>
             {t.updatedAt
               ? new Date(t.updatedAt).toLocaleTimeString("nl-NL", {
                   hour: "2-digit",
@@ -563,8 +577,12 @@ function TeamsTab({ eventId, units = [], reloadData }) {
   };
 
   const wachtrij = teams.filter((t) => t.status === "WAIT");
-  const aangemeld = teams.filter((t) => ["AVAILABLE", "NOTIFICATION"].includes(t.status));
-  const afgemeld = teams.filter((t) => ["SHORT_BREAK", "LONG_BREAK", "SIGNED_OUT"].includes(t.status));
+  const aangemeld = teams.filter((t) =>
+    ["AVAILABLE", "NOTIFICATION"].includes(t.status),
+  );
+  const afgemeld = teams.filter((t) =>
+    ["SHORT_BREAK", "LONG_BREAK", "SIGNED_OUT"].includes(t.status),
+  );
 
   return (
     <div className="up-tab-content">
@@ -617,7 +635,9 @@ function TeamsTab({ eventId, units = [], reloadData }) {
           onSaved={() => {
             setShowAdd(false);
             if (reloadData) reloadData();
-            window.dispatchEvent(new StorageEvent("storage", { key: "shared_report_update" }));
+            window.dispatchEvent(
+              new StorageEvent("storage", { key: "shared_report_update" }),
+            );
           }}
         />
       )}
@@ -630,7 +650,9 @@ function TeamsTab({ eventId, units = [], reloadData }) {
           onSaved={() => {
             setEditTarget(null);
             if (reloadData) reloadData();
-            window.dispatchEvent(new StorageEvent("storage", { key: "shared_report_update" }));
+            window.dispatchEvent(
+              new StorageEvent("storage", { key: "shared_report_update" }),
+            );
           }}
         />
       )}
@@ -669,12 +691,18 @@ function TeamsTab({ eventId, units = [], reloadData }) {
 export default function UnitsPage({ units = [], workers = [], reloadData }) {
   const navigate = useNavigate();
   const [selectedEvent, setSelectedEvent] = useState(null);
-  const [activeTab, setActiveTab] = useState("teams");
+  const [activeTab, setActiveTab] = useState(() => {
+    return sessionStorage.getItem("units_active_tab") || "teams";
+  });
+
+  useEffect(() => {
+    sessionStorage.setItem("units_active_tab", activeTab);
+  }, [activeTab]);
 
   useEffect(() => {
     const handleKeyDown = (e) => {
       // Alt + N om een nieuwe melding te maken
-      if (e.altKey && e.key.toLowerCase() === 'n') {
+      if (e.altKey && e.key.toLowerCase() === "n") {
         e.preventDefault();
         if (document.activeElement instanceof HTMLElement) {
           document.activeElement.blur();
@@ -721,9 +749,17 @@ export default function UnitsPage({ units = [], workers = [], reloadData }) {
       </div>
 
       {activeTab === "teams" ? (
-        <TeamsTab eventId={selectedEvent.id} units={units} reloadData={reloadData} />
+        <TeamsTab
+          eventId={selectedEvent.id}
+          units={units}
+          reloadData={reloadData}
+        />
       ) : (
-        <WorkersTab eventId={selectedEvent.id} workers={workers} reloadData={reloadData} />
+        <WorkersTab
+          eventId={selectedEvent.id}
+          workers={workers}
+          reloadData={reloadData}
+        />
       )}
     </div>
   );

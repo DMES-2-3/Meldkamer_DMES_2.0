@@ -15,16 +15,20 @@ export default function AidWorkersTable({ workers, onStatusClick }) {
               <th>Status</th>
               <th>Roepnummer</th>
               <th>Naam</th>
-              <th>Type</th>
+              <th>Functie</th>
               <th>Team</th>
             </tr>
           </thead>
           <tbody>
-            {workers.map(w => {
+            {workers.map((w) => {
               const normalizedStatus = w.status.toLowerCase();
 
               return (
-                <tr key={w.id} onClick={() => setSelectedWorker(w)} className="clickable-row">
+                <tr
+                  key={w.id}
+                  onClick={() => setSelectedWorker(w)}
+                  className="clickable-row"
+                >
                   <td>
                     <span
                       className="status-dot"
@@ -34,7 +38,7 @@ export default function AidWorkersTable({ workers, onStatusClick }) {
                   </td>
                   <td>{w.callNumber || w.id}</td>
                   <td>{w.name}</td>
-                  <td>{w.workerType || "N/A"}</td>
+                  <td>{w.type || "N/A"}</td>
                   <td>{w.teamName || "N/A"}</td>
                 </tr>
               );
@@ -44,10 +48,7 @@ export default function AidWorkersTable({ workers, onStatusClick }) {
       </div>
 
       {selectedWorker && (
-        <div
-          className="modal-backdrop"
-          onClick={() => setSelectedWorker(null)}
-        >
+        <div className="modal-backdrop" onClick={() => setSelectedWorker(null)}>
           <div
             className="modal note-modal"
             onClick={(e) => e.stopPropagation()}
