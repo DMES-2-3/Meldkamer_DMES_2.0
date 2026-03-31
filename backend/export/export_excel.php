@@ -274,13 +274,41 @@ if (!empty($notifications)) {
         "team" => "Team",
     ];
 
+    // Gewenste volgorde van kolommen in Excel
+    $desiredOrder = [
+        "reportedBy",        
+        "subject",           
+        "mapLocation",      
+        "description",     
+        "priority",         
+        "status",           
+        "team",
+        "time",
+        "assignedAt",
+        "closedAt",
+        "Duur (minuten)",
+        "logbook",
+        "SITRAP",
+        "AVPU",
+        "Assistance",
+    ];
+
     $headerRow = [];
-    foreach (array_keys($notifications[0]) as $key) {
+    foreach ($desiredOrder as $key) {
         $headerRow[] = $headersNL[$key] ?? $key;
     }
 
+    $orderedNotifications = [];
+    foreach ($notifications as $row) {
+        $orderedRow = [];
+        foreach ($desiredOrder as $key) {
+            $orderedRow[] = $row[$key] ?? "";
+        }
+        $orderedNotifications[] = $orderedRow;
+    }
+
     $sheet2->fromArray($headerRow, null, "A1");
-    $sheet2->fromArray($notifications, null, "A2");
+    $sheet2->fromArray($orderedNotifications, null, "A2");
 
     $lastCol2 = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(
         count($headerRow),

@@ -281,14 +281,46 @@ if (!empty($notifications)) {
         "teamName" => "Team",
     ];
 
+    // Gewenste volgorde van kolommen in CSV
+    $desiredOrder = [
+        "reportedBy",
+        "subject",
+        "mapLocation",
+        "description",
+        "priority",
+        "status",
+        "teamName",
+        "time",
+        "assignedAt",
+        "closedAt",
+        "Duur (minuten)",
+        "logbook",
+        "SITRAP",
+        "AVPU",
+        "Assistance",
+    ];
+
     $headerRow = [];
-    foreach (array_keys($notifications[0]) as $key) {
-        $headerRow[] = $headersNL[$key] ?? $key;
+    foreach ($desiredOrder as $key) {
+        if (isset($headersNL[$key])) {
+            $headerRow[] = $headersNL[$key];
+        } else {
+            $headerRow[] = $key;
+        }
     }
 
-    fputcsv($csvStream, $headerRow, ";", '"', "\\");
-
+    $orderedNotifications = [];
     foreach ($notifications as $row) {
+        $orderedRow = [];
+        foreach ($desiredOrder as $key) {
+            $orderedRow[] = $row[$key] ?? "";
+        }
+        $orderedNotifications[] = $orderedRow;
+    }
+
+    // CSV vullen
+    fputcsv($csvStream, $headerRow, ";", '"', "\\");
+    foreach ($orderedNotifications as $row) {
         fputcsv($csvStream, $row, ";", '"', "\\");
     }
 } else {
