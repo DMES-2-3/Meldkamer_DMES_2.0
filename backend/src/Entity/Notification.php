@@ -127,6 +127,8 @@ class Notification
 
     public function __construct()
     {
+        $this->status = NotificationStatus::NEW;
+        $this->priority = Priority::GREEN;
         $this->reportedBy = null;
         $this->AVPU = null;
         $this->AidTeam = null;
@@ -136,6 +138,8 @@ class Notification
         $this->description = null;
         $this->notepad = null;
         $this->gender = null;
+        $this->assignedAt = null;
+        $this->closedAt = null;
         $this->logbooks = new ArrayCollection();
     }
 

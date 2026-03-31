@@ -121,11 +121,11 @@ class NotificationController extends BaseController implements IController
                 $notification->setStatus($newStatus);
 
                 if ($newStatus === NotificationStatus::PENDING && $notification->getAssignedAt() === null) {
-                    $notification->setAssignedAt(new \DateTimeImmutable());
+                    $notification->setAssignedAt(new \DateTime());
                 }
 
                 if ($newStatus === NotificationStatus::CLOSED && $notification->getClosedAt() === null) {
-                    $notification->setClosedAt(new \DateTimeImmutable());
+                    $notification->setClosedAt(new \DateTime());
                 }
             }
 
@@ -297,12 +297,12 @@ class NotificationController extends BaseController implements IController
             $newStatus = NotificationStatus::from($input["Status"]);
            
             if ($newStatus === NotificationStatus::PENDING) {
-                $notification->setAssignedAt(new \DateTimeImmutable());
+                $notification->setAssignedAt(new \DateTime());
                 $notification->setClosedAt(null);
             }
 
             if ($newStatus === NotificationStatus::CLOSED && $notification->getClosedAt() === null) {
-                $notification->setClosedAt(new \DateTimeImmutable());
+                $notification->setClosedAt(new \DateTime());
             }
 
             $notification->setStatus($newStatus);
