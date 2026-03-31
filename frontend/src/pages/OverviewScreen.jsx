@@ -97,6 +97,17 @@ export default function OverviewScreen({ reports, units, reloadData }) {
     };
   }, [reports, selectedEvent]);
 
+  const isTeamBusyWithOtherReports = (teamName, currentReportId) => {
+    return (reports || []).some((wrapper) => {
+      const r = wrapper.Report ?? wrapper;
+      return (
+        String(r.id) !== String(currentReportId) &&
+        r.Status !== "Gesloten" &&
+        (r.Team === teamName || r.Assistance?.Team === teamName)
+      );
+    });
+  };
+
   const handleReportClick = (report) => {
     // It's better to navigate with the original report data if possible
     const originalWrapper = reports.find(
@@ -120,17 +131,30 @@ export default function OverviewScreen({ reports, units, reloadData }) {
 
     if (!newStatus) return;
 
-    // If closing the report, also set the team status to AVAILABLE
+    // If closing the report, also set the team status to AVAILABLE if not busy
     if (newStatus === "Gesloten") {
       const teamName = originalReport.Team;
       if (teamName) {
         const team = mappedUnits.find((u) => u.name === teamName);
         if (team) {
-          const payload = { ...team, status: "AVAILABLE" };
+          const isBusy = isTeamBusyWithOtherReports(teamName, originalReport.id);
+          const payload = { ...team, status: isBusy ? "NOTIFICATION" : "AVAILABLE" };
           delete payload.id;
           delete payload.name;
           delete payload.teamName;
           await updateUnit(team.id, payload);
+        }
+      }
+      const assistanceTeamName = originalReport.Assistance?.Team;
+      if (assistanceTeamName) {
+        const assistanceTeam = mappedUnits.find((u) => u.name === assistanceTeamName);
+        if (assistanceTeam) {
+          const isBusy = isTeamBusyWithOtherReports(assistanceTeamName, originalReport.id);
+          const payload = { ...assistanceTeam, status: isBusy ? "NOTIFICATION" : "AVAILABLE" };
+          delete payload.id;
+          delete payload.name;
+          delete payload.teamName;
+          await updateUnit(assistanceTeam.id, payload);
         }
       }
     }
@@ -158,7 +182,8 @@ export default function OverviewScreen({ reports, units, reloadData }) {
     if (oldTeamName) {
       const oldTeam = mappedUnits.find((u) => u.name === oldTeamName);
       if (oldTeam) {
-        const payload = { ...oldTeam, status: "AVAILABLE" };
+        const isBusy = isTeamBusyWithOtherReports(oldTeamName, originalReport.id);
+        const payload = { ...oldTeam, status: isBusy ? "NOTIFICATION" : "AVAILABLE" };
         delete payload.id;
         delete payload.name;
         delete payload.teamName;
@@ -211,17 +236,54 @@ export default function OverviewScreen({ reports, units, reloadData }) {
     const currentStatus = originalReport.Status || "Open";
     if (currentStatus === targetStatus) return;
 
-    // If closing the report, also set the team status to AVAILABLE
+    // If closing the report, also set the team status to AVAILABLE if not busy
     if (targetStatus === "Gesloten") {
       const teamName = originalReport.Team;
       if (teamName) {
         const team = mappedUnits.find((u) => u.name === teamName);
         if (team) {
-          const payload = { ...team, status: "AVAILABLE" };
+          const isBusy = isTeamBusyWithOtherReports(teamName, originalReport.id);
+          const payload = { ...team, status: isBusy ? "NOTIFICATION" : "AVAILABLE" };
           delete payload.id;
           delete payload.name;
           delete payload.teamName;
           await updateUnit(team.id, payload);
+        }
+      }
+      const assistanceTeamName = originalReport.Assistance?.Team;
+      if (assistanceTeamName) {
+        const assistanceTeam = mappedUnits.find((u) => u.name === assistanceTeamName);
+        if (assistanceTeam) {
+          const isBusy = isTeamBusyWithOtherReports(assistanceTeamName, originalReport.id);
+          const payload = { ...assistanceTeam, status: isBusy ? "NOTIFICATION" : "AVAILABLE" };
+          delete payload.id;
+          delete payload.name;
+          delete payload.teamName;
+          await updateUnit(assistanceTeam.id, payload);
+        }
+      }
+    } else if (currentStatus === "Gesloten" && targetStatus !== "Gesloten") {
+      // Reopening a report sets the team back to NOTIFICATION
+      const teamName = originalReport.Team;
+      if (teamName) {
+        const team = mappedUnits.find((u) => u.name === teamName);
+        if (team) {
+          const payload = { ...team, status: "NOTIFICATION" };
+          delete payload.id;
+          delete payload.name;
+          delete payload.teamName;
+          await updateUnit(team.id, payload);
+        }
+      }
+      const assistanceTeamName = originalReport.Assistance?.Team;
+      if (assistanceTeamName) {
+        const assistanceTeam = mappedUnits.find((u) => u.name === assistanceTeamName);
+        if (assistanceTeam) {
+          const payload = { ...assistanceTeam, status: "NOTIFICATION" };
+          delete payload.id;
+          delete payload.name;
+          delete payload.teamName;
+          await updateUnit(assistanceTeam.id, payload);
         }
       }
     }

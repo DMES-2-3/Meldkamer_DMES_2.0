@@ -75,8 +75,17 @@ function App() {
         reloadData();
       }
     };
+
+    const handleFocus = () => {
+      reloadData();
+    };
+
     window.addEventListener("storage", handleStorage);
-    return () => window.removeEventListener("storage", handleStorage);
+    window.addEventListener("focus", handleFocus);
+    return () => {
+      window.removeEventListener("storage", handleStorage);
+      window.removeEventListener("focus", handleFocus);
+    };
   }, [reloadData]);
 
   return (

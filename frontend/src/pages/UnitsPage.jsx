@@ -652,6 +652,7 @@ function TeamsTab({ eventId }) {
           onSaved={() => {
             setShowAdd(false);
             fetchTeams();
+            window.dispatchEvent(new StorageEvent("storage", { key: "shared_report_update" }));
           }}
         />
       )}
@@ -664,6 +665,7 @@ function TeamsTab({ eventId }) {
           onSaved={() => {
             setEditTarget(null);
             fetchTeams();
+            window.dispatchEvent(new StorageEvent("storage", { key: "shared_report_update" }));
           }}
         />
       )}

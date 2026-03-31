@@ -943,6 +943,7 @@ export default function MapPanel({
               .catch(console.error);
             setShowTeamMarkerModal(false);
             setEditingTeamMarker(null);
+            window.dispatchEvent(new StorageEvent("storage", { key: "shared_report_update" }));
           }}
           isMapContext={true}
           onDeleteMarker={(id) => {
