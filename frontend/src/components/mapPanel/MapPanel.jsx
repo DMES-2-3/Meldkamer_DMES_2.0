@@ -16,7 +16,6 @@ import ActiveMarkersModal from "./ActiveMarkersModal";
 import Marker from "./Marker";
 import TeamMarker from "./TeamMarker";
 import TeamModal from "../TeamModal";
-import { getUnits } from "../../services/unitsApi";
 import { getPriorityColor, PRIORITY_COLORS, REPORT_STATUS_COLORS, normalizePriority, normalizeReportStatus } from "../../utils/utils";
 
 pdfjs.GlobalWorkerOptions.workerSrc =
@@ -41,6 +40,8 @@ export default function MapPanel({
   activeLegendFilters,
   initialMapType = "PDF",
   isPopout = false,
+  units = null,
+  setUnits = null,
 }) {
   const navigate = useNavigate();
   const wrapperRef = useRef(null);
@@ -140,15 +141,10 @@ export default function MapPanel({
   }, [message]);
 
   useEffect(() => {
-    if (selectedEventId) {
-      getUnits(selectedEventId)
-        .then((res) => {
-          const list = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
-          setTeams(list);
-        })
-        .catch(console.error);
+    if (units) {
+      setTeams(units);
     }
-  }, [selectedEventId]);
+  }, [units]);
 
   useEffect(() => {
     if (initialMapType) {
@@ -722,7 +718,7 @@ export default function MapPanel({
             colorMode={colorMode}
             activeLegendFilters={activeLegendFilters}
             isAddingMarker={isAddingMarker || isAddingTeamMarker}
-            teamMarkers={markers.filter(m => m.isGoogle && m.teamId)}
+            teamMarkers={markers.filter(m => m.isGoogle && m.teamId && teams.some(t => String(t.id) === String(m.teamId)))}
             teams={teams}
             onTeamMarkerDragEnd={(markerId, coords) => {
               setMarkers(prev => prev.map(m => m.id === markerId ? { ...m, lat: coords.lat, lng: coords.lng } : m));
@@ -761,7 +757,7 @@ export default function MapPanel({
                 {isAddingTeamMarker ? "Annuleren" : "Voeg Team Marker toe"}
               </button>
               <button onClick={() => setShowActiveMarkersModal(true)}>
-                Markers ({googleMapMarkers.length + markers.filter(m => m.isGoogle && m.teamId).length})
+                Markers ({googleMapMarkers.length + markers.filter(m => m.isGoogle && m.teamId && teams.some(t => String(t.id) === String(m.teamId))).length})
               </button>
               <button onClick={openMapPopout}>Pop-out</button>
             </div>
@@ -935,12 +931,6 @@ export default function MapPanel({
             setEditingTeamMarker(null);
           }}
           onSaved={() => {
-            getUnits(selectedEventId)
-              .then((res) => {
-                const list = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
-                setTeams(list);
-              })
-              .catch(console.error);
             setShowTeamMarkerModal(false);
             setEditingTeamMarker(null);
             window.dispatchEvent(new StorageEvent("storage", { key: "shared_report_update" }));
@@ -959,8 +949,8 @@ export default function MapPanel({
         onClose={() => setShowActiveMarkersModal(false)}
         markers={mapType === "GoogleMaps" ? [
           ...googleMapMarkers.map(m => ({ id: `gmap-${m.id}`, label: m.title, reportId: m.id })),
-          ...markers.filter(m => m.isGoogle && m.teamId)
-        ] : currentMarkers}
+          ...markers.filter(m => m.isGoogle && m.teamId && teams.some(t => String(t.id) === String(m.teamId)))
+        ] : currentMarkers.filter(m => !m.teamId || teams.some(t => String(t.id) === String(m.teamId)))}
         localReports={reports}
         onMarkerClick={openMarkerModal}
       />

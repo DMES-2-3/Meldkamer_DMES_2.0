@@ -30,13 +30,10 @@ const STATUS_OPTIONS = Object.entries(STATUSES).map(([value, config]) => ({
   color: getStatusColor(value),
 }));
 
-export default function TeamsTableContainer() {
+export default function TeamsTableContainer({ units = [] }) {
   const navigate = useNavigate();
 
   const [teams, setTeams] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [selectedEvent, setSelectedEvent] = useState(null);
 
   const [statusTarget, setStatusTarget] = useState(null);
   const [statusSaving, setStatusSaving] = useState(false);
@@ -57,39 +54,10 @@ export default function TeamsTableContainer() {
     };
   }, []);
 
-  const fetchTeams = useCallback(async () => {
-    try {
-      setLoading(true);
-
-      const eventId = selectedEvent?.id;
-      const url = eventId
-        ? `${API_URL}/aidteam?eventId=${eventId}`
-        : `${API_URL}/aidteam`;
-
-      const res = await fetch(url);
-      if (!res.ok) {
-        throw new Error(`HTTP error! Status: ${res.status}`);
-      }
-
-      const text = await res.text();
-      let data;
-
-      try {
-        data = JSON.parse(text);
-      } catch {
-        throw new Error("Invalid JSON response: " + text.substring(0, 100));
-      }
-
-      const mapped = Array.isArray(data) ? data.map(mapTeam) : [];
-      setTeams(mapped);
-      setError(null);
-    } catch (err) {
-      console.error("Failed to fetch teams:", err);
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }, [selectedEvent, mapTeam]);
+  useEffect(() => {
+    const mapped = units.map(mapTeam);
+    setTeams(mapped);
+  }, [units, mapTeam]);
 
   const handleStatusChange = async (newStatus) => {
     if (!statusTarget) return;
@@ -118,7 +86,7 @@ export default function TeamsTableContainer() {
       }
 
       setStatusTarget(null);
-      await fetchTeams();
+      window.dispatchEvent(new StorageEvent("storage", { key: "shared_report_update" }));
     } catch (err) {
       console.error("Failed to update team status:", err);
       setStatusError(err.message);
@@ -131,25 +99,9 @@ export default function TeamsTableContainer() {
     const stored = localStorage.getItem("selected_event");
     if (!stored) {
       navigate("/events");
-      return;
-    }
-
-    try {
-      const parsed = JSON.parse(stored);
-      setSelectedEvent(parsed);
-    } catch {
-      navigate("/events");
     }
   }, [navigate]);
 
-  useEffect(() => {
-    if (selectedEvent) {
-      fetchTeams();
-    }
-  }, [selectedEvent, fetchTeams]);
-
-  if (loading) return <p>Teams laden...</p>;
-  if (error) return <p style={{ color: "red" }}>Error: {error}</p>;
   if (!teams.length) return <p>Geen teams beschikbaar voor dit evenement</p>;
 
   return (
