@@ -83,6 +83,7 @@ export default function EventsPage() {
       name: event.name || event.eventName || "",
     };
     localStorage.setItem("selected_event", JSON.stringify(normalized));
+    window.dispatchEvent(new StorageEvent("storage", { key: "shared_report_update" }));
     navigate("/dashboard");
   };
 

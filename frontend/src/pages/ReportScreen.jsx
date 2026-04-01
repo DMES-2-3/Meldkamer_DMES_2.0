@@ -5,10 +5,10 @@ import {
   saveReport,
   getAidWorkers,
   deleteReport,
+  getReports,
 } from "../services/reportsApi";
 import { getUnits, updateUnit } from "../services/unitsApi";
 import TeamSelect from "../components/TeamSelect";
-import { useNotepad } from "../contexts/NotepadContexts";
 
 const getCurrentTime = () => new Date().toTimeString().slice(0, 5);
 
@@ -95,29 +95,6 @@ export default function ReportScreen({ reloadData }) {
     }));
   };
 
-  const { notes, setNotes, setActiveKey } = useNotepad();
-
-  const reportId =
-    formData.id ?? initialReport?.Report?.id ?? initialReport?.id ?? null;
-
-  const draftKey = React.useMemo(() => {
-    let k = sessionStorage.getItem("draft_report_notepad_key");
-    if (!k) {
-      k = `notepad:report:draft:${Date.now()}-${Math.random()
-        .toString(16)
-        .slice(2)}`;
-      sessionStorage.setItem("draft_report_notepad_key", k);
-    }
-    return k;
-  }, []);
-
-  useEffect(() => {
-    const key = reportId ? `notepad:report:${reportId}` : draftKey;
-    setActiveKey(key);
-
-    return () => setActiveKey(null);
-  }, [reportId, draftKey, setActiveKey]);
-
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
@@ -179,6 +156,7 @@ export default function ReportScreen({ reloadData }) {
         Subject: inner.Subject ?? inner.subject ?? "",
         Location: inner.Location ?? inner.location ?? "",
         Note: inner.Note ?? inner.note ?? "",
+        Notepad: inner.Notepad ?? inner.notepad ?? "",
         Prioriteit: inner.Prioriteit ?? inner.priority ?? "",
         Status: inner.Status ?? inner.status ?? "",
         Team: inner.Team ?? inner.team ?? "",
@@ -308,10 +286,19 @@ export default function ReportScreen({ reloadData }) {
         originalReportData.current?.Assistance?.Team;
       const newAssistanceTeamName = formData.Assistance.Team;
 
+      const eventIdToFetch = selectedEvent?.id || selectedEvent?.eventId;
+      const allReports = eventIdToFetch ? await getReports(eventIdToFetch) : [];
+      const activeReports = allReports
+        .map((r) => r.Report || r)
+        .filter((r) => r.Status !== "Gesloten" && String(r.id) !== String(formData.id));
+
+      const isTeamBusy = (teamName) => activeReports.some((r) => r.Team === teamName || r.Assistance?.Team === teamName);
+
       if (originalTeamName && originalTeamName !== newTeamName) {
         const originalTeam = units.find((u) => u.name === originalTeamName);
         if (originalTeam) {
-          const payload = { ...originalTeam, status: "AVAILABLE" };
+          const newStatus = isTeamBusy(originalTeamName) ? (originalTeam.status === "AVAILABLE" ? "NOTIFICATION" : originalTeam.status) : "AVAILABLE";
+          const payload = { ...originalTeam, status: newStatus };
           delete payload.id;
           delete payload.name;
           await updateUnit(originalTeam.id, payload);
@@ -321,8 +308,12 @@ export default function ReportScreen({ reloadData }) {
       if (newTeamName) {
         const newTeam = units.find((u) => u.name === newTeamName);
         if (newTeam) {
-          const newStatus =
-            formData.Status === "Gesloten" ? "AVAILABLE" : "NOTIFICATION";
+          let newStatus = newTeam.status && newTeam.status !== "AVAILABLE" ? newTeam.status : "NOTIFICATION";
+          if (formData.Status === "Gesloten") {
+             newStatus = isTeamBusy(newTeamName) ? newStatus : "AVAILABLE";
+          } else if (originalReportData.current?.Status === "Gesloten" && formData.Status !== "Gesloten") {
+             newStatus = "NOTIFICATION";
+          }
           const payload = { ...newTeam, status: newStatus };
           delete payload.id;
           delete payload.name;
@@ -338,7 +329,8 @@ export default function ReportScreen({ reloadData }) {
           (u) => u.name === originalAssistanceTeamName,
         );
         if (originalAssistanceTeam) {
-          const payload = { ...originalAssistanceTeam, status: "AVAILABLE" };
+          const newStatus = isTeamBusy(originalAssistanceTeamName) ? (originalAssistanceTeam.status === "AVAILABLE" ? "NOTIFICATION" : originalAssistanceTeam.status) : "AVAILABLE";
+          const payload = { ...originalAssistanceTeam, status: newStatus };
           delete payload.id;
           delete payload.name;
           await updateUnit(originalAssistanceTeam.id, payload);
@@ -350,8 +342,12 @@ export default function ReportScreen({ reloadData }) {
           (u) => u.name === newAssistanceTeamName,
         );
         if (newAssistanceTeam) {
-          const newStatus =
-            formData.Status === "Gesloten" ? "AVAILABLE" : "NOTIFICATION";
+          let newStatus = newAssistanceTeam.status && newAssistanceTeam.status !== "AVAILABLE" ? newAssistanceTeam.status : "NOTIFICATION";
+          if (formData.Status === "Gesloten") {
+             newStatus = isTeamBusy(newAssistanceTeamName) ? newStatus : "AVAILABLE";
+          } else if (originalReportData.current?.Status === "Gesloten" && formData.Status !== "Gesloten") {
+             newStatus = "NOTIFICATION";
+          }
           const payload = { ...newAssistanceTeam, status: newStatus };
           delete payload.id;
           delete payload.name;
@@ -370,16 +366,6 @@ export default function ReportScreen({ reloadData }) {
 
       if (newReportId) {
         localStorage.setItem("shared_report_update", Date.now().toString());
-
-        const finalKey = `notepad:report:${newReportId}`;
-
-        const draftStored = localStorage.getItem(draftKey);
-        if (draftStored != null) {
-          localStorage.setItem(finalKey, draftStored);
-          localStorage.removeItem(draftKey);
-        }
-
-        sessionStorage.removeItem("draft_report_notepad_key");
       }
 
       if (fromPdfMap) {
@@ -839,8 +825,8 @@ export default function ReportScreen({ reloadData }) {
             ref={notepadRef}
             className="notepad"
             placeholder="Schrijf notitie"
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
+            value={formData.Notepad}
+            onChange={(e) => handleChange("Notepad", e.target.value)}
             style={{ flex: 1, minHeight: "200px" }}
           />
 
