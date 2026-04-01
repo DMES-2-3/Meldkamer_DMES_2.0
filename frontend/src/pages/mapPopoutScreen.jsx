@@ -6,6 +6,8 @@ export default function MapPopoutScreen({
   reports,
   reloadData,
   setReports,
+  units,
+  setUnits,
 }) {
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [mapColorMode, setMapColorMode] = useState(() => {
@@ -115,6 +117,8 @@ export default function MapPopoutScreen({
         initialMapType="PDF"
         isPopout={true}
         activeLegendFilters={activeLegendFilters}
+        units={units}
+        setUnits={setUnits}
       />
     </div>
   );

@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import ReportsTable from "./ReportsTable";
-import { getReports } from "../services/reportsApi";
 
 // The 'reportsTab' prop is passed from the dashboard but its functionality is not implemented yet.
 // It is included in the function signature to prevent potential prop-related errors.
@@ -8,11 +7,10 @@ export default function ReportsTableContainer({
   reportsTab,
   statusFilter,
   priorityFilter,
+  reports = [],
 }) {
   const [allEventReports, setAllEventReports] = useState([]);
   const [filteredReports, setFilteredReports] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
 
   useEffect(() => {
     const storedEvent = localStorage.getItem("selected_event");
@@ -25,31 +23,17 @@ export default function ReportsTableContainer({
       }
     }
 
-    const fetchReportsForEvent = async () => {
-      setLoading(true);
-      try {
-        const fetchedReports = await getReports(selectedEvent?.id);
-        const unwrappedReports = fetchedReports.map((r) => r.Report ?? r);
+    const unwrappedReports = reports.map((r) => r.Report ?? r);
 
-        if (selectedEvent && selectedEvent.name) {
-          const eventReports = unwrappedReports.filter(
-            (report) => report.NameEvent === selectedEvent.name,
-          );
-          setAllEventReports(eventReports);
-        } else {
-          setAllEventReports([]);
-        }
-        setError(null);
-      } catch (err) {
-        setError(err.message);
-        setAllEventReports([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchReportsForEvent();
-  }, []); // This effect fetches reports once when the component mounts.
+    if (selectedEvent && selectedEvent.name) {
+      const eventReports = unwrappedReports.filter(
+        (report) => report.NameEvent === selectedEvent.name,
+      );
+      setAllEventReports(eventReports);
+    } else {
+      setAllEventReports([]);
+    }
+  }, [reports]);
 
   useEffect(() => {
     let reportsToFilter = [...allEventReports];
@@ -69,8 +53,6 @@ export default function ReportsTableContainer({
     setFilteredReports(reportsToFilter);
   }, [allEventReports, statusFilter, priorityFilter]);
 
-  if (loading) return <p>Meldingen laden...</p>;
-  if (error) return <p style={{ color: "red" }}>Error: {error}</p>;
   if (!allEventReports.length)
     return <p>Geen meldingen beschikbaar voor dit evenement</p>;
 

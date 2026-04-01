@@ -5,6 +5,7 @@ import {
   saveReport,
   getAidWorkers,
   deleteReport,
+  getReports,
 } from "../services/reportsApi";
 import { getUnits, updateUnit } from "../services/unitsApi";
 import TeamSelect from "../components/TeamSelect";
@@ -308,10 +309,19 @@ export default function ReportScreen({ reloadData }) {
         originalReportData.current?.Assistance?.Team;
       const newAssistanceTeamName = formData.Assistance.Team;
 
+      const eventIdToFetch = selectedEvent?.id || selectedEvent?.eventId;
+      const allReports = eventIdToFetch ? await getReports(eventIdToFetch) : [];
+      const activeReports = allReports
+        .map((r) => r.Report || r)
+        .filter((r) => r.Status !== "Gesloten" && String(r.id) !== String(formData.id));
+
+      const isTeamBusy = (teamName) => activeReports.some((r) => r.Team === teamName || r.Assistance?.Team === teamName);
+
       if (originalTeamName && originalTeamName !== newTeamName) {
         const originalTeam = units.find((u) => u.name === originalTeamName);
         if (originalTeam) {
-          const payload = { ...originalTeam, status: "AVAILABLE" };
+          const newStatus = isTeamBusy(originalTeamName) ? (originalTeam.status === "AVAILABLE" ? "NOTIFICATION" : originalTeam.status) : "AVAILABLE";
+          const payload = { ...originalTeam, status: newStatus };
           delete payload.id;
           delete payload.name;
           await updateUnit(originalTeam.id, payload);
@@ -321,8 +331,12 @@ export default function ReportScreen({ reloadData }) {
       if (newTeamName) {
         const newTeam = units.find((u) => u.name === newTeamName);
         if (newTeam) {
-          const newStatus =
-            formData.Status === "Gesloten" ? "AVAILABLE" : "NOTIFICATION";
+          let newStatus = newTeam.status && newTeam.status !== "AVAILABLE" ? newTeam.status : "NOTIFICATION";
+          if (formData.Status === "Gesloten") {
+             newStatus = isTeamBusy(newTeamName) ? newStatus : "AVAILABLE";
+          } else if (originalReportData.current?.Status === "Gesloten" && formData.Status !== "Gesloten") {
+             newStatus = "NOTIFICATION";
+          }
           const payload = { ...newTeam, status: newStatus };
           delete payload.id;
           delete payload.name;
@@ -338,7 +352,8 @@ export default function ReportScreen({ reloadData }) {
           (u) => u.name === originalAssistanceTeamName,
         );
         if (originalAssistanceTeam) {
-          const payload = { ...originalAssistanceTeam, status: "AVAILABLE" };
+          const newStatus = isTeamBusy(originalAssistanceTeamName) ? (originalAssistanceTeam.status === "AVAILABLE" ? "NOTIFICATION" : originalAssistanceTeam.status) : "AVAILABLE";
+          const payload = { ...originalAssistanceTeam, status: newStatus };
           delete payload.id;
           delete payload.name;
           await updateUnit(originalAssistanceTeam.id, payload);
@@ -350,8 +365,12 @@ export default function ReportScreen({ reloadData }) {
           (u) => u.name === newAssistanceTeamName,
         );
         if (newAssistanceTeam) {
-          const newStatus =
-            formData.Status === "Gesloten" ? "AVAILABLE" : "NOTIFICATION";
+          let newStatus = newAssistanceTeam.status && newAssistanceTeam.status !== "AVAILABLE" ? newAssistanceTeam.status : "NOTIFICATION";
+          if (formData.Status === "Gesloten") {
+             newStatus = isTeamBusy(newAssistanceTeamName) ? newStatus : "AVAILABLE";
+          } else if (originalReportData.current?.Status === "Gesloten" && formData.Status !== "Gesloten") {
+             newStatus = "NOTIFICATION";
+          }
           const payload = { ...newAssistanceTeam, status: newStatus };
           delete payload.id;
           delete payload.name;

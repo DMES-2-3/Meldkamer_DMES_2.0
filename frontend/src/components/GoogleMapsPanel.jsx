@@ -117,8 +117,10 @@ export default function GoogleMapsPanel({
 
   const filteredTeamMarkers = React.useMemo(() => {
     return teamMarkers.filter((m) => {
-      if (!activeLegendFilters?.teams?.length) return true;
       const team = teams.find(t => String(t.id) === String(m.teamId));
+      if (!team) return false;
+
+      if (!activeLegendFilters?.teams?.length) return true;
       const teamStatus = team?.status || "UNAVAILABLE";
 
       let filterCategory = "unavailable";
