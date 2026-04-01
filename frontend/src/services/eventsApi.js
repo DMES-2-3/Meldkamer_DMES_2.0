@@ -23,18 +23,11 @@
 //
 // and converts between the two as needed.
 
-const API_BASE_URL =
-  (typeof import.meta !== "undefined" &&
-    import.meta.env &&
-    import.meta.env.VITE_API_BASE_URL) ||
-  "http://localhost:8080"; // PHP server base URL
+import { apiUrl } from "../config/api";
 
 // Helper: build a full URL for the events endpoint
 function eventsUrl(path = "") {
-  // Ensure there is exactly one slash between base and path
-  const base = API_BASE_URL.replace(/\/+$/, "");
-  const suffix = String(path || "").replace(/^\/+/, "");
-  return suffix ? `${base}/${suffix}` : base;
+  return apiUrl(path);
 }
 
 // ---- Shape mappers --------------------------------------------------------

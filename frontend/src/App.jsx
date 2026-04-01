@@ -20,7 +20,7 @@ import UnitsPage from "./pages/UnitsPage";
 import ExportPage from "./pages/Export";
 import MapPopoutScreen from "./pages/mapPopoutScreen";
 
-function AppContent({ reports, setReports, units, setUnits, workers, setWorkers, reloadData, showKladblok, setShowKladblok, kladblokContext }) {
+function AppContent({ reports, setReports, units, setUnits, workers, setWorkers, reloadData, showKladblok, setShowKladblok, kladblokContext, openGlobalNotepad }) {
   const location = useLocation();
 
   useEffect(() => {
@@ -68,7 +68,7 @@ function AppContent({ reports, setReports, units, setUnits, workers, setWorkers,
           <Protected
             Component={() => (
               <div className="app-content">
-                <TopNav />
+                <TopNav onOpenNotepad={openGlobalNotepad} />
                 <Routes>
                   <Route
                     path="melding"
@@ -127,18 +127,50 @@ function App() {
   const [showKladblok, setShowKladblok] = useState(false);
   const [kladblokContext, setKladblokContext] = useState(null);
 
+  const openGlobalNotepad = useCallback(() => {
+    const stored = localStorage.getItem("selected_event");
+
+    if (!stored) {
+      alert("Geen event geselecteerd.");
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(stored);
+      setKladblokContext({
+        type: "event",
+        eventName: parsed.name || parsed.eventName,
+      });
+      setShowKladblok(true);
+    } catch (err) {
+      console.error("Failed to parse selected_event", err);
+      alert("Kon geselecteerd event niet laden.");
+    }
+  }, []);
+
+  const onOpenReportNotepad = (reportId) =>
+  {
+    if (!reportId) return;
+    setKladblokContext({ type: "report", reportId });
+    setShowKladblok(true);
+  };
+
   useEffect(() => {
     const handleGlobalKladblok = (e) => {
-      // Alt + K for opening/closing the notepad
-      if (e.altKey && e.key.toLowerCase() === 'k') {
+      if (e.altKey && e.key.toLowerCase() === "k") {
         e.preventDefault();
+
         const stored = localStorage.getItem("selected_event");
         if (stored) {
           try {
             const parsed = JSON.parse(stored);
-            setKladblokContext({ type: "event", eventName: parsed.name || parsed.eventName });
+            setKladblokContext({
+              type: "event",
+              eventName: parsed.name || parsed.eventName,
+            });
           } catch (err) {}
         }
+
         setShowKladblok((prev) => !prev);
       }
     };
@@ -201,6 +233,7 @@ function App() {
             showKladblok={showKladblok}
             setShowKladblok={setShowKladblok}
             kladblokContext={kladblokContext}
+            openGlobalNotepad={openGlobalNotepad}
           />
         </BrowserRouter>
       </NotepadProvider>

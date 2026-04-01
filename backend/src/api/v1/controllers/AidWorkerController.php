@@ -20,7 +20,6 @@ class AidWorkerController extends BaseController implements IController
         parent::__construct($entityManager);
         $this->repo = $this->entityManager->getRepository(AidWorker::class);
         header("Content-Type: application/json");
-        header("Access-Control-Allow-Origin: *");
         header(
             "Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS",
         );

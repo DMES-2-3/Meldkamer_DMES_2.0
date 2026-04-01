@@ -3,8 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { STATUSES } from "../constants";
 import TeamsTable from "./TeamsTable";
 import StatusPickerModal from "./StatusPickerModal";
+import { API_BASE_URL } from "../config/api";
 
-const API_URL = "http://localhost:8080/src/api/v1";
+const API_URL = `${API_BASE_URL}/src/api/v1`;
 
 export const getStatusColor = (status) => {
   const statusConfig = {

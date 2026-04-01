@@ -3,21 +3,22 @@
    ========= */
 
 .events-page {
-    height: 100vh;
+    min-height: 100vh;
+    min-height: 100dvh;
     padding: 12px 16px 16px;
     display: flex;
     flex-direction: column;
     gap: 12px;
-    background-color: #f5f5f5; /* matches body background in index.css */
+    background-color: #f5f5f5;
 }
-
-/* Top bar with logout – light, right‑aligned, like a simple toolbar */
 
 .events-header {
     display: flex;
     justify-content: flex-end;
     align-items: center;
     padding: 4px 0 4px;
+    gap: 8px;
+    flex-wrap: wrap;
 }
 
 .register-user-button {
@@ -52,8 +53,6 @@
     background-color: rgba(220, 38, 38, 0.08);
 }
 
-/* Card‑like container for the events list, similar feel to .section */
-
 .events-card {
     flex: 1;
     display: flex;
@@ -62,12 +61,11 @@
     border: 1px solid #d1d5db;
     background-color: #ffffff;
     overflow: hidden;
+    min-height: 0;
 }
 
-/* Fake “header” line to match the wireframe separation */
-
 .events-page .events-card-header {
-    background-color: #1e1b4b !important; /* Dark blue */
+    background-color: #1e1b4b !important;
     color: #ffffff !important;
     padding: 10px 16px !important;
     font-weight: 600 !important;
@@ -75,6 +73,7 @@
     display: flex !important;
     align-items: center !important;
     gap: 8px !important;
+    flex-wrap: wrap !important;
 }
 
 .events-page .events-header-controls {
@@ -82,14 +81,14 @@
     display: flex !important;
     align-items: center !important;
     gap: 16px !important;
+    flex-wrap: wrap !important;
+    min-width: 0 !important;
 }
 
 .events-page .events-sort-select {
-    /* Reset browser default styles */
     -webkit-appearance: none !important;
     -moz-appearance: none !important;
     appearance: none !important;
-    /* Custom styles */
     padding: 4px 2px !important;
     border: none !important;
     border-bottom: 2px solid #e5e7eb !important;
@@ -99,13 +98,13 @@
     cursor: pointer !important;
     margin: 0 !important;
     width: auto !important;
-
-    /* Custom arrow */
+    min-width: 110px !important;
+    max-width: 100% !important;
     background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23fff' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e") !important;
     background-position: right 0.1rem center !important;
     background-repeat: no-repeat !important;
     background-size: 1.5em 1.5em !important;
-    padding-right: 1.8em !important; /* space for arrow */
+    padding-right: 1.8em !important;
 }
 
 .events-page .events-sort-select:focus {
@@ -124,6 +123,7 @@
     border-bottom: 2px solid #e5e7eb !important;
     font-size: 13px !important;
     min-width: 180px !important;
+    max-width: 100% !important;
     background-color: transparent !important;
     color: #ffffff !important;
     margin: 0 !important;
@@ -143,23 +143,19 @@
     border-color: transparent !important;
 }
 
-/* List area */
-
 .events-list {
     flex: 1;
     display: flex;
     flex-direction: column;
+    min-height: 0;
 }
-
-/* Individual event rows */
 
 .event-row {
     display: flex;
     align-items: center;
-    justify-content: flex-start; /* align content to the left */
+    justify-content: flex-start;
     gap: 12px;
     text-align: left;
-
     padding: 10px 14px;
     border-bottom: 1px solid #e5e7eb;
     font-size: 14px;
@@ -181,17 +177,20 @@
 
 .event-name {
     cursor: pointer;
-    flex: 1; /* take remaining space */
+    flex: 1;
+    min-width: 0;
     font-weight: 500;
     letter-spacing: 0.01em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
-
-/* Date in event row */
 
 .event-date {
     font-size: 13px;
     color: #4b5563;
-    white-space: nowrap; /* keep date on one line */
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 
 .event-input,
@@ -201,6 +200,7 @@
     border: 1px solid #d1d5db;
     font-size: 14px;
     background-color: #ffffff;
+    min-width: 0;
 }
 
 .event-input {
@@ -218,8 +218,6 @@
     box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
-/* Delete icon – red accent like navigation active color */
-
 .event-delete {
     color: #dc2626;
     font-size: 24px;
@@ -229,6 +227,7 @@
     transition:
         background-color 0.15s,
         transform 0.1s;
+    flex-shrink: 0;
 }
 
 .event-delete:hover {
@@ -236,17 +235,14 @@
     transform: translateY(-1px);
 }
 
-/* Footer with add input & button, aligned to the bottom right */
-
 .events-footer {
     display: flex;
     justify-content: flex-end;
     align-items: center;
     gap: 8px;
     margin-top: 12px;
+    flex-wrap: wrap;
 }
-
-/* Input & button styling consistent with ReportScreen inputs/buttons */
 
 .event-input {
     flex: 0 0 260px;
@@ -269,7 +265,7 @@
     font-size: 14px;
     font-weight: 600;
     color: #ffffff;
-    background-color: #10b981; /* green accent, in line with btn-save */
+    background-color: #10b981;
     display: inline-flex;
     align-items: center;
     gap: 4px;
@@ -277,6 +273,7 @@
         opacity 0.2s,
         transform 0.1s,
         box-shadow 0.1s;
+    flex-shrink: 0;
 }
 
 .event-add:hover {
@@ -285,22 +282,16 @@
     box-shadow: 0 2px 4px rgba(15, 23, 42, 0.2);
 }
 
-/* Optional small “+” symbol styling if you want to append it in text */
-
 .event-add::after {
     content: "+";
     font-weight: 700;
 }
-
-/* When there are no events */
 
 .events-empty {
     padding: 16px 14px;
     font-size: 14px;
     color: #6b7280;
 }
-
-/* Info icon in event row */
 
 .event-info {
     font-size: 18px;
@@ -311,14 +302,13 @@
     transition:
         background-color 0.15s,
         transform 0.1s;
+    flex-shrink: 0;
 }
 
 .event-info:hover {
     background-color: rgba(37, 99, 235, 0.08);
     transform: translateY(-1px);
 }
-
-/* Backdrop + side panel for event information */
 
 .event-info-backdrop {
     position: fixed;
@@ -347,12 +337,14 @@
     align-items: center;
     justify-content: space-between;
     margin-bottom: 12px;
+    gap: 12px;
 }
 
 .event-info-header h2 {
     font-size: 18px;
     font-weight: 600;
     margin: 0;
+    min-width: 0;
 }
 
 .event-info-close {
@@ -368,6 +360,7 @@
     transition:
         background-color 0.15s,
         transform 0.1s;
+    flex-shrink: 0;
 }
 
 .event-info-close:hover {
@@ -382,6 +375,7 @@
     display: flex;
     flex-direction: column;
     gap: 10px;
+    min-height: 0;
 }
 
 .event-info-row {
@@ -397,12 +391,15 @@
     font-weight: 600;
     color: #374151;
     font-size: 13px;
+    flex-shrink: 0;
 }
 
 .event-info-value {
     color: #111827;
     font-size: 13px;
     text-align: right;
+    min-width: 0;
+    word-break: break-word;
 }
 
 .event-info-block {
@@ -430,8 +427,6 @@
     background-color: #f9fafb;
 }
 
-/* Form styling in event side panels (for new event) */
-
 .event-form-group {
     display: flex;
     flex-direction: column;
@@ -447,6 +442,7 @@
 
 .event-form-row .half {
     flex: 1;
+    min-width: 0;
 }
 
 .event-form-input {
@@ -456,6 +452,8 @@
     font-size: 13px;
     font-family: inherit;
     background-color: #ffffff;
+    width: 100%;
+    min-width: 0;
 }
 
 .event-form-input:focus {
@@ -506,6 +504,7 @@
     transition:
         background-color 0.15s,
         transform 0.1s;
+    align-self: flex-start;
 }
 
 .event-contact-add:hover {
@@ -519,6 +518,7 @@
     display: flex;
     justify-content: flex-end;
     gap: 8px;
+    flex-wrap: wrap;
 }
 
 .btn-cancel-event,
@@ -560,6 +560,7 @@
     display: flex;
     align-items: center;
     gap: 6px;
+    flex-wrap: wrap;
 }
 
 .btn-edit-event {
@@ -578,13 +579,9 @@
 
 .btn-edit-event:hover {
     background-color: #bae6fd;
-
     transform: translateY(-1px);
-
     box-shadow: 0 1px 3px rgba(15, 23, 42, 0.15);
 }
-
-/* Toast notification (slide-in from right) */
 
 .toast-container {
     position: fixed;
@@ -603,7 +600,6 @@
     gap: 8px;
     font-size: 14px;
     font-weight: 500;
-
     transform: translateX(120%);
     opacity: 0;
     pointer-events: none;
@@ -624,7 +620,6 @@
     pointer-events: none;
 }
 
-/* success variant colors */
 .toast-success {
     background-color: #dcfce7;
     color: #14532d;
@@ -635,18 +630,151 @@
     flex: 1;
 }
 
-/* Responsive tweaks */
+@media (max-width: 900px) {
+    .events-page .events-card-header {
+        align-items: flex-start !important;
+    }
+
+    .events-page .events-header-controls {
+        margin-left: 0 !important;
+        width: 100% !important;
+    }
+
+    .events-page .events-search-input {
+        min-width: 160px !important;
+    }
+
+    .event-info-panel {
+        width: min(520px, 100%);
+    }
+}
 
 @media (max-width: 640px) {
     .events-page {
         padding: 8px 10px 12px;
     }
 
-    .event-input {
-        flex: 1;
+    .events-header {
+        justify-content: stretch;
+    }
+
+    .register-user-button,
+    .logout-button {
+        width: 100%;
+        text-align: center;
+        margin-right: 0;
+    }
+
+    .events-page .events-card-header {
+        padding: 10px 12px !important;
+    }
+
+    .events-page .events-header-controls {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 10px !important;
+    }
+
+    .events-page .events-sort-select,
+    .events-page .events-search-input {
+        width: 100% !important;
+        min-width: 0 !important;
+    }
+
+    .event-row {
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: flex-start;
+    }
+
+    .event-name {
+        flex-basis: 100%;
+        white-space: normal;
+        overflow: visible;
+        text-overflow: clip;
+    }
+
+    .event-date {
+        order: 2;
+    }
+
+    .event-info,
+    .event-delete {
+        order: 3;
+    }
+
+    .event-input,
+    .event-date-input {
+        flex: 1 1 100%;
+        width: 100%;
     }
 
     .events-footer {
         justify-content: flex-start;
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .events-footer .event-input,
+    .events-footer .event-add {
+        width: 100%;
+    }
+
+    .event-info-panel {
+        width: 100%;
+        padding: 14px 14px 16px;
+    }
+
+    .event-info-row {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .event-info-value {
+        text-align: left;
+    }
+
+    .event-form-row {
+        flex-direction: column;
+    }
+
+    .event-contact-row {
+        grid-template-columns: 1fr;
+    }
+
+    .event-form-footer {
+        flex-direction: column-reverse;
+    }
+
+    .btn-cancel-event,
+    .btn-save-event {
+        width: 100%;
+    }
+
+    .toast-container {
+        left: 10px;
+        right: 10px;
+        top: 10px;
+        max-width: none;
+        min-width: 0;
+    }
+}
+
+@media (max-width: 420px) {
+    .event-row {
+        padding: 10px 12px;
+    }
+
+    .events-empty {
+        padding: 14px 12px;
+    }
+
+    .event-info-header {
+        align-items: flex-start;
+    }
+
+    .event-info-header-actions {
+        width: 100%;
+        justify-content: flex-end;
     }
 }

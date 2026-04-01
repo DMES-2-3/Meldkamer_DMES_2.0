@@ -9,7 +9,6 @@ import {
 } from "../services/reportsApi";
 import { getUnits, updateUnit } from "../services/unitsApi";
 import TeamSelect from "../components/TeamSelect";
-import { useNotepad } from "../contexts/NotepadContexts";
 
 const getCurrentTime = () => new Date().toTimeString().slice(0, 5);
 
@@ -96,29 +95,6 @@ export default function ReportScreen({ reloadData }) {
     }));
   };
 
-  const { notes, setNotes, setActiveKey } = useNotepad();
-
-  const reportId =
-    formData.id ?? initialReport?.Report?.id ?? initialReport?.id ?? null;
-
-  const draftKey = React.useMemo(() => {
-    let k = sessionStorage.getItem("draft_report_notepad_key");
-    if (!k) {
-      k = `notepad:report:draft:${Date.now()}-${Math.random()
-        .toString(16)
-        .slice(2)}`;
-      sessionStorage.setItem("draft_report_notepad_key", k);
-    }
-    return k;
-  }, []);
-
-  useEffect(() => {
-    const key = reportId ? `notepad:report:${reportId}` : draftKey;
-    setActiveKey(key);
-
-    return () => setActiveKey(null);
-  }, [reportId, draftKey, setActiveKey]);
-
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
@@ -180,6 +156,7 @@ export default function ReportScreen({ reloadData }) {
         Subject: inner.Subject ?? inner.subject ?? "",
         Location: inner.Location ?? inner.location ?? "",
         Note: inner.Note ?? inner.note ?? "",
+        Notepad: inner.Notepad ?? inner.notepad ?? "",
         Prioriteit: inner.Prioriteit ?? inner.priority ?? "",
         Status: inner.Status ?? inner.status ?? "",
         Team: inner.Team ?? inner.team ?? "",
@@ -389,16 +366,6 @@ export default function ReportScreen({ reloadData }) {
 
       if (newReportId) {
         localStorage.setItem("shared_report_update", Date.now().toString());
-
-        const finalKey = `notepad:report:${newReportId}`;
-
-        const draftStored = localStorage.getItem(draftKey);
-        if (draftStored != null) {
-          localStorage.setItem(finalKey, draftStored);
-          localStorage.removeItem(draftKey);
-        }
-
-        sessionStorage.removeItem("draft_report_notepad_key");
       }
 
       if (fromPdfMap) {
@@ -858,8 +825,8 @@ export default function ReportScreen({ reloadData }) {
             ref={notepadRef}
             className="notepad"
             placeholder="Schrijf notitie"
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
+            value={formData.Notepad}
+            onChange={(e) => handleChange("Notepad", e.target.value)}
             style={{ flex: 1, minHeight: "200px" }}
           />
 
