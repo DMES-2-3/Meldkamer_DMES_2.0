@@ -11,7 +11,7 @@ import FloatingNotepad from "../components/FloatingNotepad";
 import { MAPS, MAIN_TABS, REPORT_TABS } from "../utils/utils";
 import "../Dashboard.css";
 
-export default function Dashboard({ reports, reloadData, setReports }) {
+export default function Dashboard({ reports, reloadData, setReports, units, setUnits, workers, setWorkers }) {
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -81,11 +81,6 @@ export default function Dashboard({ reports, reloadData, setReports }) {
     setKladblokContext({ type: "report", reportId });
     setShowKladblok(true);
   };
-
-  useEffect(() => {
-    window._reports = reports;
-    console.log("Dashboard reports: ", reports);
-  }, [reports]);
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -189,6 +184,8 @@ export default function Dashboard({ reports, reloadData, setReports }) {
           colorMode={mapColorMode}
           activeLegendFilters={activeLegendFilters}
           initialMapType={location.state?.openMapType}
+          units={units}
+          setUnits={setUnits}
         />
         <div className="resize-handle" onMouseDown={startResize} />
       </div>
@@ -206,9 +203,9 @@ export default function Dashboard({ reports, reloadData, setReports }) {
           ))}
         </div>
 
-        {mainTab === MAIN_TABS.TEAMS && <TeamsTableContainer />}
+        {mainTab === MAIN_TABS.TEAMS && <TeamsTableContainer units={units} />}
         {mainTab === MAIN_TABS.AIDWORKERS && (
-          <AidWorkersTableContainer selectedEventId={selectedEvent?.id} />
+          <AidWorkersTableContainer selectedEventId={selectedEvent?.id} workers={workers} />
         )}
         {mainTab === MAIN_TABS.REPORTS && (
           <>
@@ -249,6 +246,7 @@ export default function Dashboard({ reports, reloadData, setReports }) {
               statusFilter={statusFilter}
               priorityFilter={priorityFilter}
               onOpenReportNotepad={onOpenReportNotepad}
+              reports={reports}
             />
           </>
         )}

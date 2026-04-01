@@ -325,23 +325,6 @@ class NotificationController extends BaseController implements IController
             }
 
             $notification->setStatus($newStatus);
-
-            if ($newStatus === NotificationStatus::CLOSED) {
-                // Reset the primary AidTeam status to AVAILABLE
-                $primaryTeam = $notification->getAidTeam();
-                if ($primaryTeam !== null) {
-                    $primaryTeam->setStatus(Status::AVAILABLE);
-                }
-
-                // Reset the Assistance AidTeam status to AVAILABLE
-                $assistance = $notification->getAssistance();
-                if ($assistance !== null) {
-                    $assistanceTeam = $assistance->getAidTeam();
-                    if ($assistanceTeam !== null) {
-                        $assistanceTeam->setStatus(Status::AVAILABLE);
-                    }
-                }
-            }
         }
 
         if (isset($input["Ambulance"])) {
@@ -379,17 +362,6 @@ class NotificationController extends BaseController implements IController
                     return;
                 }
                 $notification->setAidTeam($team);
-                $statusVal =
-                    $input["Status"] ??
-                    ($notification->getStatus()
-                        ? $notification->getStatus()->value
-                        : null);
-                $newStatus =
-                    $statusVal === \App\Entity\NotificationStatus::CLOSED->value
-                        ? \App\Entity\Status::AVAILABLE
-                        : \App\Entity\Status::NOTIFICATION;
-                $team->setStatus($newStatus);
-                $this->entityManager->persist($team);
             }
         }
 
@@ -488,18 +460,6 @@ class NotificationController extends BaseController implements IController
                         ->findOneBy(["aidTeamName" => $assistanceData["Team"]]);
                     if ($assistanceTeam) {
                         $assistance->setAidTeam($assistanceTeam);
-                        $statusVal =
-                            $input["Status"] ??
-                            ($notification->getStatus()
-                                ? $notification->getStatus()->value
-                                : null);
-                        $newStatus =
-                            $statusVal ===
-                            \App\Entity\NotificationStatus::CLOSED->value
-                                ? \App\Entity\Status::AVAILABLE
-                                : \App\Entity\Status::NOTIFICATION;
-                        $assistanceTeam->setStatus($newStatus);
-                        $this->entityManager->persist($assistanceTeam);
                     }
                 }
             }

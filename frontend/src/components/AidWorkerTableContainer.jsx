@@ -50,10 +50,8 @@ const STATUS_OPTIONS = Object.keys(STATUSES).map((value) => ({
   color: getStatusColor(value),
 }));
 
-export default function AidWorkersTableContainer({ selectedEventId }) {
-  const [workers, setWorkers] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+export default function AidWorkersTableContainer({ workers = [] }) {
+  const [mappedWorkers, setMappedWorkers] = useState([]);
 
   const [statusTarget, setStatusTarget] = useState(null);
   const [statusSaving, setStatusSaving] = useState(false);
@@ -93,44 +91,9 @@ export default function AidWorkersTableContainer({ selectedEventId }) {
     };
   }, []);
 
-  const fetchWorkers = useCallback(async () => {
-    try {
-      setLoading(true);
-
-      const url = selectedEventId
-        ? `${API_URL}/aidworker?eventId=${selectedEventId}`
-        : `${API_URL}/aidworker`;
-
-      const res = await fetch(url);
-      if (!res.ok) {
-        throw new Error(`HTTP error! Status: ${res.status}`);
-      }
-
-      const text = await res.text();
-      let data;
-
-      try {
-        data = JSON.parse(text);
-      } catch {
-        throw new Error("Invalid JSON response: " + text.substring(0, 100));
-      }
-
-      if (!data.success) {
-        throw new Error("API returned success=false");
-      }
-
-      const workersArray = Array.isArray(data.data) ? data.data : [];
-      const mapped = workersArray.map(mapWorker);
-
-      setWorkers(mapped);
-      setError(null);
-    } catch (err) {
-      console.error("Failed to fetch aid workers:", err);
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }, [selectedEventId, mapWorker]);
+  useEffect(() => {
+    setMappedWorkers(workers.map(mapWorker));
+  }, [workers, mapWorker]);
 
   const handleStatusChange = async (newStatus) => {
     if (!statusTarget) return;
@@ -159,7 +122,7 @@ export default function AidWorkersTableContainer({ selectedEventId }) {
       }
 
       setStatusTarget(null);
-      await fetchWorkers();
+      window.dispatchEvent(new StorageEvent("storage", { key: "shared_report_update" }));
     } catch (err) {
       console.error("Failed to update worker status:", err);
       setStatusError(err.message);
@@ -168,18 +131,12 @@ export default function AidWorkersTableContainer({ selectedEventId }) {
     }
   };
 
-  useEffect(() => {
-    fetchWorkers();
-  }, [fetchWorkers]);
-
-  if (loading) return <p>Hulpverleners laden...</p>;
-  if (error) return <p style={{ color: "red" }}>Error: {error}</p>;
-  if (!workers.length) return <p>Geen hulpverleners beschikbaar</p>;
+  if (!mappedWorkers.length) return <p>Geen hulpverleners beschikbaar</p>;
 
   return (
     <>
       <AidWorkersTable
-        workers={workers}
+        workers={mappedWorkers}
         onStatusClick={(worker) => {
           setStatusError("");
           setStatusTarget(worker);
