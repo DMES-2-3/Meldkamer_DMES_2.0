@@ -20,12 +20,22 @@ export default function AidWorkersTable({ workers, onStatusClick }) {
             </tr>
           </thead>
           <tbody>
-            {workers.map(w => {
-              const normalizedStatus = w.status.toLowerCase();
+            {workers.map((w) => {
+              const normalizedStatus = (w.status || "").toLowerCase();
 
               return (
-                <tr key={w.id} onClick={() => setSelectedWorker(w)} className="clickable-row">
-                  <td>
+                <tr
+                  key={w.id}
+                  onClick={() => setSelectedWorker(w)}
+                  className="clickable-row"
+                >
+                  <td
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onStatusClick?.(w);
+                    }}
+                    style={{ cursor: "pointer" }}
+                  >
                     <span
                       className="status-dot"
                       style={{ backgroundColor: w.color }}
