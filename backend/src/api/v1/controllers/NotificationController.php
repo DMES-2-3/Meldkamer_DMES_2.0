@@ -48,7 +48,12 @@ class NotificationController extends BaseController implements IController
     private function handleGet($id = null)
     {
         if ($id === null) {
-            $response = $this->repo->findAll();
+            $eventId = $_GET["eventId"] ?? null;
+            if ($eventId) {
+                $response = $this->repo->findBy(["event" => $eventId]);
+            } else {
+                $response = $this->repo->findAll();
+            }
             $this->sendResponse(array_map(fn($r) => $r->toArray(), $response));
         } else {
             $response = $this->repo->findOneBy(["notificationId" => $id]);
@@ -228,9 +233,16 @@ class NotificationController extends BaseController implements IController
             $this->sendResponse($notification->toArray());
         } catch (ValueError | TypeError $e) {
             $this->sendError(
-                "Invalid value provided: " . $e->getMessage(),
+                "Ongeldige waarde ingevoerd: " . $e->getMessage(),
                 422,
             );
+        } catch (\Exception $e) {
+            $message = $e->getMessage();
+            if (strpos($message, 'Data too long') !== false) {
+                $this->sendError("Invoer te groot voor één van de velden.", 400);
+            } else {
+                $this->sendError("Er is een interne fout opgetreden: " . $message, 500);
+            }
         }
     }
 
@@ -265,9 +277,16 @@ class NotificationController extends BaseController implements IController
             $this->sendResponse($notification->toArray());
         } catch (ValueError | TypeError $e) {
             $this->sendError(
-                "Invalid value provided: " . $e->getMessage(),
+                "Ongeldige waarde ingevoerd: " . $e->getMessage(),
                 422,
             );
+        } catch (\Exception $e) {
+            $message = $e->getMessage();
+            if (strpos($message, 'Data too long') !== false) {
+                $this->sendError("Invoer te groot voor één van de velden.", 400);
+            } else {
+                $this->sendError("Er is een interne fout opgetreden: " . $message, 500);
+            }
         }
     }
 

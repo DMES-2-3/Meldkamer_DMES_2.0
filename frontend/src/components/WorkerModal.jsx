@@ -117,6 +117,7 @@ export default function WorkerModal({ worker, eventId, onClose, onSaved }) {
     const e = {};
     if (!form.firstName.trim()) e.firstName = "Verplicht";
     if (!form.lastName.trim()) e.lastName = "Verplicht";
+    if (!form.callNumber.trim()) e.callNumber = "Verplicht";
     if (!form.workerType.trim()) e.workerType = "Verplicht";
     if (!form.status) e.status = "Verplicht";
     return e;
@@ -139,7 +140,13 @@ export default function WorkerModal({ worker, eventId, onClose, onSaved }) {
         : await createWorker(payload);
       onSaved();
     } catch (err) {
-      setApiError(err.message);
+      let errMsg = err.message || "";
+      if (errMsg.toLowerCase().includes("data too long") || errMsg.includes("1406") || errMsg.toLowerCase().includes("invoer te groot")) {
+        errMsg = "Fout: Invoer te groot.";
+      } else {
+        errMsg = "Fout: Kan gegevens niet opslaan. Probeer het later opnieuw.";
+      }
+      setApiError(errMsg);
     } finally {
       setSaving(false);
     }
@@ -166,7 +173,7 @@ export default function WorkerModal({ worker, eventId, onClose, onSaved }) {
           />
         </Field>
 
-        <Field label="Roepnummer">
+        <Field label="Roepnummer" error={errors.callNumber}>
           <TextInput
             value={form.callNumber}
             onChange={set("callNumber")}
