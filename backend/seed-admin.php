@@ -19,12 +19,8 @@ global $entityManager;
 // ---------------------------------------------------------------------------
 // Admin credentials – change these before running for the first time!
 // ---------------------------------------------------------------------------
-$adminFirstname = "Admin";
-$adminLastname = "Beheerder";
-$adminUsername = "admin";
 $adminEmail = "admin@dmes.nl";
 $adminPassword = "Wachtwoord123!"; // Must satisfy the password policy
-$adminBirthday = "1990-01-01";
 // ---------------------------------------------------------------------------
 
 $repo = $entityManager->getRepository(User::class);
@@ -35,12 +31,8 @@ if ($repo->findOneBy(["email" => strtolower(trim($adminEmail))])) {
 }
 
 $user = new User();
-$user->setFirstname($adminFirstname);
-$user->setLastname($adminLastname);
-$user->setUsername($adminUsername);
 $user->setEmail($adminEmail);
 $user->setPassword(password_hash($adminPassword, PASSWORD_BCRYPT));
-$user->setBirthday(new \DateTime($adminBirthday));
 $user->setIsAdmin(true);
 
 try {
