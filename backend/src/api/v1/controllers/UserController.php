@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Api\Controllers;
 
 use App\Api\Controllers\BaseController;
@@ -9,24 +10,82 @@ class UserController extends BaseController
     public function handleRequest($method, $action = null)
     {
         switch ($action) {
+            case "csrf":
+                if ($method === "GET") {
+                    $this->csrf();
+                } else {
+                    $this->sendError("Method not allowed", 405);
+                    return;
+                }
+                break;
+
             case "register":
-                if ($method === "POST") $this->register();
-                else $this->sendError("Method not allowed", 405);
+                if ($method === "POST") {
+                    $this->requireAdminSession();
+                    $this->validateCsrfToken();
+                    $this->register();
+                } else {
+                    $this->sendError("Method not allowed", 405);
+                    return;
+                }
                 break;
+
             case "login":
-                if ($method === "POST") $this->login();
-                else $this->sendError("Method not allowed", 405);
+                if ($method === "POST") {
+                    $this->validateCsrfToken();
+                    $this->login();
+                } else {
+                    $this->sendError("Method not allowed", 405);
+                    return;
+                }
                 break;
+
             case "logout":
-                if ($method === "DELETE") $this->logout();
-                else $this->sendError("Method not allowed", 405);
+                if ($method === "DELETE") {
+                    $this->validateCsrfToken();
+                    $this->logout();
+                } else {
+                    $this->sendError("Method not allowed", 405);
+                    return;
+                }
                 break;
+
             case "session":
-                if ($method === "GET") $this->checkSession();
-                else $this->sendError("Method not allowed", 405);
+                if ($method === "GET") {
+                    $this->checkSession();
+                } else {
+                    $this->sendError("Method not allowed", 405);
+                    return;
+                }
                 break;
+
             default:
                 $this->sendError("Action not found", 404);
+                return;
+        }
+    }
+
+    private function requireAdminSession()
+    {
+        $this->startSecureSession();
+
+        if (!isset($_SESSION["user_id"])) {
+            $this->sendError(
+                "Je moet ingelogd zijn als beheerder om een gebruiker te registreren.",
+                401,
+            );
+            return;
+        }
+
+        $repo = $this->entityManager->getRepository(User::class);
+        $user = $repo->find((int) $_SESSION["user_id"]);
+
+        if (!$user || !$user->isAdmin()) {
+            $this->sendError(
+                "Alleen beheerders mogen nieuwe gebruikers aanmaken.",
+                403,
+            );
+            return;
         }
     }
 
@@ -34,106 +93,142 @@ class UserController extends BaseController
     {
         $data = $this->getJsonInput();
 
-        $required = ['firstname','lastname','username','birthday','email','pass'];
-        $missing = [];
-        foreach ($required as $field) {
-            if (empty($data[$field])) $missing[] = $field;
-        }
-        if (!empty($missing)) {
-            $this->sendError("Please fill in the following fields: " . implode(", ", $missing), 400);
+        if (!is_array($data)) {
+            $this->sendError("Ongeldige JSON invoer.", 400);
+            return;
         }
 
-        $firstname = trim($data['firstname']);
-        $lastname  = trim($data['lastname']);
-        $username  = trim($data['username']);
-        $email     = strtolower(trim($data['email']));
-        $password  = $data['pass'];
+        $required = ["email", "pass"];
+        $missing = [];
+
+        foreach ($required as $field) {
+            if (empty($data[$field])) {
+                $missing[] = $field;
+            }
+        }
+
+        if (!empty($missing)) {
+            $this->sendError(
+                "Vul alstublieft de volgende velden in: " . implode(", ", $missing),
+                400,
+            );
+            return;
+        }
+
+        $email = strtolower(trim((string) $data["email"]));
+        $password = (string) $data["pass"];
 
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            $this->sendError("Please enter a valid email address.", 400);
+            $this->sendError("Vul alstublieft een geldig email adres in.", 400);
+            return;
         }
 
         $passwordErrors = [];
-        if (strlen($password) < 12) $passwordErrors[] = "at least 12 characters";
-        if (!preg_match('/[A-Z]/', $password)) $passwordErrors[] = "an uppercase letter";
-        if (!preg_match('/[a-z]/', $password)) $passwordErrors[] = "a lowercase letter";
-        if (!preg_match('/[0-9]/', $password)) $passwordErrors[] = "a number";
-        if (!preg_match('/[\W]/', $password)) $passwordErrors[] = "a special character";
+        if (strlen($password) < 12) {
+            $passwordErrors[] = "ten minste 12 karakters";
+        }
+        if (!preg_match("/[A-Z]/", $password)) {
+            $passwordErrors[] = "een hoofdletter";
+        }
+        if (!preg_match("/[a-z]/", $password)) {
+            $passwordErrors[] = "een kleine letter";
+        }
+        if (!preg_match("/[0-9]/", $password)) {
+            $passwordErrors[] = "een getal";
+        }
+        if (!preg_match("/[\W]/", $password)) {
+            $passwordErrors[] = "een speciaal karakter";
+        }
 
         if (!empty($passwordErrors)) {
             $this->sendError(
-                "Your password must include: " . implode(", ", $passwordErrors) . ".",
-                400
+                "Wachtwoord moet het volgende bevatten: " .
+                    implode(", ", $passwordErrors) .
+                    ".",
+                400,
             );
-        }
-
-        try {
-            $birthday = new \DateTime($data['birthday']);
-        } catch (\Exception $e) {
-            $this->sendError("Please enter a valid birthday (YYYY-MM-DD).", 400);
+            return;
         }
 
         $repo = $this->entityManager->getRepository(User::class);
-        if ($repo->findOneBy(['email' => $email])) {
-            $this->sendError("This email is already in use. Try logging in or use a different email.", 409);
-        }
-        if ($repo->findOneBy(['username' => $username])) {
-            $this->sendError("This username is taken. Please choose another one.", 409);
+
+        if ($repo->findOneBy(["email" => $email])) {
+            $this->sendError(
+                "Dit email adres is al in gebruik. Probeer in te loggen of gebruik een ander email adres.",
+                409,
+            );
+            return;
         }
 
         $user = new User();
-        $user->setFirstname($firstname);
-        $user->setLastname($lastname);
-        $user->setUsername($username);
-        $user->setBirthday($birthday);
         $user->setEmail($email);
         $user->setPassword(password_hash($password, PASSWORD_BCRYPT));
-        $user->setIsAdmin(0);
+        $user->setIsAdmin(false);
 
         try {
             $this->entityManager->persist($user);
             $this->entityManager->flush();
-        } catch (\Exception $e) {
-            $this->sendError("Registration failed. Please try again later.", 500);
+        } catch (\Throwable $e) {
+            error_log("User registration failed: " . $e->getMessage());
+            $this->sendError(
+                "Registratie mislukt. Probeer het later opnieuw.",
+                500,
+            );
+            return;
         }
 
-        $this->sendResponse([
-            "success" => true,
-            "message" => "Registration successful! You can now log in."
-        ], 201);
+        $this->sendResponse(
+            [
+                "success" => true,
+                "message" => "Registratie gelukt! U kunt nu inloggen.",
+            ],
+            201,
+        );
     }
-
 
     private function login()
     {
         $data = $this->getJsonInput();
 
+        if (!is_array($data)) {
+            $this->sendError("Ongeldige JSON invoer.", 400);
+            return;
+        }
+
         if (empty($data["email"]) || empty($data["pass"])) {
-            $this->sendError("Please enter both your email and password.", 400);
+            $this->sendError("Vul alstublieft uw email en wachtwoord in.", 400);
+            return;
         }
 
         $repo = $this->entityManager->getRepository(User::class);
-        $email = strtolower(trim($data["email"]));
+        $email = strtolower(trim((string) $data["email"]));
+        $password = (string) $data["pass"];
 
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            $this->sendError("Please enter a valid email address.", 400);
+            $this->sendError("Vul alstublieft een geldig email adres in.", 400);
+            return;
         }
 
         $user = $repo->findOneBy(["email" => $email]);
-        if (!$user || !password_verify($data["pass"], $user->getPassword())) {
-            $this->sendError("Email or password is incorrect. Please try again.", 401);
+
+        if (!$user || !password_verify($password, $user->getPassword())) {
+            $this->sendError(
+                "Email of wachtwoord is onjuist, probeer het opnieuw.",
+                401,
+            );
+            return;
         }
 
         $this->startSecureSession();
         session_regenerate_id(true);
         $_SESSION["user_id"] = $user->getUserId();
+        $_SESSION["csrf_token"] = bin2hex(random_bytes(32));
 
         $this->sendResponse([
             "success" => true,
-            "message" => "Login successful! Welcome back."
+            "message" => "Login succesvol! Welkom terug!.",
         ]);
     }
-
 
     private function checkSession()
     {
@@ -142,62 +237,108 @@ class UserController extends BaseController
         if (!isset($_SESSION["user_id"])) {
             $this->sendResponse([
                 "success" => false,
-                "message" => "You are not logged in."
+                "message" => "Je bent niet ingelogd.",
             ]);
+            return;
         }
 
         $repo = $this->entityManager->getRepository(User::class);
-        $user = $repo->find($_SESSION["user_id"]);
+        $user = $repo->find((int) $_SESSION["user_id"]);
 
         if (!$user) {
+            $_SESSION = [];
             session_destroy();
-            $this->sendResponse([
-                "success" => false,
-                "message" => "Your session has expired. Please log in again."
-            ], 401);
+
+            $this->sendResponse(
+                [
+                    "success" => false,
+                    "message" =>
+                        "De sessie is verlopen. Log alstublieft opnieuw in.",
+                ],
+                401,
+            );
+            return;
         }
 
         $this->sendResponse([
             "success" => true,
-            "message" => "You are logged in.",
+            "message" => "Je bent ingelogd.",
             "user_id" => $user->getUserId(),
-            "is_admin" => $user->isAdmin()
+            "is_admin" => $user->isAdmin(),
         ]);
     }
-
 
     private function logout()
     {
         $this->startSecureSession();
 
         $_SESSION = [];
+
         if (ini_get("session.use_cookies")) {
             $params = session_get_cookie_params();
-            setcookie(session_name(), '', time() - 42000,
-                $params["path"], $params["domain"], $params["secure"], $params["httponly"]
+            setcookie(
+                session_name(),
+                "",
+                time() - 42000,
+                $params["path"],
+                $params["domain"],
+                $params["secure"],
+                $params["httponly"],
             );
         }
+
         session_destroy();
 
         $this->sendResponse([
             "success" => true,
-            "message" => "You have been logged out successfully."
+            "message" => "Je bent nu uitgelogd.",
         ]);
     }
-
 
     private function startSecureSession()
     {
         if (session_status() === PHP_SESSION_NONE) {
             session_set_cookie_params([
-                'lifetime' => 0,
-                'path' => '/',
-                'secure' => isset($_SERVER['HTTPS']),
-                'httponly' => true,
-                'samesite' => 'Strict'
+                "lifetime" => 0,
+                "path" => "/",
+                "secure" =>
+                    (!empty($_SERVER["HTTPS"]) && $_SERVER["HTTPS"] !== "off") ||
+                    (isset($_SERVER["HTTP_X_FORWARDED_PROTO"]) &&
+                        $_SERVER["HTTP_X_FORWARDED_PROTO"] === "https"),
+                "httponly" => true,
+                "samesite" => "Strict",
             ]);
             session_start();
         }
     }
+
+    private function csrf()
+    {
+        $this->startSecureSession();
+
+        if (empty($_SESSION["csrf_token"])) {
+            $_SESSION["csrf_token"] = bin2hex(random_bytes(32));
+        }
+
+        $this->sendResponse([
+            "success" => true,
+            "csrf_token" => $_SESSION["csrf_token"],
+        ]);
+    }
+
+    private function validateCsrfToken()
+    {
+        $this->startSecureSession();
+
+        $headerToken = $_SERVER["HTTP_X_CSRF_TOKEN"] ?? null;
+
+        if (
+            empty($_SESSION["csrf_token"]) ||
+            empty($headerToken) ||
+            !hash_equals($_SESSION["csrf_token"], $headerToken)
+        ) {
+            $this->sendError("Ongeldig of ontbrekend CSRF-token.", 403);
+            return;
+        }
+    }
 }
-?>

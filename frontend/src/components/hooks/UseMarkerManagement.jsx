@@ -20,7 +20,12 @@ export default function useMarkerManagement(currentMapId, pageNumber, reports=[]
   const updateMarker = (id, updates) => setMarkers(prev=>prev.map(m=>m.id===id?{...m,...updates}:m));
   const deleteMarker = (id) => { setMarkers(prev=>prev.filter(m=>m.id!==id)); if(selectedMarkerId===id) setSelectedMarkerId(null); };
   const removeMarkersForMap = (mapId) => setMarkers(prev=>prev.filter(m=>m.mapId!==mapId));
-  const getMarkerColor = m => !m.reportId ? "#9ca3af" : getPriorityColor(reports.find(r=>r.id.toString()===m.reportId.toString())?.priority);
+  const getMarkerColor = m => {
+    if (!m.reportId) return "#9ca3af";
+    const reportWrapper = reports.find(r => (r.Report?.id || r?.id)?.toString() === m.reportId.toString());
+    const report = reportWrapper?.Report || reportWrapper;
+    return getPriorityColor(report?.priority || report?.Prioriteit);
+  };
 
   return { markers, currentMarkers, isAddingMarker, setIsAddingMarker, selectedMarkerId, setSelectedMarkerId, draggingMarkerId, setDraggingMarkerId, markerDragOffset, setMarkerDragOffset, addMarker, updateMarker, deleteMarker, removeMarkersForMap, getMarkerColor };
 }

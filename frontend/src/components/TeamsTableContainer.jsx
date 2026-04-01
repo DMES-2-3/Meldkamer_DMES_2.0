@@ -2,102 +2,134 @@ import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { STATUSES } from "../constants";
 import TeamsTable from "./TeamsTable";
+import StatusPickerModal from "./StatusPickerModal";
+import { API_BASE_URL } from "../config/api";
 
-const DUMMY_TEAMS = [
-  {
-    id: 1,
-    name: "Alpha Team",
-    role: "N/A",
-    note: "Test note",
-    status: "AVAILABLE",
-    color: "#10B981",
-  },
-];
+const API_URL = `${API_BASE_URL}/src/api/v1`;
 
-export default function TeamsTableContainer() {
+export const getStatusColor = (status) => {
+  const statusConfig = {
+    REGISTERED: "#10B981",
+    AVAILABLE: "#10B981",
+    NOTIFICATION: "#F59E0B",
+    WAIT: "#3B82F6",
+    SHORT_BREAK: "#6B7280",
+    LONG_BREAK: "#6B7280",
+    SIGNED_OUT: "#6B7280",
+    ACTIVE: "#10B981",
+    BUSY: "#F59E0B",
+    RESOLVED: "#6B7280",
+    UNAVAILABLE: "#6B7280",
+  };
+
+  return statusConfig[status] || "#6B7280";
+};
+
+const STATUS_OPTIONS = Object.entries(STATUSES).map(([value, config]) => ({
+  value,
+  label: config.label,
+  color: getStatusColor(value),
+}));
+
+export default function TeamsTableContainer({ units = [] }) {
   const navigate = useNavigate();
+
   const [teams, setTeams] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [selectedEvent, setSelectedEvent] = useState(null);
 
-  const fetchTeams = useCallback(async () => {
-    const API_URL = "http://localhost:8080/src/api/v1";
+  const [statusTarget, setStatusTarget] = useState(null);
+  const [statusSaving, setStatusSaving] = useState(false);
+  const [statusError, setStatusError] = useState("");
+
+  const mapTeam = useCallback((team) => {
+    const status = team.status || "UNAVAILABLE";
+
+    return {
+      id: team.aidTeamId || team.id,
+      name: team.aidTeamName || team.name,
+      callNumber: team.callNumber || "",
+      status,
+      statusLabel: STATUSES[status]?.label || status,
+      color: getStatusColor(status),
+      note: team.description || team.note || "",
+      workers: team.workers || [],
+    };
+  }, []);
+
+  useEffect(() => {
+    const mapped = units.map(mapTeam);
+    setTeams(mapped);
+  }, [units, mapTeam]);
+
+  const handleStatusChange = async (newStatus) => {
+    if (!statusTarget) return;
+
+    if (newStatus === statusTarget.status) {
+      setStatusTarget(null);
+      setStatusError("");
+      return;
+    }
+
     try {
-      const eventId = selectedEvent?.id;
-      const url = eventId
-        ? `${API_URL}/aidteam?eventId=${eventId}`
-        : `${API_URL}/aidteam`;
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(`HTTP error! Status: ${res.status}`);
+      setStatusSaving(true);
+      setStatusError("");
 
-      const text = await res.text();
-      let data;
-      try {
-        data = JSON.parse(text);
-      } catch {
-        throw new Error("Invalid JSON response: " + text.substring(0, 100));
+      const res = await fetch(`${API_URL}/aidteam/${statusTarget.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ status: newStatus }),
+      });
+
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || `HTTP error! Status: ${res.status}`);
       }
 
-      const statusConfig = {
-        REGISTERED: { color: "#10B981" },
-        AVAILABLE: { color: "#10B981" },
-        NOTIFICATION: { color: "#F59E0B" },
-        WAIT: { color: "#3B82F6" },
-        SHORT_BREAK: { color: "#3B82F6" },
-        LONG_BREAK: { color: "#3B82F6" },
-        SIGNED_OUT: { color: "#6B7280" },
-        ACTIVE: { color: "#10B981" },
-        BUSY: { color: "#F59E0B" },
-        RESOLVED: { color: "#6B7280" },
-        UNAVAILABLE: { color: "#6B7280" },
-      };
-
-      const mapped = data.map((team) => ({
-        id: team.aidTeamId || team.id,
-        name: team.aidTeamName || team.name,
-        callNumber: team.callNumber,
-        status: team.status || "UNAVAILABLE",
-        statusLabel: STATUSES[team.status]?.label || team.status,
-        color: statusConfig[team.status]?.color || "#6B7280",
-        note: team.description || team.note || "",
-      }));
-
-      setTeams(mapped);
-      setError(null);
+      setStatusTarget(null);
+      window.dispatchEvent(new StorageEvent("storage", { key: "shared_report_update" }));
     } catch (err) {
-      console.error("Failed to fetch teams:", err);
-      setError(err.message);
-      setTeams(DUMMY_TEAMS);
+      console.error("Failed to update team status:", err);
+      setStatusError(err.message);
     } finally {
-      setLoading(false);
+      setStatusSaving(false);
     }
-  }, [selectedEvent]);
+  };
 
   useEffect(() => {
     const stored = localStorage.getItem("selected_event");
     if (!stored) {
       navigate("/events");
-      return;
-    }
-    try {
-      const parsed = JSON.parse(stored);
-      setSelectedEvent(parsed);
-    } catch {
-      navigate("/events");
-      return;
     }
   }, [navigate]);
 
-  useEffect(() => {
-    if (selectedEvent) {
-      fetchTeams();
-    }
-  }, [selectedEvent, fetchTeams]);
+  if (!teams.length) return <p>Geen teams beschikbaar voor dit evenement</p>;
 
-  if (loading) return <p>Loading teams…</p>;
-  if (error) return <p style={{ color: "red" }}>Error: {error}</p>;
-  if (!teams.length) return <p>No teams available</p>;
+  return (
+    <>
+      <TeamsTable
+        teams={teams}
+        onStatusClick={(team) => {
+          setStatusError("");
+          setStatusTarget(team);
+        }}
+      />
 
-  return <TeamsTable teams={teams} />;
+      {statusTarget && (
+        <StatusPickerModal
+          title={`Status wijzigen — ${statusTarget.name}`}
+          currentStatus={statusTarget.status}
+          options={STATUS_OPTIONS}
+          saving={statusSaving}
+          error={statusError}
+          onClose={() => {
+            if (statusSaving) return;
+            setStatusTarget(null);
+            setStatusError("");
+          }}
+          onSelect={handleStatusChange}
+        />
+      )}
+    </>
+  );
 }

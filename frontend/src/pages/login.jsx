@@ -2,28 +2,24 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "../login.css";
 import logo from "../assets/logo/DMES_Vierkant_Logo.png";
+import { useAuth } from "../contexts/AuthContext";
+import { apiUrl } from "../config/api";
+import { getCsrfToken, clearCsrfToken } from "../config/csrf";
 
 function Login() {
   const navigate = useNavigate();
+  const { user, loading, refreshSession } = useAuth();
   const [form, setForm] = useState({ email: "", pass: "" });
   const [errors, setErrors] = useState([]);
   const [msg, setMsg] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [showPass, setShowPass] = useState(false);
 
   useEffect(() => {
-    const checkSession = async () => {
-      try {
-        const res = await fetch(
-          "http://localhost:8080/src/api/v1/user/session",
-          { credentials: "include" },
-        );
-        const data = await res.json();
-        if (data.success) navigate("/evenementen");
-      } catch {}
-    };
-    checkSession();
-  }, [navigate]);
+    if (!loading && user) {
+      navigate("/evenementen", { replace: true });
+    }
+  }, [user, loading, navigate]);
 
   const handleInputChange = (e) => {
     setErrors([]);
@@ -31,17 +27,28 @@ function Login() {
   };
 
   const loginSubmit = async () => {
-    setLoading(true);
+    setSubmitting(true);
     setErrors([]);
     setMsg("");
 
     try {
-      const res = await fetch("http://localhost:8080/src/api/v1/user/login", {
+      clearCsrfToken();
+      const csrfToken = await getCsrfToken();
+
+      const res = await fetch(apiUrl("src/api/v1/user/login"), {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRF-Token": csrfToken,
+        },
         credentials: "include",
         body: JSON.stringify(form),
       });
+
+      const contentType = res.headers.get("content-type") || "";
+      if (!contentType.includes("application/json")) {
+        throw new Error("Server gaf geen geldige JSON response terug.");
+      }
 
       const data = await res.json();
 
@@ -51,30 +58,43 @@ function Login() {
         ]);
       } else {
         setMsg(data.message || "Login successful!");
-        setTimeout(() => navigate("/evenementen"), 500);
+        clearCsrfToken();
+        await refreshSession();
+        navigate("/evenementen", { replace: true });
       }
     } catch (err) {
       setErrors([`Network error: ${err.message}`]);
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
+
+  if (loading) return null;
 
   return (
     <div className="login-page">
       <div className="form">
         <img className="login-logo" src={logo} alt="DMES_logo" />
         <h1>Login</h1>
+
         {errors.map((e, i) => (
           <p key={i} className="error">
             {e}
           </p>
         ))}
+
         {msg && <p className="success">{msg}</p>}
+
         <form
           onSubmit={(e) => {
             e.preventDefault();
             loginSubmit();
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              loginSubmit();
+            }
           }}
         >
           <label>Email</label>
@@ -84,32 +104,32 @@ function Login() {
             name="email"
             value={form.email}
             onChange={handleInputChange}
-            disabled={loading}
+            disabled={submitting}
           />
-          <label>Password</label>
+
+          <label>Wachtwoord</label>
           <input
             type={showPass ? "text" : "password"}
             name="pass"
             value={form.pass}
             onChange={handleInputChange}
-            disabled={loading}
+            disabled={submitting}
           />
+
           <label className="show-pass">
             <input
               type="checkbox"
               checked={showPass}
               onChange={() => setShowPass(!showPass)}
-              disabled={loading}
+              disabled={submitting}
             />
-            Show password
+            Toon wachtwoord
           </label>
-          <button className="button" type="submit" disabled={loading}>
-            {loading ? "Logging in..." : "Login"}
+
+          <button className="button" type="submit" disabled={submitting}>
+            {submitting ? "Inloggen..." : "Inloggen"}
           </button>
         </form>
-        <p className="clickable" onClick={() => navigate("/register")}>
-          Don't have an account? Register here.
-        </p>
       </div>
     </div>
   );

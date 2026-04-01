@@ -10,6 +10,10 @@ use Doctrine\ORM\Mapping\Id;
 use Doctrine\ORM\Mapping\Table;
 use Doctrine\ORM\Mapping\GeneratedValue;
 
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
+use Doctrine\ORM\Mapping\OneToMany;
+
 #[Entity]
 #[ORM\HasLifecycleCallbacks]
 #[Table(name: "Event")]
@@ -31,6 +35,50 @@ class Event
 
     #[ORM\Column(type: "datetime")]
     private \DateTimeInterface $createdAt;
+
+    #[
+        OneToMany(
+            mappedBy: "event",
+            targetEntity: Map::class,
+            cascade: ["persist", "remove"],
+        ),
+    ]
+    private Collection $maps;
+
+    #[
+        OneToMany(
+            mappedBy: "event",
+            targetEntity: Notification::class,
+            cascade: ["persist", "remove"],
+        ),
+    ]
+    private Collection $Notification;
+
+    #[
+        OneToMany(
+            mappedBy: "event",
+            targetEntity: AidTeam::class,
+            cascade: ["persist", "remove"],
+        ),
+    ]
+    private Collection $aidTeams;
+
+    #[
+        OneToMany(
+            mappedBy: "event",
+            targetEntity: AidWorker::class,
+            cascade: ["persist", "remove"],
+        ),
+    ]
+    private Collection $aidWorkers;
+
+    public function __construct()
+    {
+        $this->maps = new ArrayCollection();
+        $this->Notification = new ArrayCollection();
+        $this->aidTeams = new ArrayCollection();
+        $this->aidWorkers = new ArrayCollection();
+    }
 
     #[ORM\PrePersist]
     public function initializeTimestamps(): void
@@ -86,15 +134,40 @@ class Event
         return $this->createdAt;
     }
 
+    public function getMaps(): Collection
+    {
+        return $this->maps;
+    }
+
+    public function getNotification(): Collection
+    {
+        return $this->Notification;
+    }
+
+    public function getAidTeams(): Collection
+    {
+        return $this->aidTeams;
+    }
+
+    public function getAidWorkers(): Collection
+    {
+        return $this->aidWorkers;
+    }
+
     public function toArray(): array
     {
-        $data = [
+        $mapsData = [];
+        foreach ($this->maps as $map) {
+            $mapsData[] = $map->toArray();
+        }
+
+        return [
             "id" => $this->getEventId(),
             "eventName" => $this->getEventName(),
             "postcode" => $this->getPostcode(),
             "updatedAt" => $this->getUpdatedAt()->format("Y-m-d H:i:s"),
             "createdAt" => $this->getCreatedAt()->format("Y-m-d H:i:s"),
+            "maps" => $mapsData,
         ];
-        return $data;
     }
 }

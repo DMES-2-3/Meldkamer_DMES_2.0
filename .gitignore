@@ -1,0 +1,12 @@
+/uploads
+.env
+.DS_Store
+node_modules
+
+#backups
+/db-backups
+db-backup.sh
+*.sql
+*.sql.gz
+
+*.txt

@@ -1,119 +1,192 @@
-/* Pagina-achtergrond en spacing */
 .page {
-  background: var(--color-bg);
-  min-height: 100%;
-  padding: 16px;
+    background: var(--color-bg);
+    min-height: 100%;
+    padding: 16px;
 }
 
-/* Panel header (donkerblauw balk, zoals je tabs/tabel-head) */
 .header {
-  background: #1e1b4b;
-  color: #ffffff;
-  border-top-left-radius: 8px;
-  border-top-right-radius: 8px;
-  padding: 10px 14px;
-  font-weight: 600;
-  font-size: 15px;
+    background: #1e1b4b;
+    color: #ffffff;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+    padding: 10px 14px;
+    font-weight: 600;
+    font-size: 15px;
 }
 
-/* Content card */
 .card {
-  background: #fff;
-  border: 1px solid var(--color-border);
-  border-bottom-left-radius: 8px;
-  border-bottom-right-radius: 8px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0);
+    background: #fff;
+    border: 1px solid var(--color-border);
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0);
+    min-width: 0;
 }
-.card--p16 { padding: 16px; }
-.card--p24 { padding: 24px; }
-.mb-12 { margin-bottom: 12px; }
-.mb-16 { margin-bottom: 16px; }
-.mb-20 { margin-bottom: 20px; }
 
-/* Titels in card */
+.card--p16 {
+    padding: 16px;
+}
+.card--p24 {
+    padding: 24px;
+}
+.mb-12 {
+    margin-bottom: 12px;
+}
+.mb-16 {
+    margin-bottom: 16px;
+}
+.mb-20 {
+    margin-bottom: 20px;
+}
+
 .section-title {
-  color: #111827;
-  font-weight: 700;
-  font-size: 18px;
-  margin: 0 0 8px 0;
-}
-.section-subtitle {
-  color: #6b7280;
-  font-size: 14px;
-  margin: 0 0 16px 0;
+    color: #111827;
+    font-weight: 700;
+    font-size: 18px;
+    margin: 0 0 8px 0;
 }
 
-/* Buttons in jouw stijl */
+.section-subtitle {
+    color: #6b7280;
+    font-size: 14px;
+    margin: 0 0 16px 0;
+}
+
 .btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 16px;
-  border: 1px solid transparent;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    min-width: 0;
 }
 
 .btn-primary {
-  background: var(--color-primary);
-  color: #fff;
+    background: var(--color-primary);
+    color: #fff;
 }
+
 .btn-primary:hover {
-  filter: brightness(1.1);
+    filter: brightness(1.1);
 }
 
 .btn-outline {
-  background: #fff;
-  color: var(--color-primary);
-  border-color: var(--color-primary);
+    background: #fff;
+    color: var(--color-primary);
+    border-color: var(--color-primary);
 }
+
 .btn-outline:hover {
-  background: #e5e7eb;
+    background: #e5e7eb;
 }
 
 .btn:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
+    opacity: 0.7;
+    cursor: not-allowed;
 }
 
-/* Inputs met focusring */
+.export-buttons {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
 .input {
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  padding: 8px 10px;
-  font-size: 14px;
-  outline: none;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
-  background: #fff;
-  color: #111827;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    background: #fff;
+    color: #111827;
+    width: 100%;
+    min-width: 0;
 }
+
 .input:focus {
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(30, 27, 75, 0.18); /* primary focus */
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(30, 27, 75, 0.18);
 }
 
-/* Status legend stijl aansluitend op dashboard dots */
 .legend-inline {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-.legend-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  padding: 6px 10px;
-  font-size: 13px;
-  background: #fff;
-  color: #111827;
-}
-.legend-dot {
-  width: 12px;
-  height: 12px;
-  border-radius: 999px;
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
 }
 
+.legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: 13px;
+    background: #fff;
+    color: #111827;
+    min-width: 0;
+}
+
+.legend-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 999px;
+    flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+    .page {
+        padding: 12px;
+    }
+
+    .card--p24 {
+        padding: 18px;
+    }
+
+    .export-buttons {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .export-buttons .btn {
+        width: 100%;
+    }
+
+    .legend-inline {
+        gap: 8px;
+    }
+}
+
+@media (max-width: 480px) {
+    .page {
+        padding: 10px;
+    }
+
+    .header {
+        padding: 10px 12px;
+        font-size: 14px;
+    }
+
+    .card--p16,
+    .card--p24 {
+        padding: 14px;
+    }
+
+    .section-title {
+        font-size: 16px;
+    }
+
+    .section-subtitle {
+        font-size: 13px;
+    }
+
+    .legend-item {
+        width: 100%;
+    }
+}

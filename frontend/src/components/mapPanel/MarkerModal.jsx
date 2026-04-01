@@ -1,167 +1,115 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
+import { useNavigate } from "react-router-dom";
 
 export default function MarkerModal({
   show,
   onClose,
   editingMarker,
-  markers = [],
   localReports = [],
-  onSave,
   onDelete,
-  onEditMarker,
 }) {
-  const [markerLabel, setMarkerLabel] = useState("");
-  const [linkedReportId, setLinkedReportId] = useState("");
-  const [labelManuallyEdited, setLabelManuallyEdited] = useState(false);
+  const navigate = useNavigate();
 
-  const getDefaultLabelFromReport = (report) =>
-    report?.event || report?.description || "";
+  if (!show || !editingMarker) return null;
 
-  useEffect(() => {
-    setMarkerLabel(editingMarker?.label || "");
-    setLinkedReportId(editingMarker?.reportId || "");
-    setLabelManuallyEdited(false);
-  }, [editingMarker]);
+  // Look up full details for currently linked report
+  const linkedReportId = editingMarker.reportId || "";
+  const linkedReportWrapper = localReports.find(
+    (r) => (r.Report?.id || r?.id)?.toString() === linkedReportId.toString()
+  );
+  const linkedReport = linkedReportWrapper?.Report || linkedReportWrapper;
 
-  useEffect(() => {
-    if (!editingMarker || labelManuallyEdited || !linkedReportId) return;
+  const formatAVPU = (avpu) => {
+    if (!avpu) return "-";
+    const active = Object.keys(avpu).filter((k) => avpu[k] === true);
+    return active.length > 0 ? active.join(", ") : "-";
+  };
 
-    const report = localReports.find(
-      (r) => r.id && r.id.toString() === linkedReportId.toString()
+  const formatAssistance = (assistance) => {
+    if (!assistance) return "-";
+    const active = Object.keys(assistance).filter(
+      (k) => k !== "Team" && assistance[k] === true
     );
-
-    if (report) setMarkerLabel(getDefaultLabelFromReport(report));
-  }, [linkedReportId, localReports, editingMarker, labelManuallyEdited]);
-
-  if (!show) return null;
-
-  const linkedReport = editingMarker
-    ? localReports.find(
-        (r) => r.id && r.id.toString() === (linkedReportId || "").toString()
-      )
-    : null;
-
-  const handleSave = () => {
-    if (!editingMarker) return; 
-    onSave({
-      ...editingMarker,
-      label: markerLabel.trim(),
-      reportId: linkedReportId || null,
-    });
+    if (assistance.Team && typeof assistance.Team === "string") {
+      active.push(`Team: ${assistance.Team}`);
+    }
+    return active.length > 0 ? active.join(", ") : "-";
   };
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h3>{editingMarker ? "Marker Details" : "Markers"}</h3>
+          <h3>Melding Details</h3>
           <button className="modal-close" onClick={onClose}>
             &times;
           </button>
         </div>
 
-        {!editingMarker && (
-          <div className="marker-list">
-            {markers.length === 0 && (
-              <p style={{ fontStyle: "italic", color: "#777" }}>
-                No markers on this page
-              </p>
+        <>
+          <div className="marker-edit-form">
+            {linkedReport ? (
+              <div className="report-details" style={{ marginTop: 12 }}>
+                  <div style={{ marginBottom: "8px" }}>
+                    <b>Tijd:</b> {linkedReport.time || linkedReport.Time || "-"}
+                  </div>
+                  <div style={{ marginBottom: "8px" }}>
+                    <b>Onderwerp:</b> {linkedReport.subject || linkedReport.Subject || "-"}
+                  </div>
+                  <div style={{ marginBottom: "8px" }}>
+                    <b>Locatie:</b> {linkedReport.location || linkedReport.Location || "-"}
+                  </div>
+                  <div style={{ marginBottom: "8px" }}>
+                    <b>Prioriteit:</b> {linkedReport.priority || linkedReport.Prioriteit || "-"}
+                  </div>
+                  <div style={{ marginBottom: "8px" }}>
+                    <b>Toegewezen team:</b> {linkedReport.team || linkedReport.Team || "-"}
+                  </div>
+                  <div style={{ marginBottom: "8px" }}>
+                    <b>Status:</b> {linkedReport.status || linkedReport.Status || "-"}
+                  </div>
+                  <div style={{ marginBottom: "8px" }}>
+                    <b>AVPU:</b> {formatAVPU(linkedReport.avpu || linkedReport.AVPU)}
+                  </div>
+                  <div style={{ marginBottom: "8px" }}>
+                    <b>Assistentie:</b> {formatAssistance(linkedReport.assistance || linkedReport.Assistance)}
+                  </div>
+                  <div style={{ marginBottom: "8px" }}>
+                    <b>Ambulance nodig:</b> {(linkedReport.ambulance || linkedReport.Ambulance) ? "Ja" : "Nee"}
+                  </div>
+                </div>
+              ) : (
+                <div style={{ marginTop: 12 }}>
+                  <p>Geen gekoppelde melding gevonden voor deze marker.</p>
+              </div>
             )}
-            {markers.map((marker) => {
-              const report = marker.reportId
-                ? localReports.find(
-                    (r) => r.id && r.id.toString() === marker.reportId.toString()
-                  )
-                : null;
-
-              return (
-                <div
-                  key={marker.id}
-                  className="marker-list-item"
-                  onClick={() => onEditMarker(marker)}
-                >
-                  <strong>{marker.label}</strong>
-                  {report && (
-                    <span style={{ marginLeft: 8, fontSize: 12, opacity: 0.7 }}>
-                      ({report.event || report.description || `Report ${marker.reportId}`})
-                    </span>
-                  )}
-                </div>
-              );
-            })}
           </div>
-        )}
 
-        {editingMarker && (
-          <>
-            <div className="marker-edit-form">
-              <div className="report-details-row">
-                <span className="label">Marker Label:</span>
-                <input
-                  className="form-input"
-                  value={markerLabel}
-                  onChange={(e) => {
-                    setMarkerLabel(e.target.value);
-                    setLabelManuallyEdited(true);
-                  }}
-                />
-              </div>
-
-              <div className="report-details-row">
-                <span className="label">Linked Report:</span>
-                <select
-                  className="form-input"
-                  value={linkedReportId || ""}
-                  onChange={(e) => setLinkedReportId(e.target.value)}
-                >
-                  <option value="">-- Select Report --</option>
-                  {localReports
-                    .filter((r) => r.id)
-                    .map((report) => (
-                      <option key={report.id} value={report.id}>
-                        {report.event || report.description || `Report ${report.id}`}
-                      </option>
-                    ))}
-                </select>
-              </div>
-
-              {linkedReport && (
-                <div className="report-details" style={{ marginTop: 12 }}>
-                  <div>
-                    <b>Event:</b> {linkedReport.event}
-                  </div>
-                  <div>
-                    <b>Description:</b> {linkedReport.description || "-"}
-                  </div>
-                  <div>
-                    <b>Status:</b> {linkedReport.status || "-"}
-                  </div>
-                  <div>
-                    <b>Priority:</b> {linkedReport.priority || "-"}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="marker-form-actions">
-              <button className="btn-save" onClick={handleSave}>
-                Save
-              </button>
-              <button
-                className="btn-delete"
-                onClick={() => onDelete(editingMarker.id)}
-              >
-                Delete
-              </button>
-              <button
-                className="btn-cancel"
-                onClick={() => onEditMarker(null)}
-              >
-                Back to list
-              </button>
-            </div>
-          </>
-        )}
+          <div className="marker-form-actions" style={{ display: "flex", gap: "10px", marginTop: "20px" }}>
+            <button
+              className="btn-save"
+              onClick={() => {
+                if (linkedReportWrapper) {
+                  navigate("/melding", {
+                    state: {
+                      report: linkedReportWrapper,
+                      from: "map",
+                    },
+                  });
+                }
+              }}
+              disabled={!linkedReportWrapper}
+            >
+              Bewerken
+            </button>
+            <button
+              className="btn-delete"
+              onClick={() => onDelete(editingMarker.id)}
+            >
+              Verwijderen
+            </button>
+          </div>
+        </>
       </div>
     </div>
   );

@@ -2,36 +2,63 @@ import React, { useState, useRef, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { saveReport } from "../services/reportsApi";
 import MapPanel from "../components/mapPanel/MapPanel";
+import Legend from "../components/Legend";
 import TeamsTableContainer from "../components/TeamsTableContainer";
 import AidWorkersTableContainer from "../components/AidWorkerTableContainer";
 import ReportsTableContainer from "../components/ReportsTableContainer";
 import FilterControls from "../components/FilterControls";
-import Legend from "../components/Legend";
-import { MAPS, MAIN_TABS, REPORT_TABS } from "../utils";
-import { useNotepad } from "../contexts/NotepadContexts";
+import { MAPS, MAIN_TABS, REPORT_TABS } from "../utils/utils";
 import "../Dashboard.css";
 
-export default function Dashboard({ reports, reloadData, setReports }) {
+export default function Dashboard({ reports, reloadData, setReports, units, setUnits, workers, setWorkers }) {
   const navigate = useNavigate();
   const location = useLocation();
+
   const [currentMap, setCurrentMap] = useState(MAPS[0].src);
-  const [mapColorMode, setMapColorMode] = useState("priority"); // "priority" or "status"
+  const [mapColorMode, setMapColorMode] = useState(() => {
+    return localStorage.getItem("dashboard_mapColorMode") || "priority";
+  }); // "priority" or "status"
   const [mainTab, setMainTab] = useState(MAIN_TABS.TEAMS);
   const [reportsTab, setReportsTab] = useState(REPORT_TABS.ALL);
-  const [statusFilter, setStatusFilter] = useState("All");
-  const [priorityFilter, setPriorityFilter] = useState("All");
-  const [showKladblok, setShowKladblok] = useState(false);
-  const [selectedEventId, setSelectedEventId] = useState(null);
-  const { notes, setNotes } = useNotepad();
-  const notepadRef = useRef(null);
 
-  // Get selected event from localStorage
+  // FIX: gebruik overal "Alles" i.p.v. "All"
+  const [statusFilter, setStatusFilter] = useState("Alles");
+  const [priorityFilter, setPriorityFilter] = useState("Alles");
+
+  const [activeLegendFilters, setActiveLegendFilters] = useState(() => {
+    const saved = localStorage.getItem("dashboard_activeLegendFilters");
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error("Failed to parse activeLegendFilters from localStorage", e);
+      }
+    }
+    return {
+      status: [],
+      priority: [],
+      teams: [],
+    };
+  });
+
+  useEffect(() => {
+    localStorage.setItem("dashboard_mapColorMode", mapColorMode);
+  }, [mapColorMode]);
+
+  useEffect(() => {
+    localStorage.setItem("dashboard_activeLegendFilters", JSON.stringify(activeLegendFilters));
+  }, [activeLegendFilters]);
+
+  const [showKladblok, setShowKladblok] = useState(false);
+  const [kladblokContext, setKladblokContext] = useState(null);
+  const [selectedEvent, setSelectedEvent] = useState(null);
+
   React.useEffect(() => {
     const stored = localStorage.getItem("selected_event");
     if (stored) {
       try {
         const parsed = JSON.parse(stored);
-        setSelectedEventId(parsed.id);
+        setSelectedEvent(parsed);
       } catch (e) {
         console.error("Failed to parse selected_event from localStorage", e);
       }
@@ -39,13 +66,22 @@ export default function Dashboard({ reports, reloadData, setReports }) {
   }, []);
 
   useEffect(() => {
-    window._reports = reports;
-    console.log("Dashboard reports: ", reports);
-  }, [reports]);
+    const handleKeyDown = (e) => {
+      if (e.altKey && e.key.toLowerCase() === "n") {
+        e.preventDefault();
+        if (document.activeElement instanceof HTMLElement) {
+          document.activeElement.blur();
+        }
+        navigate("/melding");
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [navigate]);
 
   const mapPanelRef = useRef(null);
   const [isResizing, setIsResizing] = useState(false);
-  const [showCreateReport, setShowCreateReport] = useState(false);
 
   const mainTabs = [
     { value: MAIN_TABS.TEAMS, label: "Teams" },
@@ -54,10 +90,10 @@ export default function Dashboard({ reports, reloadData, setReports }) {
   ];
 
   const reportSubTabs = [
-    { value: REPORT_TABS.ALL, label: "All" },
+    { value: REPORT_TABS.ALL, label: "Alles" },
     { value: REPORT_TABS.TEAM, label: "Team" },
     { value: REPORT_TABS.STATUS, label: "Status" },
-    { value: REPORT_TABS.PRIORITY, label: "Priority" },
+    { value: REPORT_TABS.PRIORITY, label: "Prioriteit" },
   ];
 
   const startResize = (e) => {
@@ -99,7 +135,7 @@ export default function Dashboard({ reports, reloadData, setReports }) {
       await saveReport(updatedWrapper.Report);
 
       setReports((prevReports) =>
-        prevReports.map((r) => (r.Report.id === id ? updatedWrapper : r)),
+        prevReports.map((r) => (r.Report.id === id ? updatedWrapper : r))
       );
 
       await reloadData();
@@ -109,6 +145,12 @@ export default function Dashboard({ reports, reloadData, setReports }) {
     }
   };
 
+  const handleMapsUpdate = (maps) => {
+    const newSelectedEvent = { ...selectedEvent, maps };
+    setSelectedEvent(newSelectedEvent);
+    localStorage.setItem("selected_event", JSON.stringify(newSelectedEvent));
+  };
+
   return (
     <div className="dashboard">
       <div className="resizable-map-panel" ref={mapPanelRef}>
@@ -116,17 +158,22 @@ export default function Dashboard({ reports, reloadData, setReports }) {
           onMapSelect={setCurrentMap}
           pendingReport={null}
           onRequestMarkerAdd={null}
-          selectedEventId={selectedEventId}
+          selectedEvent={selectedEvent}
+          selectedEventId={selectedEvent?.id}
+          initialMaps={selectedEvent?.maps || []}
+          onMapsUpdate={handleMapsUpdate}
           reports={reports}
           updateReportLocation={updateReportLocation}
           colorMode={mapColorMode}
+          activeLegendFilters={activeLegendFilters}
           initialMapType={location.state?.openMapType}
+          units={units}
+          setUnits={setUnits}
         />
         <div className="resize-handle" onMouseDown={startResize} />
       </div>
 
       <div className="dashboard-right">
-        {/* Main tabs */}
         <div className="tabs">
           {mainTabs.map((tab) => (
             <button
@@ -139,93 +186,61 @@ export default function Dashboard({ reports, reloadData, setReports }) {
           ))}
         </div>
 
-        {/* Tab content */}
-        {mainTab === MAIN_TABS.TEAMS && <TeamsTableContainer />}
-        {mainTab === MAIN_TABS.AIDWORKERS && <AidWorkersTableContainer />}
+        {mainTab === MAIN_TABS.TEAMS && <TeamsTableContainer units={units} />}
+        {mainTab === MAIN_TABS.AIDWORKERS && (
+          <AidWorkersTableContainer selectedEventId={selectedEvent?.id} workers={workers} />
+        )}
         {mainTab === MAIN_TABS.REPORTS && (
           <>
-            {/* Subtabs and filters */}
             <div
               style={{
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
                 marginBottom: 12,
+                paddingRight: 8,
               }}
             >
-              <div className="subtabs">
-                {reportSubTabs.map((t) => (
-                  <button
-                    key={t.value}
-                    className={
-                      reportsTab === t.value ? "subtab active-subtab" : "subtab"
-                    }
-                    onClick={() => setReportsTab(t.value)}
-                  >
-                    {t.label}
-                  </button>
-                ))}
-              </div>
+              <FilterControls
+                statusFilter={statusFilter}
+                priorityFilter={priorityFilter}
+                onStatusChange={setStatusFilter}
+                onPriorityChange={setPriorityFilter}
+              />
               <button
                 className="btn-small"
                 style={{
-                  background: "#22c55e",
+                  background: "#14a84b",
                   color: "white",
-                  fontWeight: 500,
+                  fontWeight: 600,
+                  border: "none",
+                  borderRadius: 6,
+                  padding: "4px 10px",
+                  cursor: "pointer",
                 }}
                 onClick={() => navigate("/melding")}
               >
-                + Nieuwe Melding
+                Nieuwe Melding
               </button>
             </div>
-
-            <FilterControls
-              statusFilter={statusFilter}
-              priorityFilter={priorityFilter}
-              onStatusChange={setStatusFilter}
-              onPriorityChange={setPriorityFilter}
-            />
 
             <ReportsTableContainer
               reportsTab={reportsTab}
               statusFilter={statusFilter}
               priorityFilter={priorityFilter}
+              reports={reports}
             />
           </>
         )}
 
-      <Legend
-        colorMode={mapColorMode}        
-        setColorMode={setMapColorMode}  
-        onOpenNotepad={() => {
-          setShowKladblok(true);         
-          setTimeout(() => {
-            if (notepadRef.current) {
-              notepadRef.current.scrollIntoView({ behavior: "smooth" });
-              notepadRef.current.focus();
-            }
-          }, 100); 
-        }}
-      />
-        {/* Notepad modal */}
-          {showKladblok && (
-            <div className="modal-backdrop" onClick={() => setShowKladblok(false)}>
-              <div className="modal" onClick={(e) => e.stopPropagation()}>
-                <div className="modal-header">
-                  <h2>Kladblok</h2>
-                  <button className="modal-close" onClick={() => setShowKladblok(false)}>
-                    ×
-                  </button>
-                </div>
-                <textarea
-                  className="notepad"
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Schrijf notitie"
-                />
-              </div>
-            </div>
-          )}
+        <div className="legend-buttons">
+          <Legend
+            colorMode={mapColorMode}
+            setColorMode={setMapColorMode}
+            activeLegendFilters={activeLegendFilters}
+            setActiveLegendFilters={setActiveLegendFilters}
+          />
+        </div>
       </div>
     </div>
   );

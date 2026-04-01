@@ -1,13 +1,12 @@
-const API_BASE_URL =
-  (typeof import.meta !== "undefined" &&
-    import.meta.env &&
-    import.meta.env.VITE_API_BASE_URL) ||
-  "http://localhost:8080"; // PHP server base URL
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL?.replace(/\/+$/, "") || "";
+
+if (!API_BASE_URL) {
+  throw new Error("REACT_APP_API_BASE_URL is not defined");
+}
 
 function apiUrl(path = "") {
-  const base = API_BASE_URL.replace(/\/+$/, "");
   const suffix = String(path || "").replace(/^\/+/, "");
-  return suffix ? `${base}/${suffix}` : base;
+  return `${API_BASE_URL}/${suffix}`;
 }
 
 async function handleJsonResponse(res) {
@@ -37,18 +36,18 @@ async function handleJsonResponse(res) {
 
 function mapPriorityToBackend(priority) {
   const map = {
-    Groen: "GREEN",
-    Geel: "ORANGE",
-    Rood: "RED",
+    Laag: "GREEN",
+    Gemiddeld: "ORANGE",
+    Hoog: "RED",
   };
   return map[priority] || null;
 }
 
 function mapStatusToBackend(status) {
   const map = {
-    Open: "REGISTERED",
-    "In behandeling": "NOTIFICATION",
-    Gesloten: "SIGNED_OUT",
+    Open: "NEW",
+    "In behandeling": "PENDING",
+    Gesloten: "CLOSED",
   };
   return map[status] || null;
 }
@@ -57,8 +56,8 @@ function mapGenderToBackend(gender) {
   const map = {
     Man: "MALE",
     Vrouw: "FEMALE",
+    X: "OTHER",
   };
-  // Backend does not support 'X', so we send null.
   return map[gender] || null;
 }
 
@@ -66,18 +65,19 @@ function mapReportFromServer(reportWrapper) {
   const report = reportWrapper.Report ?? reportWrapper;
   if (!report) return reportWrapper;
 
-  const priorityMap = { GREEN: "Groen", ORANGE: "Geel", RED: "Rood" };
+  const priorityMap = { GREEN: "Laag", ORANGE: "Gemiddeld", RED: "Hoog" };
   const statusMap = {
-    REGISTERED: "Open",
-    NOTIFICATION: "In behandeling",
-    SIGNED_OUT: "Gesloten",
+    NEW: "Open",
+    PENDING: "In behandeling",
+    CLOSED: "Gesloten",
   };
-  const genderMap = { MALE: "Man", FEMALE: "Vrouw" };
+  const genderMap = { MALE: "Man", FEMALE: "Vrouw", OTHER: "X" };
 
   const mappedReport = {
     ...report,
     ReportedBy: report.ReportedBy || "",
     Team: report.Team || "",
+    Logbook: report.Logbook || [],
     Prioriteit: priorityMap[report.Prioriteit] || report.Prioriteit,
     Status: statusMap[report.Status] || report.Status,
     SITrap: report.SITRAP
@@ -140,6 +140,8 @@ function mapFormToReportPayload(form) {
     ...rest
   } = form;
 
+  rest.Logbook = form.Logbook || [];
+
   const sitrapPayload = {
     Gender: mapGenderToBackend(SITrap?.Gender),
     Event: SITrap?.Event ?? null,
@@ -179,8 +181,13 @@ function mapFormToReportPayload(form) {
 
 // ---- Notifications (Reports) ---------------------------------------------
 
-export async function getReports() {
-  const res = await fetch(apiUrl("src/api/v1/notification"), {
+export async function getReports(eventId = null) {
+  let url = "src/api/v1/notification";
+  if (eventId) {
+    url += `?eventId=${encodeURIComponent(eventId)}`;
+  }
+
+  const res = await fetch(apiUrl(url), {
     method: "GET",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
@@ -237,27 +244,26 @@ export async function deleteReport(id) {
 
 // ---- Units / Aid workers --------------------------------------------------
 
-export async function getAidWorkers() {
-  const res = await fetch(apiUrl("src/api/v1/aidworker"), {
+export async function getAidWorkers({ eventId } = {}) {
+  let url = "src/api/v1/aidworker";
+  if (eventId) {
+    url += `?eventId=${encodeURIComponent(eventId)}`;
+  }
+
+  const res = await fetch(apiUrl(url), {
     method: "GET",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
   });
 
   const response = await handleJsonResponse(res);
-
-  // Handle wrapped response from backend: {"success": true, "data": [...]}
   const data = response && response.data ? response.data : response;
-
-  if (!Array.isArray(data)) {
-    return [];
-  }
-
+  if (!Array.isArray(data)) return [];
   return data;
 }
 
-export async function getUnits() {
-  const data = await getAidWorkers();
+export async function getUnits(eventId = null) {
+  const data = await getAidWorkers({ eventId });
 
   const teamNames = new Set(
     data.map((worker) => worker.teamName).filter(Boolean),

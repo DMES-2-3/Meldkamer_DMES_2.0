@@ -27,49 +27,65 @@ class AidWorker
     #[Column(type: "string", length: 255)]
     private string $lastname;
 
-    #[Column(type: "string", length: 7)]
+    #[Column(type: "string", length: 40)]
     private string $callSign;
 
-    #[column(enumType: Status::class)]
+    #[Column(enumType: Status::class)]
     private Status $status;
 
     #[Column(type: "boolean")]
-    private bool $isActive;
+    private bool $isActive = false;
 
-    #[Column(type: "text")]
-    private string $description;
+    #[
+        Column(
+            type: "datetime",
+            nullable: true,
+            options: ["default" => "CURRENT_TIMESTAMP"],
+        ),
+    ]
+    private ?\DateTime $updatedAt = null;
 
-    #[ORM\OneToMany(targetEntity: AidTeam::class, mappedBy: "AidWorker")]
-    private $aidTeam;
+    #[Column(type: "text", nullable: true)]
+    private ?string $description = null;
 
-    #[ORM\ManyToOne(targetEntity: Event::class, inversedBy: "AidWorker")]
+    /**
+     * The event this aid worker belongs to.
+     * Workers are created per-event, so this is the primary grouping.
+     */
+    #[ORM\ManyToOne(targetEntity: Event::class, inversedBy: "aidWorkers")]
     #[
         ORM\JoinColumn(
             name: "FK_Event",
             referencedColumnName: "eventId",
+            nullable: true,
             onDelete: "CASCADE",
         ),
     ]
-    private Event $event;
+    private ?Event $event = null;
 
-    #[ORM\ManyToOne(targetEntity: AidTeam::class, inversedBy: "AidWorker")]
+    /**
+     * The team this aid worker is assigned to.
+     * Null means the worker is available (not yet in a team).
+     * When set, isActive becomes true.
+     */
+    #[ORM\ManyToOne(targetEntity: AidTeam::class, inversedBy: "aidWorkers")]
     #[
         ORM\JoinColumn(
-            name: "FK_Aidteam",
+            name: "FK_AidTeam",
             referencedColumnName: "aidTeamId",
-            onDelete: "CASCADE",
+            nullable: true,
+            onDelete: "SET NULL",
         ),
     ]
-    private AidTeam $team;
+    private ?AidTeam $team = null;
+
+    // -------------------------------------------------------------------------
+    // Getters & Setters
+    // -------------------------------------------------------------------------
 
     public function getAidWorkerId(): int
     {
         return $this->aidWorkerId;
-    }
-
-    public function setAidWorkerId(int $aidWorkerId): void
-    {
-        $this->aidWorkerId = $aidWorkerId;
     }
 
     public function getAidWorkerType(): string
@@ -119,7 +135,20 @@ class AidWorker
 
     public function setStatus(Status $status): void
     {
-        $this->status = $status;
+        if (!isset($this->status) || $this->status !== $status) {
+            $this->status = $status;
+            $this->updatedAt = new \DateTime();
+        }
+    }
+
+    public function getUpdatedAt(): ?\DateTime
+    {
+        return $this->updatedAt;
+    }
+
+    public function setUpdatedAt(?\DateTime $updatedAt): void
+    {
+        $this->updatedAt = $updatedAt;
     }
 
     public function isActive(): bool
@@ -132,38 +161,71 @@ class AidWorker
         $this->isActive = $isActive;
     }
 
-    public function getDescription(): string
+    public function getDescription(): ?string
     {
         return $this->description;
     }
 
-    public function setDescription(string $description): void
+    public function setDescription(?string $description): void
     {
         $this->description = $description;
     }
 
-    public function getTeam(): AidTeam
+    public function getEvent(): ?Event
+    {
+        return $this->event;
+    }
+
+    public function setEvent(?Event $event): void
+    {
+        $this->event = $event;
+    }
+
+    public function getTeam(): ?AidTeam
     {
         return $this->team;
     }
 
-    public function setTeam(AidTeam $team)
+    /**
+     * Assign (or unassign) this worker to a team.
+     * Automatically sets isActive based on whether a team is assigned.
+     */
+    public function setTeam(?AidTeam $team): void
     {
         $this->team = $team;
+        $this->isActive = $team !== null;
     }
+
+    // -------------------------------------------------------------------------
+    // Serialisation
+    // -------------------------------------------------------------------------
 
     public function toArray(): array
     {
-        $data = [
-            "id" => $this->getAidWorkerId(),
-            "firstName" => $this->getFirstname(),
-            "lastName" => $this->getLastname(),
-            "teamName" => $this->getTeam()->getAidTeamName(),
-            "callNumber" => $this->getCallSign(),
-            "status" => $this->getStatus()->value,
-            "note" => $this->getDescription(),
-            "workerType" => $this->getAidWorkerType(),
+        $statusValue = $this->status->value;
+
+        $colorMap = [
+            "AVAILABLE" => "#10B981",
+            "BUSY" => "#F59E0B",
+            "UNAVAILABLE" => "#EF4444",
+            "OFF_DUTY" => "#6B7280",
         ];
-        return $data;
+
+        return [
+            "id" => $this->aidWorkerId,
+            "firstName" => $this->firstname,
+            "lastName" => $this->lastname,
+            "name" => trim($this->firstname . " " . $this->lastname),
+            "workerType" => $this->aidWorkerType,
+            "callNumber" => $this->callSign,
+            "status" => $statusValue,
+            "color" => $colorMap[$statusValue] ?? "#10B981",
+            "note" => $this->description ?? "",
+            "isActive" => $this->isActive,
+            "eventId" => $this->event?->getEventId(),
+            "teamId" => $this->team?->getAidTeamId(),
+            "teamName" => $this->team?->getAidTeamName() ?? null,
+            "updatedAt" => $this->updatedAt?->format(\DateTimeInterface::ATOM),
+        ];
     }
 }

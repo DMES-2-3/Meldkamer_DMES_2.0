@@ -2,6 +2,8 @@
 
 namespace App\Entity;
 
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Doctrine\ORM\Mapping\Entity;
 use Doctrine\ORM\Mapping\Column;
@@ -50,7 +52,7 @@ class Notification
         ORM\JoinColumn(
             name: "FK_AidTeam",
             referencedColumnName: "aidTeamId",
-            onDelete: "CASCADE",
+            onDelete: "SET NULL",
             nullable: true,
         ),
     ]
@@ -93,8 +95,14 @@ class Notification
     #[Column(type: "datetime")]
     private \DateTimeInterface $time;
 
-    #[column(enumType: Status::class)]
-    private Status $status;
+    #[Column(type: "datetime", nullable: true)]
+    private ?\DateTimeInterface $assignedAt;
+
+    #[Column(type: "datetime", nullable: true)]
+    private ?\DateTimeInterface $closedAt;
+
+    #[column(enumType: NotificationStatus::class)]
+    private NotificationStatus $status;
 
     #[column(enumType: Priority::class)]
     private Priority $priority;
@@ -108,8 +116,19 @@ class Notification
     #[Column(type: "text", nullable: true)]
     private ?string $notepad;
 
+    #[
+        ORM\OneToMany(
+            mappedBy: "notification",
+            targetEntity: Logbook::class,
+            cascade: ["persist", "remove"],
+        ),
+    ]
+    private Collection $logbooks;
+
     public function __construct()
     {
+        $this->status = NotificationStatus::NEW;
+        $this->priority = Priority::GREEN;
         $this->reportedBy = null;
         $this->AVPU = null;
         $this->AidTeam = null;
@@ -119,6 +138,9 @@ class Notification
         $this->description = null;
         $this->notepad = null;
         $this->gender = null;
+        $this->assignedAt = null;
+        $this->closedAt = null;
+        $this->logbooks = new ArrayCollection();
     }
 
     public function getNotificationId(): int
@@ -231,12 +253,32 @@ class Notification
         $this->time = $time;
     }
 
-    public function getStatus(): Status
+    public function getAssignedAt(): ?\DateTimeInterface
+    {
+        return $this->assignedAt;
+    }
+
+    public function setAssignedAt(?\DateTimeInterface $assignedAt): void
+    {
+        $this->assignedAt = $assignedAt;
+    }
+
+    public function getClosedAt(): ?\DateTimeInterface
+    {
+        return $this->closedAt;
+    }
+
+    public function setClosedAt(?\DateTimeInterface $closedAt): void
+    {
+        $this->closedAt = $closedAt;
+    }
+
+    public function getStatus(): NotificationStatus
     {
         return $this->status;
     }
 
-    public function setStatus(Status $status): void
+    public function setStatus(NotificationStatus $status): void
     {
         $this->status = $status;
     }
@@ -281,6 +323,27 @@ class Notification
         $this->notepad = $notepad;
     }
 
+    public function getLogbooks(): Collection
+    {
+        return $this->logbooks;
+    }
+
+    public function addLogbook(Logbook $logbook): self
+    {
+        if (!$this->logbooks->contains($logbook)) {
+            $this->logbooks[] = $logbook;
+            $logbook->setNotification($this);
+        }
+
+        return $this;
+    }
+
+    public function removeLogbook(Logbook $logbook): self
+    {
+        $this->logbooks->removeElement($logbook);
+        return $this;
+    }
+
     public function toArray(): array
     {
         return [
@@ -295,6 +358,8 @@ class Notification
             "Prioriteit" => $this->getPriority(),
             "Status" => $this->getStatus(),
             "Time" => $this->getTime()->format("H:i"),
+            "AssignedAt" => $this->getAssignedAt()?->format("H:i"),
+            "ClosedAt" => $this->getClosedAt()?->format("H:i"),
             "Ambulance" => $this->isAmbulanceNeeded(),
             "SITRAP" => [
                 "Gender" => $this->getGender()?->value,
@@ -316,6 +381,10 @@ class Notification
                     ?->getAidTeam()
                     ?->getAidTeamName(),
             ],
+            "Logbook" => array_map(
+                fn($logbook) => $logbook->toArray(),
+                $this->getLogbooks()->toArray(),
+            ),
         ];
     }
 }

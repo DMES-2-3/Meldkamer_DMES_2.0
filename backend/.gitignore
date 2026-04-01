@@ -408,6 +408,9 @@ FodyWeavers.xsd
 *.sln.iml
 /vendor
 .env
+.env.prod
+.env.develop
+
 ### VisualStudio Patch ###
 # Additional files built by Visual Studio
 /.idea

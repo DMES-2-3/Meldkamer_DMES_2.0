@@ -2,36 +2,28 @@ import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import Section from "../components/layout/Section";
 import OverviewTable from "../components/OverviewTable";
-import { getReports, saveReport } from "../services/reportsApi";
-import { getUnits, updateUnit } from "../services/unitsApi";
+import { saveReport } from "../services/reportsApi";
+import { updateUnit } from "../services/unitsApi";
 
-export default function OverviewScreen() {
+export default function OverviewScreen({ reports, units, reloadData }) {
   const navigate = useNavigate();
-  const [reports, setReports] = useState([]);
-  const [units, setUnits] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [selectedEvent, setSelectedEvent] = useState(null);
 
-  const reloadData = useCallback(async () => {
-    setLoading(true);
-    try {
-      const [reportsData, unitsData] = await Promise.all([
-        getReports(),
-        getUnits(),
-      ]);
-      setReports(reportsData);
-      setUnits(unitsData);
-    } catch (error) {
-      console.error("Failed to fetch data:", error);
-      // Optionally set an error state here
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
   useEffect(() => {
-    reloadData();
-  }, [reloadData]);
+    const handleKeyDown = (e) => {
+      // Alt + N om een nieuwe melding te maken
+      if (e.altKey && e.key.toLowerCase() === 'n') {
+        e.preventDefault();
+        if (document.activeElement instanceof HTMLElement) {
+          document.activeElement.blur();
+        }
+        navigate("/melding");
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [navigate]);
 
   const mappedUnits = useMemo(() => {
     if (!units) return [];
@@ -57,6 +49,17 @@ export default function OverviewScreen() {
       return;
     }
   }, [navigate]);
+
+  const availableUnits = useMemo(() => {
+    return mappedUnits.filter((u) => {
+      const isAvailable = u.status === "AVAILABLE";
+      const isForEvent =
+        selectedEvent && selectedEvent.id
+          ? u.eventId === selectedEvent.id
+          : true;
+      return isAvailable && isForEvent;
+    });
+  }, [mappedUnits, selectedEvent]);
 
   const { newReports, inProgressReports, closedReports } = useMemo(() => {
     const newR = [];
@@ -87,24 +90,23 @@ export default function OverviewScreen() {
       }
     });
 
-    const sortByTime = (a, b) => {
-      const reportA = a.Report ?? a;
-      const reportB = b.Report ?? b;
-      const timeA = (reportA.Time || "").toString();
-      const timeB = (reportB.Time || "").toString();
-      return timeA.localeCompare(timeB);
-    };
-
-    newR.sort(sortByTime);
-    inProgressR.sort(sortByTime);
-    closedR.sort(sortByTime);
-
     return {
       newReports: newR,
       inProgressReports: inProgressR,
       closedReports: closedR,
     };
   }, [reports, selectedEvent]);
+
+  const isTeamBusyWithOtherReports = (teamName, currentReportId) => {
+    return (reports || []).some((wrapper) => {
+      const r = wrapper.Report ?? wrapper;
+      return (
+        String(r.id) !== String(currentReportId) &&
+        r.Status !== "Gesloten" &&
+        (r.Team === teamName || r.Assistance?.Team === teamName)
+      );
+    });
+  };
 
   const handleReportClick = (report) => {
     // It's better to navigate with the original report data if possible
@@ -129,23 +131,37 @@ export default function OverviewScreen() {
 
     if (!newStatus) return;
 
-    // If closing the report, also set the team status to AVAILABLE
+    // If closing the report, also set the team status to AVAILABLE if not busy
     if (newStatus === "Gesloten") {
       const teamName = originalReport.Team;
       if (teamName) {
         const team = mappedUnits.find((u) => u.name === teamName);
         if (team) {
-          const payload = { ...team, status: "AVAILABLE" };
+          const isBusy = isTeamBusyWithOtherReports(teamName, originalReport.id);
+          const payload = { ...team, status: isBusy ? "NOTIFICATION" : "AVAILABLE" };
           delete payload.id;
           delete payload.name;
           delete payload.teamName;
           await updateUnit(team.id, payload);
         }
       }
+      const assistanceTeamName = originalReport.Assistance?.Team;
+      if (assistanceTeamName) {
+        const assistanceTeam = mappedUnits.find((u) => u.name === assistanceTeamName);
+        if (assistanceTeam) {
+          const isBusy = isTeamBusyWithOtherReports(assistanceTeamName, originalReport.id);
+          const payload = { ...assistanceTeam, status: isBusy ? "NOTIFICATION" : "AVAILABLE" };
+          delete payload.id;
+          delete payload.name;
+          delete payload.teamName;
+          await updateUnit(assistanceTeam.id, payload);
+        }
+      }
     }
 
     const updatedReport = { ...originalReport, Status: newStatus };
     await saveReport(updatedReport);
+    localStorage.setItem("shared_report_update", Date.now().toString());
     reloadData();
   };
 
@@ -166,7 +182,8 @@ export default function OverviewScreen() {
     if (oldTeamName) {
       const oldTeam = mappedUnits.find((u) => u.name === oldTeamName);
       if (oldTeam) {
-        const payload = { ...oldTeam, status: "AVAILABLE" };
+        const isBusy = isTeamBusyWithOtherReports(oldTeamName, originalReport.id);
+        const payload = { ...oldTeam, status: isBusy ? "NOTIFICATION" : "AVAILABLE" };
         delete payload.id;
         delete payload.name;
         delete payload.teamName;
@@ -188,6 +205,7 @@ export default function OverviewScreen() {
 
     const updatedReport = { ...originalReport, Team: newTeamName };
     await saveReport(updatedReport);
+    localStorage.setItem("shared_report_update", Date.now().toString());
     reloadData();
   };
 
@@ -202,48 +220,118 @@ export default function OverviewScreen() {
 
     const updatedReport = { ...originalReport, Prioriteit: newPriority };
     await saveReport(updatedReport);
+    localStorage.setItem("shared_report_update", Date.now().toString());
     reloadData();
   };
 
-  if (loading) {
-    return <div>Loading...</div>;
-  }
+  const handleDropReport = async (report, targetStatus) => {
+    if (!report?.id) return;
+
+    const originalWrapper = reports.find(
+      (r) => (r.Report ?? r).id === report.id,
+    );
+    if (!originalWrapper) return;
+    const originalReport = originalWrapper.Report ?? originalWrapper;
+
+    const currentStatus = originalReport.Status || "Open";
+    if (currentStatus === targetStatus) return;
+
+    // If closing the report, also set the team status to AVAILABLE if not busy
+    if (targetStatus === "Gesloten") {
+      const teamName = originalReport.Team;
+      if (teamName) {
+        const team = mappedUnits.find((u) => u.name === teamName);
+        if (team) {
+          const isBusy = isTeamBusyWithOtherReports(teamName, originalReport.id);
+          const payload = { ...team, status: isBusy ? "NOTIFICATION" : "AVAILABLE" };
+          delete payload.id;
+          delete payload.name;
+          delete payload.teamName;
+          await updateUnit(team.id, payload);
+        }
+      }
+      const assistanceTeamName = originalReport.Assistance?.Team;
+      if (assistanceTeamName) {
+        const assistanceTeam = mappedUnits.find((u) => u.name === assistanceTeamName);
+        if (assistanceTeam) {
+          const isBusy = isTeamBusyWithOtherReports(assistanceTeamName, originalReport.id);
+          const payload = { ...assistanceTeam, status: isBusy ? "NOTIFICATION" : "AVAILABLE" };
+          delete payload.id;
+          delete payload.name;
+          delete payload.teamName;
+          await updateUnit(assistanceTeam.id, payload);
+        }
+      }
+    } else if (currentStatus === "Gesloten" && targetStatus !== "Gesloten") {
+      // Reopening a report sets the team back to NOTIFICATION
+      const teamName = originalReport.Team;
+      if (teamName) {
+        const team = mappedUnits.find((u) => u.name === teamName);
+        if (team) {
+          const payload = { ...team, status: "NOTIFICATION" };
+          delete payload.id;
+          delete payload.name;
+          delete payload.teamName;
+          await updateUnit(team.id, payload);
+        }
+      }
+      const assistanceTeamName = originalReport.Assistance?.Team;
+      if (assistanceTeamName) {
+        const assistanceTeam = mappedUnits.find((u) => u.name === assistanceTeamName);
+        if (assistanceTeam) {
+          const payload = { ...assistanceTeam, status: "NOTIFICATION" };
+          delete payload.id;
+          delete payload.name;
+          delete payload.teamName;
+          await updateUnit(assistanceTeam.id, payload);
+        }
+      }
+    }
+
+    const updatedReport = { ...originalReport, Status: targetStatus };
+    await saveReport(updatedReport);
+    localStorage.setItem("shared_report_update", Date.now().toString());
+    reloadData();
+  };
 
   return (
     <div>
       <Section title="Nieuwe meldingen" color="#00A651">
         <OverviewTable
           reports={newReports}
-          units={mappedUnits}
+          units={availableUnits}
           placeholderRows={5}
           onRowClick={handleReportClick}
           onStatusUpdate={handleStatusUpdate}
           onTeamUpdate={handleTeamUpdate}
           onPriorityUpdate={handlePriorityUpdate}
+          onDropReport={(report) => handleDropReport(report, "Open")}
         />
       </Section>
 
       <Section title="Lopende meldingen" color="#F7941D">
         <OverviewTable
           reports={inProgressReports}
-          units={mappedUnits}
+          units={availableUnits}
           placeholderRows={5}
           onRowClick={handleReportClick}
           onStatusUpdate={handleStatusUpdate}
           onTeamUpdate={handleTeamUpdate}
           onPriorityUpdate={handlePriorityUpdate}
+          onDropReport={(report) => handleDropReport(report, "In behandeling")}
         />
       </Section>
 
       <Section title="Gesloten meldingen" color="#9B9B9B">
         <OverviewTable
           reports={closedReports}
-          units={mappedUnits}
+          units={availableUnits}
           placeholderRows={5}
           onRowClick={handleReportClick}
           onStatusUpdate={handleStatusUpdate}
           onTeamUpdate={handleTeamUpdate}
           onPriorityUpdate={handlePriorityUpdate}
+          onDropReport={(report) => handleDropReport(report, "Gesloten")}
         />
       </Section>
     </div>

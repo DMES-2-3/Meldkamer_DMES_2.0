@@ -8,8 +8,12 @@ import {
 } from "../services/eventsApi"; // Use eventsApi for real backend
 import "../Events.css";
 import dmesLogo from "../assets/logos/DMES_Vierkant_Logo.png";
+import { useAuth } from "../contexts/AuthContext";
+import { apiUrl } from "../config/api";
 
 export default function EventsPage() {
+
+  const { user, clearUser } = useAuth();
   const [events, setEvents] = useState([]);
 
   // Search and sort state
@@ -79,12 +83,13 @@ export default function EventsPage() {
       name: event.name || event.eventName || "",
     };
     localStorage.setItem("selected_event", JSON.stringify(normalized));
+    window.dispatchEvent(new StorageEvent("storage", { key: "shared_report_update" }));
     navigate("/dashboard");
   };
 
   const handleLogout = async () => {
     try {
-      const res = await fetch("http://localhost:8080/src/api/v1/user/logout", {
+      const res = await fetch(`${apiUrl("src/api/v1/user/logout")}`, {
         method: "DELETE",
         credentials: "include",
         headers: {
@@ -95,12 +100,16 @@ export default function EventsPage() {
       // Clear any localStorage data
       localStorage.removeItem("selected_event");
 
+      // Clear the auth context so Protected doesn't redirect back
+      clearUser();
+
       // Navigate to login regardless of response status
       navigate("/login", { replace: true });
     } catch (error) {
       console.error("Logout error:", error);
       // Clear localStorage and navigate even if API call fails
       localStorage.removeItem("selected_event");
+      clearUser();
       navigate("/login", { replace: true });
     }
   };
@@ -255,6 +264,14 @@ export default function EventsPage() {
           alt="Dutch Medical Event Service"
           style={{ height: "40px", width: "auto", marginRight: "auto" }}
         />
+        {user?.isAdmin && (
+          <button
+            className="register-user-button"
+            onClick={() => navigate("/register")}
+          >
+            Registreer Gebruiker
+          </button>
+        )}
         <button className="logout-button" onClick={handleLogout}>
           Uitloggen
         </button>
@@ -412,6 +429,12 @@ export default function EventsPage() {
                   className="event-form-input"
                   value={editEvent.name}
                   onChange={(e) => handleEditChange("name", e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleSaveEvent();
+                    }
+                  }}
                   placeholder="Naam van het evenement"
                 />
               </div>
@@ -424,6 +447,12 @@ export default function EventsPage() {
                   className="event-form-input"
                   value={editEvent.postcode || ""}
                   onChange={(e) => handleEditChange("postcode", e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleSaveEvent();
+                    }
+                  }}
                   placeholder="Bijv. 3511AD"
                 />
               </div>

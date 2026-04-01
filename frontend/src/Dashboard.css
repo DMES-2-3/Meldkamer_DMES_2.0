@@ -8,6 +8,17 @@
     --color-bg: #f5f5f5;
 }
 
+.map-wrapper div[style*="position: absolute"]:hover svg {
+    filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3));
+    transition: all 0.2s ease-in-out;
+    cursor: pointer;
+}
+
+.map-wrapper div[style*="position: absolute"]:hover .marker-label {
+    font-weight: bold;
+    transition: all 0.2s ease-in-out;
+}
+
 .dashboard {
     display: flex;
     gap: 16px;
@@ -15,23 +26,24 @@
     background: var(--color-bg);
     align-items: stretch;
     justify-content: flex-start;
+    min-height: 0;
+    overflow: hidden;
 }
 
 .map-panel {
     flex: 1 1 0%;
-    position: relative;
-    background: #e5e7eb;
-    border: 1px solid var(--color-border);
-    border-radius: 8px;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    min-width: 0;
 }
 
 .map-wrapper {
     flex: 1;
     width: 100%;
     height: 100%;
+    min-width: 0;
+    min-height: 0;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -53,6 +65,8 @@
 
 .pdf-page canvas {
     transform-origin: center center !important;
+    max-width: 100%;
+    height: auto;
 }
 
 .map-image {
@@ -74,6 +88,8 @@
     border-radius: 6px;
     font-weight: bold;
     z-index: 1000;
+    max-width: calc(100% - 24px);
+    text-align: center;
 }
 
 .map-message-info {
@@ -104,6 +120,8 @@
     font-size: 16px;
     flex-direction: column;
     gap: 10px;
+    padding: 20px;
+    text-align: center;
 }
 
 .add-marker-prompt {
@@ -117,6 +135,8 @@
     border-radius: 4px;
     z-index: 1000;
     font-size: 14px;
+    max-width: calc(100% - 24px);
+    text-align: center;
 }
 
 .map-no-content {
@@ -124,7 +144,9 @@
     font-style: italic;
     text-align: center;
     margin-top: 50px;
+    padding-inline: 16px;
 }
+
 .marker-container {
     position: absolute;
     transform: translate(-50%, -100%);
@@ -174,6 +196,9 @@
     white-space: nowrap;
     pointer-events: auto;
     cursor: pointer;
+    max-width: 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .map-buttons {
@@ -186,6 +211,7 @@
     padding: 6px;
     border-radius: 8px;
     z-index: 1000;
+    max-width: calc(100% - 32px);
 }
 
 .map-buttons button,
@@ -277,6 +303,7 @@
     color: #1f2937;
     align-self: center;
 }
+
 .modal-backdrop {
     position: fixed;
     inset: 0;
@@ -285,6 +312,7 @@
     justify-content: center;
     align-items: center;
     z-index: 1000;
+    padding: 16px;
 }
 
 .modal {
@@ -292,6 +320,7 @@
     border-radius: 8px;
     padding: 16px;
     width: 420px;
+    max-width: 100%;
     max-height: 80vh;
     overflow-y: auto;
     display: flex;
@@ -303,10 +332,12 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 12px;
 }
 
 .modal-header h3 {
     margin: 0;
+    min-width: 0;
 }
 
 .modal-close {
@@ -315,6 +346,7 @@
     font-size: 28px;
     cursor: pointer;
     color: #333;
+    flex-shrink: 0;
 }
 
 .modal-close:hover {
@@ -325,6 +357,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 12px;
     padding: 10px;
     border-radius: 6px;
     background: #f5f5f5;
@@ -351,6 +384,7 @@
     transition: 0.2s;
     background: var(--color-primary);
     color: white;
+    flex-shrink: 0;
 }
 
 .modal-map-item button:hover {
@@ -374,10 +408,9 @@
     padding: 2px 6px;
     font-size: 12px;
     border-radius: 4px;
-    flex: 0 0 auto; 
-    width: auto;    
+    flex: 0 0 auto;
+    width: auto;
 }
-
 
 .marker-list-item.active {
     background: var(--color-primary);
@@ -398,6 +431,16 @@
 .marker-list-item:hover {
     background: #e0e0e0;
 }
+
+.ellipsis {
+    display: inline-block;
+    max-width: 200px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    vertical-align: bottom;
+}
+
 .marker-edit-form button:hover {
     background: #2e2a7a;
 }
@@ -455,6 +498,7 @@
     display: flex;
     gap: 8px;
     margin-top: 8px;
+    flex-wrap: wrap;
 }
 
 .report-details {
@@ -517,22 +561,6 @@
     background: var(--status-break);
 }
 
-.report-badge.available {
-    background: var(--status-available);
-}
-
-.report-badge.busy {
-    background: var(--status-busy);
-}
-
-.report-badge.occupied {
-    background: var(--status-occupied);
-}
-
-.report-badge.break {
-    background: var(--status-break);
-}
-
 .report-teams {
     display: flex;
     flex-wrap: wrap;
@@ -567,7 +595,9 @@
 
 .dashboard-right {
     flex-grow: 1;
+    min-width: 0;
     padding: 16px;
+    height: 100%;
     background: white;
     border: 1px solid var(--color-border);
     border-radius: 8px;
@@ -582,6 +612,7 @@
     gap: 10px;
     border-bottom: 2px solid #d1d5db;
     padding-bottom: 4px;
+    flex-wrap: wrap;
 }
 
 .tab {
@@ -593,6 +624,7 @@
     color: #6b7280;
     border-radius: 6px 6px 0 0;
     transition: 0.2s;
+    white-space: nowrap;
 }
 
 .tab:hover {
@@ -610,6 +642,7 @@
     display: flex;
     gap: 6px;
     margin-top: 6px;
+    flex-wrap: wrap;
 }
 
 .subtab {
@@ -634,72 +667,86 @@
 }
 
 .team-table-wrapper {
-  flex-grow: 1;
-  overflow-x: auto;
-  overflow-y: auto;
-  max-height: 300px;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  background: #ffffff;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+    flex-grow: 1;
+    overflow-x: auto;
+    overflow-y: auto;
+    max-height: 300px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    background: #ffffff;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+    min-width: 0;
 }
 
 .team-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-family: 'Inter', sans-serif;
-  font-size: 14px;
-  min-width: 600px; /* ensures horizontal scroll if needed */
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    min-width: 600px;
 }
 
 .team-table th,
 .team-table td {
-  padding: 12px 16px;
-  text-align: left;
-  vertical-align: middle;
+    padding: 12px 16px;
+    text-align: left;
+    vertical-align: middle;
 }
 
 .team-table th {
-  position: sticky;
-  top: 0;
-  background: #1e1b4b; /* dark blue header */
-  color: #ffffff;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  box-shadow: 0 2px 2px rgba(0, 0, 0, 0.08);
-  z-index: 2;
-}
-
-.team-table tr:hover {
-    background: #f3f4f6;
+    position: sticky;
+    top: 0;
+    background: #1e1b4b;
+    color: #ffffff;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 2px rgba(0, 0, 0, 0.08);
+    z-index: 2;
 }
 
 .team-table tbody tr:nth-child(even) {
-  background: #f9fafb;
+    background: #f9fafb;
 }
 
-.team-table tbody tr:hover {
-  background: #e0e7ff;
-  transition: background 0.2s;
+.team-table tbody tr:not(.team-extra-row):hover {
+    background: #e0e7ff;
+    transition: background 0.2s;
 }
 
 .status-dot {
-  display: inline-block;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  margin-right: 8px;
-  vertical-align: middle;
-  border: 2px solid #ffffffaa;
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    margin-right: 8px;
+    vertical-align: middle;
+    border: 2px solid #ffffffaa;
 }
 
-@media (max-width: 768px) {
-  .team-table th,
-  .team-table td {
-    padding: 10px 12px;
-    font-size: 13px;
-  }
+.team-extra-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+}
+
+.team-extra-block {
+    display: flex;
+    flex-direction: column;
+}
+
+.team-extra-title {
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+
+.team-extra-content {
+    color: #4b5563;
+}
+
+.team-workers-list {
+    margin: 0;
+    padding-left: 18px;
 }
 
 .legend {
@@ -718,6 +765,12 @@
     margin-bottom: -4px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    cursor: pointer;
+}
+
+.legend h3.active {
+    text-decoration: underline;
+    cursor: pointer;
 }
 
 .legend-grid {
@@ -735,11 +788,17 @@
     border: 1px solid #e5e7eb;
     border-radius: 8px;
     transition: 0.2s;
+    min-width: 0;
 }
 
 .legend-item:hover {
     background: #f3f4f6;
     border-color: #d1d5db;
+}
+
+.legend-item.active {
+    background: #e0f2fe;
+    border-color: #60a5fa;
 }
 
 .legend-dot {
@@ -748,12 +807,14 @@
     border-radius: 999px;
     border: 2px solid #ffffff88;
     box-shadow: 0 0 4px rgba(0, 0, 0, 0.15);
+    flex-shrink: 0;
 }
 
 .legend-actions {
     margin-top: 14px;
     display: flex;
     gap: 12px;
+    flex-wrap: wrap;
 }
 
 .notepad {
@@ -772,6 +833,7 @@
     flex: 0 0 50%;
     min-width: 300px;
     max-width: 80%;
+    min-height: 0;
 }
 
 .resize-handle {
@@ -797,6 +859,8 @@
     padding: 6px 10px;
     border-radius: 8px;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+    max-width: calc(100% - 24px);
+    overflow-x: auto;
 }
 
 .map-type-tabs button {
@@ -809,6 +873,7 @@
     transition:
         background-color 0.2s,
         color 0.2s;
+    white-space: nowrap;
 }
 
 .map-type-tabs button.active-tab {
@@ -821,7 +886,6 @@
     background-color: #e0e0e0;
 }
 
-/* Google Maps error and loading states */
 .map-error {
     display: flex;
     flex-direction: column;
@@ -876,61 +940,302 @@
     font-size: 16px;
     color: #6b7280;
     background: #f9fafb;
+    padding: 20px;
+    text-align: center;
 }
 
 .google-map-container {
     height: 100%;
     width: 100%;
-}
-
-.google-map-inner {
-    height: 100%;
-    width: 100%;
-}
-
-.google-map-container {
-    width: 100%;
-    height: 100%;
     border-radius: 6px;
     overflow: hidden;
-}
-
-.google-map-container {
-    width: 100%;
-    height: 100%;
     position: relative;
 }
 
 .google-map-inner {
-    width: 100%;
     height: 100%;
+    width: 100%;
 }
 
-.legend h3.active {
-    text-decoration: underline;
-    cursor: pointer;
+.legend-buttons {
+    margin-top: auto;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    gap: 16px;
+    padding-top: 12px;
+    border-radius: 8px;
 }
 
-.legend h3 {
-    cursor: pointer;
+.notepad-button {
+    display: flex;
+    justify-content: flex-end;
 }
+
+.btn-small {
+    background-color: #1e1b4b;
+    color: white;
+    border-radius: 8px;
+    font-size: 13px;
+    border: none;
+    gap: 6px;
+    padding: 8px 14px;
+}
+
+.note-modal-content {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.note-worker-name {
+    font-weight: 600;
+    font-size: 16px;
+    color: var(--color-primary);
+}
+
+.note-text {
+    font-size: 14px;
+    color: #374151;
+    line-height: 1.5;
+}
+
+@media (max-width: 1200px) {
+    .dashboard {
+        gap: 12px;
+    }
+
+    .resizable-map-panel {
+        flex-basis: 55%;
+        max-width: 75%;
+    }
+
+    .dashboard-right {
+        padding: 14px;
+    }
+}
+
+@media (max-width: 1024px) {
+    .dashboard {
+        flex-direction: column;
+        height: auto;
+        min-height: calc(100vh - 80px);
+        overflow: visible;
+    }
+
+    .resizable-map-panel,
+    .map-panel {
+        flex: none;
+        width: 100%;
+        max-width: none;
+        min-width: 0;
+    }
+
+    .resizable-map-panel {
+        min-height: 420px;
+    }
+
+    .resize-handle {
+        display: none;
+    }
+
+    .dashboard-right {
+        height: auto;
+        min-height: 420px;
+    }
+
+    .team-extra-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+
+    .legend {
+        margin-top: 0;
+    }
+}
+
 @media (max-width: 768px) {
+    .dashboard {
+        gap: 10px;
+    }
+
+    .resizable-map-panel {
+        min-height: 45vh;
+    }
+
+    .dashboard-right {
+        padding: 12px;
+        border-radius: 6px;
+    }
+
     .map-panel .map-buttons {
         flex-direction: column;
+        align-items: stretch;
         bottom: 8px;
         left: 8px;
+        right: 8px;
+        max-width: none;
     }
+
     .map-panel .btn-small {
         font-size: 12px;
         padding: 5px 10px;
     }
+
+    .map-type-tabs {
+        top: 8px;
+        left: 8px;
+        right: 8px;
+        transform: none;
+        justify-content: flex-start;
+        width: auto;
+    }
+
+    .tabs,
+    .subtabs,
+    .legend-actions,
+    .marker-form-actions {
+        gap: 8px;
+    }
+
+    .tab {
+        font-size: 14px;
+        padding: 8px 12px;
+    }
+
+    .subtab {
+        font-size: 13px;
+        padding: 6px 10px;
+    }
+
+    .marker-label {
+        font-size: 10px;
+        top: -22px;
+        max-width: 110px;
+    }
+
+    .marker-icon {
+        width: 18px;
+        height: 18px;
+    }
+
+    .team-table th,
+    .team-table td {
+        padding: 10px 12px;
+        font-size: 13px;
+    }
+
+    .modal {
+        width: 100%;
+        max-height: calc(100vh - 32px);
+        padding: 14px;
+    }
+
+    .modal-map-item {
+        align-items: flex-start;
+    }
+
+    .report-details {
+        padding: 14px;
+    }
+
+    .legend-grid {
+        grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+    }
+
+    .zoom-percentage {
+        margin-left: 0;
+        font-size: 13px;
+    }
 }
 
-.legend .legend-buttons .btn-small {
-    background-color: #1e1b4b;
-    padding: 5px 10px;
-    color: white;
-    border-radius: 5px;
-    font-size: 13px; 
-    border: none; 
+@media (max-width: 640px) {
+    .map-message,
+    .add-marker-prompt {
+        font-size: 13px;
+        padding: 8px 10px;
+    }
+
+    .dashboard-right {
+        padding: 10px;
+    }
+
+    .tabs {
+        padding-bottom: 8px;
+    }
+
+    .tab {
+        width: 100%;
+        text-align: left;
+        border-radius: 6px;
+    }
+
+    .subtabs {
+        flex-direction: column;
+    }
+
+    .subtab {
+        width: 100%;
+        text-align: left;
+    }
+
+    .map-buttons button,
+    .marker-list-item button,
+    .modal-map-item button,
+    .marker-edit-form button {
+        width: 100%;
+    }
+
+    .modal-map-item {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .ellipsis {
+        max-width: 100%;
+    }
+
+    .report-details-row {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .legend-item {
+        padding: 8px;
+    }
+
+    .notepad {
+        height: 220px;
+    }
+}
+
+@media (max-width: 480px) {
+    .resizable-map-panel {
+        min-height: 38vh;
+    }
+
+    .map-error,
+    .map-loading,
+    .pdf-loading-overlay,
+    .pdf-error-overlay {
+        padding: 16px;
+        font-size: 14px;
+    }
+
+    .map-buttons {
+        padding: 4px;
+        gap: 6px;
+    }
+
+    .marker-label {
+        display: none;
+    }
+
+    .legend-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .team-table {
+        min-width: 520px;
+    }
 }

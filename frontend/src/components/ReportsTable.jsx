@@ -1,8 +1,11 @@
 import React from "react";
-import { getStatusColorForReport, getPriorityColor } from "../utils";
+import { useNavigate } from "react-router-dom";
+import { getStatusColorForReport, getPriorityColor } from "../utils/utils";
 
 export default function ReportsTable({ reports }) {
-  if (!reports.length) return <p>No reports available</p>;
+  const navigate = useNavigate();
+
+  if (!reports.length) return <p>Geen meldingen beschikbaar</p>;
 
   return (
     <div
@@ -13,19 +16,25 @@ export default function ReportsTable({ reports }) {
         <thead>
           <tr>
             <th>ID</th>
-            <th>Subject</th>
-            <th>Location</th>
-            <th>Time</th>
+            <th>Onderwerp</th>
+            <th>Locatie</th>
+            <th>Tijd</th>
             <th>Status</th>
-            <th>Priority</th>
-            <th>Ambulance Needed</th>
-            <th>Description</th>
-            <th>Aid Team</th>
+            <th>Prioriteit</th>
+            <th>Ambulance Nodig</th>
+            <th>Beschrijving</th>
+            <th>Team</th>
           </tr>
         </thead>
+
         <tbody>
           {reports.map((r) => (
-            <tr key={r.id}>
+            <tr
+              key={r.id}
+              style={{ cursor: "pointer" }}
+              title="Open melding"
+              onClick={() => navigate("/melding", { state: { report: r } })}
+            >
               <td>{r.id}</td>
               <td>{r.Subject}</td>
               <td>{r.Location}</td>
@@ -44,7 +53,7 @@ export default function ReportsTable({ reports }) {
                 />
                 {r.Prioriteit}
               </td>
-              <td>{r.Ambulance ? "Yes" : "No"}</td>
+              <td>{r.Ambulance ? "Ja" : "Nee"}</td>
               <td>{r.Note}</td>
               <td>{r.Team || "N/A"}</td>
             </tr>
