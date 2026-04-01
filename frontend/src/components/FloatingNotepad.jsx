@@ -65,17 +65,19 @@ export default function FloatingNotepad({ open, context, onClose }) {
     }
   }, [open, key, uiKey]);
 
-  // Persist note
-  useEffect(() => {
-    if (!open || !key) return;
-    localStorage.setItem(key, text);
-  }, [open, key, text]);
-
   // Persist window UI (position/size)
   useEffect(() => {
     if (!open || !uiKey) return;
     localStorage.setItem(uiKey, JSON.stringify(win));
   }, [open, uiKey, win]);
+
+  const handleTextChange = (e) => {
+    const val = e.target.value;
+    setText(val);
+    if (key) {
+      localStorage.setItem(key, val);
+    }
+  };
 
   if (!open) return null;
 
@@ -150,7 +152,7 @@ export default function FloatingNotepad({ open, context, onClose }) {
           <textarea
             ref={textareaRef}
             value={text}
-            onChange={(e) => setText(e.target.value)}
+            onChange={handleTextChange}
             placeholder="Schrijf je aantekeningen…"
             style={{
               width: "100%",

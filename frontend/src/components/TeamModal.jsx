@@ -82,7 +82,7 @@ function Modal({ title, onClose, children }) {
       <div className="up-modal" onClick={(e) => e.stopPropagation()}>
         <div className="up-modal-header">
           <h2 className="up-modal-title">{title}</h2>
-          <button className="up-modal-close" onClick={onClose}>
+          <button type="button" className="up-modal-close" onClick={onClose}>
             ×
           </button>
         </div>
@@ -188,7 +188,10 @@ export default function TeamModal({
     return e;
   };
 
-  const handleSave = async () => {
+  const handleSave = async (eEvent) => {
+    if (eEvent && eEvent.preventDefault) {
+      eEvent.preventDefault();
+    }
     const e = validate();
     if (Object.keys(e).length) {
       setErrors(e);
@@ -251,6 +254,7 @@ export default function TeamModal({
 
   return (
     <Modal title={isEdit ? "Team bewerken" : "Team aanmaken"} onClose={onClose}>
+      <form onSubmit={handleSave}>
       {apiError && <div className="up-api-error">{apiError}</div>}
 
       <div className="up-form-grid">
@@ -353,6 +357,7 @@ export default function TeamModal({
       <div className="up-modal-footer" style={{ display: "flex", gap: "10px" }}>
         {isMapContext && onDeleteMarker && (
           <button
+            type="button"
             className="up-btn up-btn-danger"
             onClick={handleDeleteMarker}
             disabled={saving}
@@ -362,6 +367,7 @@ export default function TeamModal({
           </button>
         )}
         <button
+          type="button"
           className="up-btn up-btn-secondary"
           onClick={onClose}
           disabled={saving}
@@ -369,13 +375,14 @@ export default function TeamModal({
           Annuleren
         </button>
         <button
+          type="submit"
           className="up-btn up-btn-primary"
-          onClick={handleSave}
           disabled={saving}
         >
           {saving ? "Opslaan…" : isEdit ? "Opslaan" : "Aanmaken"}
         </button>
       </div>
+      </form>
     </Modal>
   );
 }

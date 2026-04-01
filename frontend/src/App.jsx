@@ -20,7 +20,7 @@ import UnitsPage from "./pages/UnitsPage";
 import ExportPage from "./pages/Export";
 import MapPopoutScreen from "./pages/mapPopoutScreen";
 
-function AppContent({ reports, setReports, units, setUnits, workers, setWorkers, reloadData, showKladblok, setShowKladblok, kladblokContext }) {
+function AppContent({ reports, setReports, units, setUnits, workers, setWorkers, reloadData, showKladblok, setShowKladblok, kladblokContext, openGlobalNotepad }) {
   const location = useLocation();
 
   useEffect(() => {
@@ -68,7 +68,7 @@ function AppContent({ reports, setReports, units, setUnits, workers, setWorkers,
           <Protected
             Component={() => (
               <div className="app-content">
-                <TopNav onOpenNotepad={() => setShowKladblok(true)} />
+                <TopNav onOpenNotepad={openGlobalNotepad} />
                 <Routes>
                   <Route
                     path="melding"
@@ -233,6 +233,7 @@ function App() {
             showKladblok={showKladblok}
             setShowKladblok={setShowKladblok}
             kladblokContext={kladblokContext}
+            openGlobalNotepad={openGlobalNotepad}
           />
         </BrowserRouter>
       </NotepadProvider>
