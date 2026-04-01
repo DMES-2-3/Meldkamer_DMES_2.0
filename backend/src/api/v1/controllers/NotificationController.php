@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Api\Controllers;
 
 use App\Entity\AidTeam;
@@ -10,8 +11,7 @@ use App\Entity\Priority;
 use App\Entity\SITRAP;
 use App\Entity\NotificationStatus;
 use App\Entity\Status;
-use App\Entity\AidWorker;
-use DoctrineProxies\__CG__\App\Entity\Event;
+use App\Entity\Event;
 use TypeError;
 use ValueError;
 use DateTime;
@@ -42,6 +42,7 @@ class NotificationController extends BaseController implements IController
                 return $this->handleDelete($id);
             default:
                 $this->sendError("Method not allowed", 405);
+                return;
         }
     }
 
@@ -49,32 +50,46 @@ class NotificationController extends BaseController implements IController
     {
         if ($id === null) {
             $eventId = $_GET["eventId"] ?? null;
-            if ($eventId) {
-                $response = $this->repo->findBy(["event" => $eventId]);
+
+            if ($eventId !== null) {
+                $event = $this->entityManager
+                    ->getRepository(Event::class)
+                    ->findOneBy(["eventId" => (int) $eventId]);
+
+                if (!$event) {
+                    $this->sendError("Event not found", 404);
+                    return;
+                }
+
+                $response = $this->repo->findBy(["event" => $event]);
             } else {
                 $response = $this->repo->findAll();
             }
+
             $this->sendResponse(array_map(fn($r) => $r->toArray(), $response));
-        } else {
-            $response = $this->repo->findOneBy(["notificationId" => $id]);
-            if (!$this->validateEntity($response, "Notification", $id)) {
-                return;
-            }
-            $this->sendResponse($response->toArray());
+            return;
         }
+
+        $response = $this->repo->findOneBy(["notificationId" => $id]);
+        if (!$this->validateEntity($response, "Notification", $id)) {
+            return;
+        }
+
+        $this->sendResponse($response->toArray());
     }
 
     private function handlePost()
     {
-        $input = $this->getJsonInput()["Report"] ?? null;
-        if ($input === null) {
+        $json = $this->getJsonInput();
+        $input = is_array($json) ? ($json["Report"] ?? null) : null;
+
+        if ($input === null || !is_array($input)) {
             $this->sendError("Invalid JSON input", 400);
             return;
         }
 
         $notification = new Notification();
 
-        // Validate required entities
         $team = null;
         if (!empty($input["Team"])) {
             $team = $this->entityManager
@@ -98,29 +113,28 @@ class NotificationController extends BaseController implements IController
         }
 
         try {
-            // Set notification properties
             $notification->setReportedBy($input["ReportedBy"] ?? null);
             $notification->setEvent($event);
             $notification->setSubject($input["Subject"] ?? null);
-            $notification->setMapLocation($input["Location"] ?? null);
+            $notification->setMapLocation($input["Location"] ?? "");
             $notification->setDescription($input["Note"] ?? null);
             $notification->setNotepad($input["Notepad"] ?? null);
+
             if ($team) {
                 $notification->setAidTeam($team);
                 $statusVal = $input["Status"] ?? null;
                 $newStatus =
-                    $statusVal === \App\Entity\NotificationStatus::CLOSED->value
-                        ? \App\Entity\Status::AVAILABLE
-                        : \App\Entity\Status::NOTIFICATION;
+                    $statusVal === NotificationStatus::CLOSED->value
+                        ? Status::AVAILABLE
+                        : Status::NOTIFICATION;
                 $team->setStatus($newStatus);
                 $this->entityManager->persist($team);
             }
 
             if (isset($input["Prioriteit"])) {
-                $notification->setPriority(
-                    Priority::from($input["Prioriteit"]),
-                );
+                $notification->setPriority(Priority::from($input["Prioriteit"]));
             }
+
             if (isset($input["Status"])) {
                 $newStatus = NotificationStatus::from($input["Status"]);
                 $notification->setStatus($newStatus);
@@ -135,17 +149,13 @@ class NotificationController extends BaseController implements IController
             }
 
             $notification->setAmbulanceNeeded(
-                isset($input["Ambulance"]) ? (bool) $input["Ambulance"] : false,
+                isset($input["Ambulance"]) ? (bool) $input["Ambulance"] : false
             );
 
-            // Set timestamp
             if (!empty($input["Time"])) {
                 $dt = DateTime::createFromFormat("H:i", $input["Time"]);
                 if ($dt === false) {
-                    $this->sendError(
-                        "Invalid time format, expected HH:mm",
-                        400,
-                    );
+                    $this->sendError("Invalid time format, expected HH:mm", 400);
                     return;
                 }
                 $notification->setTime($dt);
@@ -153,61 +163,63 @@ class NotificationController extends BaseController implements IController
                 $notification->setTime(new DateTime());
             }
 
-            // Setup SITRAP
-            if (!empty($input["SITrap"])) {
-                $SITRAP = new SITRAP();
+            if (!empty($input["SITrap"]) && is_array($input["SITrap"])) {
+                $sitrapEntity = new SITRAP();
                 $sitr = $input["SITrap"];
-                $SITRAP->setDescription($sitr["Event"] ?? null);
-                $SITRAP->setInjury($sitr["Condition"] ?? null);
-                $notification->setSITRAP($SITRAP);
+
+                $sitrapEntity->setDescription($sitr["Event"] ?? null);
+                $sitrapEntity->setInjury($sitr["Condition"] ?? null);
+                $notification->setSITRAP($sitrapEntity);
+
                 if (isset($sitr["Gender"])) {
                     $notification->setGender(Gender::from($sitr["Gender"]));
                 }
-                $this->entityManager->persist($SITRAP);
+
+                $this->entityManager->persist($sitrapEntity);
             }
 
-            // Setup AVPU
-            if (!empty($input["AVPU"])) {
-                $AVPU = new AVPU();
+            if (!empty($input["AVPU"]) && is_array($input["AVPU"])) {
+                $avpuEntity = new AVPU();
                 $avpu = $input["AVPU"];
-                $AVPU->setAlert($avpu["Alert"] ?? null);
-                $AVPU->setVerbal($avpu["Verbal"] ?? null);
-                $AVPU->setPain($avpu["Pain"] ?? null);
-                $AVPU->setUnresponsive($avpu["Unresponsive"] ?? null);
-                $notification->setAVPU($AVPU);
-                $this->entityManager->persist($AVPU);
+
+                $avpuEntity->setAlert($avpu["Alert"] ?? null);
+                $avpuEntity->setVerbal($avpu["Verbal"] ?? null);
+                $avpuEntity->setPain($avpu["Pain"] ?? null);
+                $avpuEntity->setUnresponsive($avpu["Unresponsive"] ?? null);
+
+                $notification->setAVPU($avpuEntity);
+                $this->entityManager->persist($avpuEntity);
             }
 
-            // Setup Assistance
-            if (!empty($input["Assistance"])) {
-                $Assistance = new Assistance();
+            if (!empty($input["Assistance"]) && is_array($input["Assistance"])) {
+                $assistanceEntity = new Assistance();
                 $ass = $input["Assistance"];
-                $Assistance->setCoordinator($ass["Coordinator"] ?? null);
-                $Assistance->setDoctor($ass["Doctor"] ?? null);
-                $Assistance->setEmergencyCare($ass["Spoedzorg"] ?? null);
-                $Assistance->setBasicCareVPK($ass["BasiszorgVPK"] ?? null);
+
+                $assistanceEntity->setCoordinator($ass["Coordinator"] ?? null);
+                $assistanceEntity->setDoctor($ass["Doctor"] ?? null);
+                $assistanceEntity->setEmergencyCare($ass["Spoedzorg"] ?? null);
+                $assistanceEntity->setBasicCareVPK($ass["BasiszorgVPK"] ?? null);
 
                 if (!empty($ass["Team"])) {
                     $assistanceTeam = $this->entityManager
                         ->getRepository(AidTeam::class)
                         ->findOneBy(["aidTeamName" => $ass["Team"]]);
+
                     if ($assistanceTeam) {
-                        $Assistance->setAidTeam($assistanceTeam);
+                        $assistanceEntity->setAidTeam($assistanceTeam);
                         $statusVal = $input["Status"] ?? null;
                         $newStatus =
-                            $statusVal ===
-                            \App\Entity\NotificationStatus::CLOSED->value
-                                ? \App\Entity\Status::AVAILABLE
-                                : \App\Entity\Status::NOTIFICATION;
+                            $statusVal === NotificationStatus::CLOSED->value
+                                ? Status::AVAILABLE
+                                : Status::NOTIFICATION;
                         $assistanceTeam->setStatus($newStatus);
                         $this->entityManager->persist($assistanceTeam);
                     }
                 }
 
-                $notification->setAssistance($Assistance);
+                $notification->setAssistance($assistanceEntity);
             }
 
-            // Setup Logbook
             if (isset($input["Logbook"]) && is_array($input["Logbook"])) {
                 foreach ($input["Logbook"] as $logbookData) {
                     $logbook = new \App\Entity\Logbook();
@@ -226,7 +238,6 @@ class NotificationController extends BaseController implements IController
                 }
             }
 
-            // Persist all entities
             $this->entityManager->persist($notification);
             $this->entityManager->flush();
 
@@ -236,13 +247,17 @@ class NotificationController extends BaseController implements IController
                 "Ongeldige waarde ingevoerd: " . $e->getMessage(),
                 422,
             );
-        } catch (\Exception $e) {
+            return;
+        } catch (\Throwable $e) {
+            error_log("Notification POST failed: " . $e->getMessage());
             $message = $e->getMessage();
-            if (strpos($message, 'Data too long') !== false) {
+
+            if (strpos($message, "Data too long") !== false) {
                 $this->sendError("Invoer te groot voor één van de velden.", 400);
             } else {
-                $this->sendError("Er is een interne fout opgetreden: " . $message, 500);
+                $this->sendError("Er is een interne fout opgetreden.", 500);
             }
+            return;
         }
     }
 
@@ -259,12 +274,12 @@ class NotificationController extends BaseController implements IController
         }
 
         $input = $this->getJsonInput();
-        if ($input === null) {
+        if ($input === null || !is_array($input)) {
+            $this->sendError("Invalid JSON input", 400);
             return;
         }
 
-        // Handle nested Report structure if provided
-        if (isset($input["Report"])) {
+        if (isset($input["Report"]) && is_array($input["Report"])) {
             $input = $input["Report"];
         }
 
@@ -280,13 +295,17 @@ class NotificationController extends BaseController implements IController
                 "Ongeldige waarde ingevoerd: " . $e->getMessage(),
                 422,
             );
-        } catch (\Exception $e) {
+            return;
+        } catch (\Throwable $e) {
+            error_log("Notification PATCH failed: " . $e->getMessage());
             $message = $e->getMessage();
-            if (strpos($message, 'Data too long') !== false) {
+
+            if (strpos($message, "Data too long") !== false) {
                 $this->sendError("Invoer te groot voor één van de velden.", 400);
             } else {
-                $this->sendError("Er is een interne fout opgetreden: " . $message, 500);
+                $this->sendError("Er is een interne fout opgetreden.", 500);
             }
+            return;
         }
     }
 
@@ -327,13 +346,11 @@ class NotificationController extends BaseController implements IController
             $notification->setStatus($newStatus);
 
             if ($newStatus === NotificationStatus::CLOSED) {
-                // Reset the primary AidTeam status to AVAILABLE
                 $primaryTeam = $notification->getAidTeam();
                 if ($primaryTeam !== null) {
                     $primaryTeam->setStatus(Status::AVAILABLE);
                 }
 
-                // Reset the Assistance AidTeam status to AVAILABLE
                 $assistance = $notification->getAssistance();
                 if ($assistance !== null) {
                     $assistanceTeam = $assistance->getAidTeam();
@@ -371,6 +388,7 @@ class NotificationController extends BaseController implements IController
                 $team = $this->entityManager
                     ->getRepository(AidTeam::class)
                     ->findOneBy(["aidTeamName" => $input["Team"]]);
+
                 if (empty($team)) {
                     $this->sendError(
                         "team " . $input["Team"] . " does not exist",
@@ -378,16 +396,20 @@ class NotificationController extends BaseController implements IController
                     );
                     return;
                 }
+
                 $notification->setAidTeam($team);
+
                 $statusVal =
                     $input["Status"] ??
                     ($notification->getStatus()
                         ? $notification->getStatus()->value
                         : null);
+
                 $newStatus =
-                    $statusVal === \App\Entity\NotificationStatus::CLOSED->value
-                        ? \App\Entity\Status::AVAILABLE
-                        : \App\Entity\Status::NOTIFICATION;
+                    $statusVal === NotificationStatus::CLOSED->value
+                        ? Status::AVAILABLE
+                        : Status::NOTIFICATION;
+
                 $team->setStatus($newStatus);
                 $this->entityManager->persist($team);
             }
@@ -397,6 +419,7 @@ class NotificationController extends BaseController implements IController
             $event = $this->entityManager
                 ->getRepository(Event::class)
                 ->findOneBy(["eventName" => $input["NameEvent"]]);
+
             if (empty($event)) {
                 $this->sendError(
                     "event " . $input["NameEvent"] . " does not exist",
@@ -404,38 +427,40 @@ class NotificationController extends BaseController implements IController
                 );
                 return;
             }
+
             $notification->setEvent($event);
         }
     }
 
     private function updateNestedEntities($notification, $input)
     {
-        // Update SITRAP
-        if (isset($input["SITrap"])) {
+        if (isset($input["SITrap"]) && is_array($input["SITrap"])) {
             $sitrap = $notification->getSITRAP();
             if (!$sitrap) {
                 $sitrap = new SITRAP();
                 $notification->setSITRAP($sitrap);
                 $this->entityManager->persist($sitrap);
             }
+
             $sitrapData = $input["SITrap"];
 
             if (array_key_exists("Event", $sitrapData)) {
                 $sitrap->setDescription($sitrapData["Event"]);
             }
+
             if (array_key_exists("Condition", $sitrapData)) {
                 $sitrap->setInjury($sitrapData["Condition"]);
             }
         }
 
-        // Update AVPU
-        if (isset($input["AVPU"])) {
+        if (isset($input["AVPU"]) && is_array($input["AVPU"])) {
             $avpu = $notification->getAVPU();
             if (!$avpu) {
                 $avpu = new AVPU();
                 $notification->setAVPU($avpu);
                 $this->entityManager->persist($avpu);
             }
+
             $avpuData = $input["AVPU"];
 
             if (isset($avpuData["Alert"])) {
@@ -452,18 +477,17 @@ class NotificationController extends BaseController implements IController
             }
         }
 
-        // Update Gender
         if (isset($input["SITrap"]["Gender"])) {
             $notification->setGender(Gender::from($input["SITrap"]["Gender"]));
         }
 
-        // Update Assistance
-        if (isset($input["Assistance"])) {
+        if (isset($input["Assistance"]) && is_array($input["Assistance"])) {
             $assistance = $notification->getAssistance();
             if (!$assistance) {
                 $assistance = new Assistance();
                 $notification->setAssistance($assistance);
             }
+
             $assistanceData = $input["Assistance"];
 
             if (isset($assistanceData["Coordinator"])) {
@@ -486,18 +510,21 @@ class NotificationController extends BaseController implements IController
                     $assistanceTeam = $this->entityManager
                         ->getRepository(AidTeam::class)
                         ->findOneBy(["aidTeamName" => $assistanceData["Team"]]);
+
                     if ($assistanceTeam) {
                         $assistance->setAidTeam($assistanceTeam);
+
                         $statusVal =
                             $input["Status"] ??
                             ($notification->getStatus()
                                 ? $notification->getStatus()->value
                                 : null);
+
                         $newStatus =
-                            $statusVal ===
-                            \App\Entity\NotificationStatus::CLOSED->value
-                                ? \App\Entity\Status::AVAILABLE
-                                : \App\Entity\Status::NOTIFICATION;
+                            $statusVal === NotificationStatus::CLOSED->value
+                                ? Status::AVAILABLE
+                                : Status::NOTIFICATION;
+
                         $assistanceTeam->setStatus($newStatus);
                         $this->entityManager->persist($assistanceTeam);
                     }
@@ -507,9 +534,11 @@ class NotificationController extends BaseController implements IController
 
         if (isset($input["Logbook"]) && is_array($input["Logbook"])) {
             $existingLogbooks = $notification->getLogbooks();
+
             foreach ($existingLogbooks as $logbook) {
                 $this->entityManager->remove($logbook);
             }
+
             $notification->getLogbooks()->clear();
 
             foreach ($input["Logbook"] as $logbookData) {
@@ -551,16 +580,13 @@ class NotificationController extends BaseController implements IController
                 ->andWhere("n.status != :closed")
                 ->andWhere("n.notificationId != :id")
                 ->setParameter("team", $team)
-                ->setParameter(
-                    "closed",
-                    \App\Entity\NotificationStatus::CLOSED->value,
-                )
+                ->setParameter("closed", NotificationStatus::CLOSED->value)
                 ->setParameter("id", $notification->getNotificationId())
                 ->getQuery()
                 ->getResult();
 
             if (empty($activeForTeam)) {
-                $team->setStatus(\App\Entity\Status::AVAILABLE);
+                $team->setStatus(Status::AVAILABLE);
                 $this->entityManager->persist($team);
             }
         }
@@ -575,16 +601,13 @@ class NotificationController extends BaseController implements IController
                 ->andWhere("n.status != :closed")
                 ->andWhere("n.notificationId != :id")
                 ->setParameter("team", $assistanceTeam)
-                ->setParameter(
-                    "closed",
-                    \App\Entity\NotificationStatus::CLOSED->value,
-                )
+                ->setParameter("closed", NotificationStatus::CLOSED->value)
                 ->setParameter("id", $notification->getNotificationId())
                 ->getQuery()
                 ->getResult();
 
             if (empty($activeForAssistanceTeam)) {
-                $assistanceTeam->setStatus(\App\Entity\Status::AVAILABLE);
+                $assistanceTeam->setStatus(Status::AVAILABLE);
                 $this->entityManager->persist($assistanceTeam);
             }
         }
@@ -595,4 +618,3 @@ class NotificationController extends BaseController implements IController
         $this->sendResponse(["message" => "Notification deleted successfully"]);
     }
 }
-?>

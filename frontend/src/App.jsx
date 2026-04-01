@@ -26,18 +26,50 @@ function App() {
   const [showKladblok, setShowKladblok] = useState(false);
   const [kladblokContext, setKladblokContext] = useState(null);
 
+  const openGlobalNotepad = useCallback(() => {
+    const stored = localStorage.getItem("selected_event");
+
+    if (!stored) {
+      alert("Geen event geselecteerd.");
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(stored);
+      setKladblokContext({
+        type: "event",
+        eventName: parsed.name || parsed.eventName,
+      });
+      setShowKladblok(true);
+    } catch (err) {
+      console.error("Failed to parse selected_event", err);
+      alert("Kon geselecteerd event niet laden.");
+    }
+  }, []);
+
+  const onOpenReportNotepad = (reportId) => 
+  {
+    if (!reportId) return;
+    setKladblokContext({ type: "report", reportId });
+    setShowKladblok(true);
+  };
+
   useEffect(() => {
     const handleGlobalKladblok = (e) => {
-      // Alt + K for opening/closing the notepad
-      if (e.altKey && e.key.toLowerCase() === 'k') {
+      if (e.altKey && e.key.toLowerCase() === "k") {
         e.preventDefault();
+
         const stored = localStorage.getItem("selected_event");
         if (stored) {
           try {
             const parsed = JSON.parse(stored);
-            setKladblokContext({ type: "event", eventName: parsed.name || parsed.eventName });
+            setKladblokContext({
+              type: "event",
+              eventName: parsed.name || parsed.eventName,
+            });
           } catch (err) {}
         }
+
         setShowKladblok((prev) => !prev);
       }
     };
@@ -84,25 +116,19 @@ function App() {
       <NotepadProvider>
         <BrowserRouter>
           <Routes>
-            {/* Public routes */}
             <Route path="/login" element={<Login />} />
-
-            {/* Default route redirects to login */}
             <Route path="/" element={<Navigate to="/login" replace />} />
 
-            {/* Admin-only register route */}
             <Route
               path="/register"
               element={<Protected Component={Register} adminOnly />}
             />
 
-            {/* Protected "evenementen" route (no TopNav) */}
             <Route
               path="/evenementen"
               element={<Protected Component={EventsPage} />}
             />
 
-            {/* Map Pop-out route */}
             <Route
               path="/map-popout"
               element={
@@ -114,14 +140,13 @@ function App() {
               }
             />
 
-            {/* All other routes WITH top navigation */}
             <Route
               path="/*"
               element={
                 <Protected
                   Component={() => (
                     <div className="app-content">
-                      <TopNav />
+                      <TopNav onOpenNotepad={openGlobalNotepad} />
                       <Routes>
                         <Route
                           path="melding"
@@ -146,15 +171,16 @@ function App() {
                               reports={reports}
                               reloadData={reloadData}
                               setReports={setReports}
+                              onOpenReportNotepad={onOpenReportNotepad}
                             />
                           }
                         />
-                        {/* Redirect unknown sub-routes to a default page */}
                         <Route
                           path="*"
                           element={<Navigate to="/evenementen" replace />}
                         />
                       </Routes>
+
                       <FloatingNotepad
                         open={showKladblok}
                         context={kladblokContext}

@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { getSelectedEvent } from "../utils/utils";
+import { apiUrl } from "../config/api";
 import "../Export.css";
 
 const ExportPage = ({ title = "Export" }) => {
+
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
@@ -42,8 +44,7 @@ const ExportPage = ({ title = "Export" }) => {
         try {
             const form = document.createElement("form");
             form.method = "POST";
-            const backendBase = process.env.REACT_APP_BACKEND_URL || "http://localhost:8080";
-            form.action = `${backendBase}/export/export.php`;
+            form.action = `${apiUrl("/export/export.php")}`;
 
             const input = document.createElement("input");
             input.type = "hidden";
@@ -76,7 +77,7 @@ const ExportPage = ({ title = "Export" }) => {
             const form = document.createElement("form");
             form.method = "POST";
 
-            const backendBase = process.env.REACT_APP_BACKEND_URL || "http://localhost:8080";
+            const backendBase = process.env.REACT_APP_BACKEND_URL || apiUrl("");
             form.action = `${backendBase}/export/export_excel.php`;
 
             const input = document.createElement("input");
@@ -118,13 +119,13 @@ const ExportPage = ({ title = "Export" }) => {
                        {activeExport === "zip" ? "Bezig met exporteren..." : "Exporteer ZIP"}
                     </button>
 
-                    <button
-                        onClick={handleExportExcel}
-                        disabled={loading}
-                        className="btn btn-outline"
-                    >
-                        {activeExport === "excel" ? "Bezig met exporteren..." : "Exporteer Excel"}
-                    </button>
+                        {/* <button
+                            onClick={handleExportExcel}
+                            disabled={loading}
+                            className="btn btn-outline"
+                        >
+                            {activeExport === "excel" ? "Bezig met exporteren..." : "Exporteer Excel"}
+                        </button> */}
                 </div>
 
                 {error && (

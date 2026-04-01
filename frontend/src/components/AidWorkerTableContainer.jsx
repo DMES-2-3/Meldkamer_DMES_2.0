@@ -2,8 +2,9 @@ import React, { useState, useEffect, useCallback } from "react";
 import { STATUSES } from "../constants";
 import AidWorkersTable from "./AidWorkerTable";
 import StatusPickerModal from "./StatusPickerModal";
+import { API_BASE_URL } from "../config/api";
 
-const API_URL = "http://localhost:8080/src/api/v1";
+const API_URL = `${API_BASE_URL}/src/api/v1`;
 
 const getStatusColor = (status) => {
   const statusConfig = {
@@ -81,6 +82,7 @@ export default function AidWorkersTableContainer({ selectedEventId }) {
       status,
       statusLabel: getStatusLabel(status),
       color: getStatusColor(status),
+      workerType,
       type: workerType,
       role: workerType,
       note: w.note || w.description || "",
