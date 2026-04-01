@@ -9,4 +9,4 @@ db-backup.sh
 *.sql
 *.sql.gz
 
-.txt
+*.txt
