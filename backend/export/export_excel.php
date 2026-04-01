@@ -74,6 +74,8 @@ $notificationsQuery = "
         n.priority,
         n.ambulanceNeeded,
         n.description,
+        n.assignedAt,
+        n.closedAt,
         (SELECT GROUP_CONCAT(CONCAT(DATE_FORMAT(l.time, '%H:%i'), ' : ', l.event) SEPARATOR '\n')
          FROM Logbook l
          WHERE l.FK_notification = n.notificationId) AS logbook,
@@ -111,11 +113,27 @@ foreach ($notifications as &$row) {
         $row["time"] = date("d-m-Y H:i:s", strtotime($row["time"]));
     }
 
+    if (!empty($row["assignedAt"])) {
+        $row["assignedAt"] = date("d-m-Y H:i:s", strtotime($row["assignedAt"]));
+    }
+
+    if (!empty($row["closedAt"])) {
+        $row["closedAt"] = date("d-m-Y H:i:s", strtotime($row["closedAt"]));
+    }
+
+    if (!empty($row["time"]) && !empty($row["closedAt"])) {
+        $start = strtotime($row["assignedAt"] ?? $row["time"]);
+        $end = strtotime($row["closedAt"]);
+        $row["Duur (minuten)"] = round(($end - $start) / 60); 
+    } else {
+        $row["Duur (minuten)"] = "";
+    }
+
     $statusMap = [
         "REGISTERED" => "Open",
         "NEW" => "Open",
-        "NOTIFICATION" => "In behandeling",
-        "SIGNED_OUT" => "Gesloten",
+        "PENDING" => "In behandeling",
+        "CLOSED" => "Gesloten",
     ];
     $row["status"] = $statusMap[$row["status"]] ?? $row["status"];
 
@@ -126,9 +144,9 @@ foreach ($notifications as &$row) {
 
     if (
         !empty($row["mapLocation"]) &&
-        preg_match('/^-?\d+(\.\d+)?,-?\d+(\.\d+)?$/', $row["mapLocation"])
+        preg_match('/^-?\d+(\.\d+)?,\s*-?\d+(\.\d+)?$/', $row["mapLocation"])
     ) {
-        $row["mapLocation"] = "";
+        $row["mapLocation"] = "Coordinaten";
     }
 
     $avpu = [];
@@ -242,7 +260,9 @@ if (!empty($notifications)) {
         "reportedBy" => "Gemeld door",
         "subject" => "Onderwerp",
         "mapLocation" => "Locatie",
-        "time" => "Tijdstip",
+        "time" => "Melding aangemaakt",
+        "assignedAt" => "Toegewezen op",
+        "closedAt" => "Gesloten op",
         "status" => "Status",
         "priority" => "Prioriteit",
         "ambulanceNeeded" => "Ambulance nodig",
@@ -254,13 +274,41 @@ if (!empty($notifications)) {
         "team" => "Team",
     ];
 
+    // Gewenste volgorde van kolommen in Excel
+    $desiredOrder = [
+        "reportedBy",        
+        "subject",           
+        "mapLocation",      
+        "description",     
+        "priority",         
+        "status",           
+        "team",
+        "time",
+        "assignedAt",
+        "closedAt",
+        "Duur (minuten)",
+        "logbook",
+        "SITRAP",
+        "AVPU",
+        "Assistance",
+    ];
+
     $headerRow = [];
-    foreach (array_keys($notifications[0]) as $key) {
+    foreach ($desiredOrder as $key) {
         $headerRow[] = $headersNL[$key] ?? $key;
     }
 
+    $orderedNotifications = [];
+    foreach ($notifications as $row) {
+        $orderedRow = [];
+        foreach ($desiredOrder as $key) {
+            $orderedRow[] = $row[$key] ?? "";
+        }
+        $orderedNotifications[] = $orderedRow;
+    }
+
     $sheet2->fromArray($headerRow, null, "A1");
-    $sheet2->fromArray($notifications, null, "A2");
+    $sheet2->fromArray($orderedNotifications, null, "A2");
 
     $lastCol2 = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(
         count($headerRow),

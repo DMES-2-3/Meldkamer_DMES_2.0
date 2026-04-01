@@ -66,6 +66,8 @@ $notificationsQuery = "
         n.priority,
         n.ambulanceNeeded,
         n.description,
+        n.assignedAt,
+        n.closedAt,
 
         (SELECT GROUP_CONCAT(CONCAT(DATE_FORMAT(l.time, '%H:%i'), ' : ', l.event) SEPARATOR '\n')
          FROM Logbook l
@@ -110,12 +112,29 @@ foreach ($notifications as &$row) {
         $row["time"] = date("d-m-Y H:i:s", strtotime($row["time"]));
     }
 
-    // STATUS vertalen (database: REGISTERED/NEW, NOTIFICATION, SIGNED_OUT)
+    // AssignedAt en ClosedAt formatteren + duur berekenen
+    if (!empty($row["assignedAt"])) {
+        $row["assignedAt"] = date("d-m-Y H:i:s", strtotime($row["assignedAt"]));
+    }
+
+    if (!empty($row["closedAt"])) {
+        $row["closedAt"] = date("d-m-Y H:i:s", strtotime($row["closedAt"]));
+    }
+
+    if (!empty($row["time"]) && !empty($row["closedAt"])) {
+        $start = strtotime($row["assignedAt"] ?? $row["time"]);
+        $end = strtotime($row["closedAt"]);
+        $row["Duur (minuten)"] = round(($end - $start) / 60); 
+    } else {
+        $row["Duur (minuten)"] = "";
+    }
+
+    // STATUS vertalen (database: REGISTERED/NEW, PENDING, CLOSED)
     $statusMap = [
         "REGISTERED" => "Open",
         "NEW" => "Open",
-        "NOTIFICATION" => "In behandeling",
-        "SIGNED_OUT" => "Gesloten",
+        "PENDING" => "In behandeling",
+        "CLOSED" => "Gesloten",
     ];
     $row["status"] = $statusMap[$row["status"]] ?? $row["status"];
 
@@ -133,9 +152,9 @@ foreach ($notifications as &$row) {
     // Locatie filteren indien coordinaten
     if (
         !empty($row["mapLocation"]) &&
-        preg_match('/^-?\d+(\.\d+)?,-?\d+(\.\d+)?$/', $row["mapLocation"])
+        preg_match('/^-?\d+(\.\d+)?,\s*-?\d+(\.\d+)?$/', $row["mapLocation"])
     ) {
-        $row["mapLocation"] = "";
+        $row["mapLocation"] = "Coordinaten";
     }
 
     // AVPU samenvoegen
@@ -248,7 +267,9 @@ if (!empty($notifications)) {
         "reportedBy" => "Gemeld door",
         "subject" => "Onderwerp",
         "mapLocation" => "Locatie",
-        "time" => "Tijdstip",
+        "time" => "Melding aangemaakt",
+        "assignedAt" => "Toegewezen op",
+        "closedAt" => "Gesloten op",
         "status" => "Status",
         "priority" => "Prioriteit",
         "ambulanceNeeded" => "Ambulance nodig",
@@ -260,14 +281,46 @@ if (!empty($notifications)) {
         "teamName" => "Team",
     ];
 
+    // Gewenste volgorde van kolommen in CSV
+    $desiredOrder = [
+        "reportedBy",
+        "subject",
+        "mapLocation",
+        "description",
+        "priority",
+        "status",
+        "teamName",
+        "time",
+        "assignedAt",
+        "closedAt",
+        "Duur (minuten)",
+        "logbook",
+        "SITRAP",
+        "AVPU",
+        "Assistance",
+    ];
+
     $headerRow = [];
-    foreach (array_keys($notifications[0]) as $key) {
-        $headerRow[] = $headersNL[$key] ?? $key;
+    foreach ($desiredOrder as $key) {
+        if (isset($headersNL[$key])) {
+            $headerRow[] = $headersNL[$key];
+        } else {
+            $headerRow[] = $key;
+        }
     }
 
-    fputcsv($csvStream, $headerRow, ";", '"', "\\");
-
+    $orderedNotifications = [];
     foreach ($notifications as $row) {
+        $orderedRow = [];
+        foreach ($desiredOrder as $key) {
+            $orderedRow[] = $row[$key] ?? "";
+        }
+        $orderedNotifications[] = $orderedRow;
+    }
+
+    // CSV vullen
+    fputcsv($csvStream, $headerRow, ";", '"', "\\");
+    foreach ($orderedNotifications as $row) {
         fputcsv($csvStream, $row, ";", '"', "\\");
     }
 } else {

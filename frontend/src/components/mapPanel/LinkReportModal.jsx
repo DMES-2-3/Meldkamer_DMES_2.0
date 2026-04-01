@@ -4,6 +4,7 @@ export default function LinkReportModal({
   isOpen,
   onClose,
   reports,
+  selectedEvent,
   onLink,
   onCreateNew,
 }) {
@@ -23,6 +24,11 @@ export default function LinkReportModal({
       onLink(selectedReportId);
     }
   };
+
+  const filteredReports = reports
+  ?.map(r => r.Report || r) 
+  ?.filter(r => !selectedEvent || r.NameEvent === selectedEvent.name)
+  ?.sort((a, b) => (b.id || 0) - (a.id || 0));
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
@@ -52,14 +58,11 @@ export default function LinkReportModal({
             }}
           >
             <option value="">-- Selecteer een melding --</option>
-            {reports
-              ?.map((r) => r.Report || r)
-              ?.sort((a, b) => (b.id || 0) - (a.id || 0))
-              ?.map((r) => (
-                <option key={r.id} value={r.id}>
-                  {r.Time || ""} - {r.Subject || "Geen onderwerp"}
-                </option>
-              ))}
+            {filteredReports?.map((r) => (
+              <option key={r.id} value={r.id}>
+                {r.Time || ""} - {r.Subject || "Geen onderwerp"}
+              </option>
+            ))}
           </select>
         </div>
         
