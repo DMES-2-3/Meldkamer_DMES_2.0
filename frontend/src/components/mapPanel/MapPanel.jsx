@@ -31,6 +31,7 @@ export default function MapPanel({
   onMapSelect,
   pendingReport,
   onRequestMarkerAdd,
+  selectedEvent,
   selectedEventId,
   initialMaps = [],
   onMapsUpdate = () => {},
@@ -679,6 +680,7 @@ export default function MapPanel({
         isOpen={showLinkModal}
         onClose={() => setShowLinkModal(false)}
         reports={reports}
+        selectedEvent={selectedEvent}
         onLink={handleLinkReport}
         onCreateNew={handleCreateNewReport}
       />

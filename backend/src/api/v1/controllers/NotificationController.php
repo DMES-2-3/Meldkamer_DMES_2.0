@@ -122,9 +122,16 @@ class NotificationController extends BaseController implements IController
                 );
             }
             if (isset($input["Status"])) {
-                $notification->setStatus(
-                    NotificationStatus::from($input["Status"]),
-                );
+                $newStatus = NotificationStatus::from($input["Status"]);
+                $notification->setStatus($newStatus);
+
+                if ($newStatus === NotificationStatus::PENDING && $notification->getAssignedAt() === null) {
+                    $notification->setAssignedAt(new \DateTime());
+                }
+
+                if ($newStatus === NotificationStatus::CLOSED && $notification->getClosedAt() === null) {
+                    $notification->setClosedAt(new \DateTime());
+                }
             }
 
             $notification->setAmbulanceNeeded(
@@ -307,6 +314,16 @@ class NotificationController extends BaseController implements IController
 
         if (isset($input["Status"])) {
             $newStatus = NotificationStatus::from($input["Status"]);
+           
+            if ($newStatus === NotificationStatus::PENDING) {
+                $notification->setAssignedAt(new \DateTime());
+                $notification->setClosedAt(null);
+            }
+
+            if ($newStatus === NotificationStatus::CLOSED && $notification->getClosedAt() === null) {
+                $notification->setClosedAt(new \DateTime());
+            }
+
             $notification->setStatus($newStatus);
         }
 

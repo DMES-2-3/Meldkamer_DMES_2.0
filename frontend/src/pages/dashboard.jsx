@@ -175,6 +175,7 @@ export default function Dashboard({ reports, reloadData, setReports, units, setU
           onMapSelect={setCurrentMap}
           pendingReport={null}
           onRequestMarkerAdd={null}
+          selectedEvent={selectedEvent}
           selectedEventId={selectedEvent?.id}
           initialMaps={selectedEvent?.maps || []}
           onMapsUpdate={handleMapsUpdate}
