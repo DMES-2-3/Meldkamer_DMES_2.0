@@ -228,6 +228,7 @@ export default function Dashboard({ reports, reloadData, setReports, units, setU
               reportsTab={reportsTab}
               statusFilter={statusFilter}
               priorityFilter={priorityFilter}
+              reports={reports}
             />
           </>
         )}

@@ -68,7 +68,7 @@ function AppContent({ reports, setReports, units, setUnits, workers, setWorkers,
           <Protected
             Component={() => (
               <div className="app-content">
-                <TopNav />
+                <TopNav onOpenNotepad={() => setShowKladblok(true)} />
                 <Routes>
                   <Route
                     path="melding"

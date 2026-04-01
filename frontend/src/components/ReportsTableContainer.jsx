@@ -25,9 +25,10 @@ export default function ReportsTableContainer({
 
     const unwrappedReports = reports.map((r) => r.Report ?? r);
 
-    if (selectedEvent && selectedEvent.name) {
+    if (selectedEvent && (selectedEvent.name || selectedEvent.eventName)) {
+      const eventName = selectedEvent.name || selectedEvent.eventName;
       const eventReports = unwrappedReports.filter(
-        (report) => report.NameEvent === selectedEvent.name,
+        (report) => report.NameEvent === eventName,
       );
       setAllEventReports(eventReports);
     } else {
