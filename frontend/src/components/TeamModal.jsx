@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { getWorkers, createUnit, updateUnit } from "../services/unitsApi";
+import { getReports, saveReport } from "../services/reportsApi";
 import { UNIT_STATUSES } from "../constants";
 
 // ---------------------------------------------------------------------------
@@ -67,7 +68,7 @@ function SelectInput({ value, onChange, options, placeholder, disabled }) {
     >
       {placeholder && <option value="">{placeholder}</option>}
       {options.map((o) => (
-        <option key={o.value} value={o.value}>
+        <option key={o.value} value={o.value} style={o.style} disabled={o.disabled}>
           {o.label}
         </option>
       ))}
@@ -81,7 +82,7 @@ function Modal({ title, onClose, children }) {
       <div className="up-modal" onClick={(e) => e.stopPropagation()}>
         <div className="up-modal-header">
           <h2 className="up-modal-title">{title}</h2>
-          <button className="up-modal-close" onClick={onClose}>
+          <button type="button" className="up-modal-close" onClick={onClose}>
             ×
           </button>
         </div>
@@ -117,6 +118,8 @@ export default function TeamModal({
   );
   
   const [availableWorkers, setAvailableWorkers] = useState([]);
+  const [reports, setReports] = useState([]);
+  const [selectedReportId, setSelectedReportId] = useState("");
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
   const [apiError, setApiError] = useState("");
@@ -128,7 +131,10 @@ export default function TeamModal({
     const load = async () => {
       try {
         setLoadingWorkers(true);
-        const res = await getWorkers({ eventId });
+        const [res, reportsRes] = await Promise.all([
+          getWorkers({ eventId }),
+          getReports(eventId)
+        ]);
         const all = Array.isArray(res?.data)
           ? res.data
           : Array.isArray(res)
@@ -140,6 +146,23 @@ export default function TeamModal({
         setAvailableWorkers(
           all.filter((w) => !w.isActive || currentIds.has(w.id))
         );
+
+        if (Array.isArray(reportsRes)) {
+          const mappedReports = reportsRes.map((r) => r.Report || r);
+          
+          const currentlyAssignedReport = team?.name 
+            ? mappedReports.find((r) => r.Team === team.name && r.Status !== "Gesloten") 
+            : null;
+
+          if (currentlyAssignedReport) {
+            setReports([currentlyAssignedReport]);
+            setSelectedReportId(currentlyAssignedReport.id);
+          } else {
+            setReports(
+              mappedReports.filter((r) => r.Status === "Open" && !r.Team)
+            );
+          }
+        }
       } catch {
         setAvailableWorkers([]);
       } finally {
@@ -165,7 +188,10 @@ export default function TeamModal({
     return e;
   };
 
-  const handleSave = async () => {
+  const handleSave = async (eEvent) => {
+    if (eEvent && eEvent.preventDefault) {
+      eEvent.preventDefault();
+    }
     const e = validate();
     if (Object.keys(e).length) {
       setErrors(e);
@@ -176,8 +202,35 @@ export default function TeamModal({
     setApiError("");
 
     try {
-      const payload = { ...form, workerIds: selectedWorkerIds, eventId };
+      let finalStatus = form.status;
+      const currentlyAssignedReport = reports.find((r) => r.Team === team?.name);
+      const isNewlyAssigned = selectedReportId && !currentlyAssignedReport;
+
+      if (isNewlyAssigned && form.status === "AVAILABLE") {
+        finalStatus = "NOTIFICATION";
+      }
+
+      const payload = { ...form, status: finalStatus, workerIds: selectedWorkerIds, eventId };
       isEdit ? await updateUnit(team.id, payload) : await createUnit(payload);
+      
+      if (isNewlyAssigned) {
+        const reportToUpdate = reports.find((r) => String(r.id) === String(selectedReportId));
+        if (reportToUpdate) {
+          await saveReport({
+            ...reportToUpdate,
+            Team: form.teamName,
+          });
+        }
+      } else if (currentlyAssignedReport && form.teamName !== team?.name) {
+        // If team was renamed, update the report to match
+        await saveReport({
+          ...currentlyAssignedReport,
+          Team: form.teamName,
+        });
+      }
+
+      localStorage.setItem("shared_report_update", Date.now().toString());
+
       onSaved();
     } catch (err) {
       let errMsg = err.message || "";
@@ -201,6 +254,7 @@ export default function TeamModal({
 
   return (
     <Modal title={isEdit ? "Team bewerken" : "Team aanmaken"} onClose={onClose}>
+      <form onSubmit={handleSave}>
       {apiError && <div className="up-api-error">{apiError}</div>}
 
       <div className="up-form-grid">
@@ -234,6 +288,19 @@ export default function TeamModal({
             value={form.note}
             onChange={set("note")}
             placeholder="Optionele notitie"
+          />
+        </Field>
+
+        <Field label={reports.some((r) => r.Team === team?.name) ? "Huidige melding" : "Koppel aan nieuwe melding (optioneel)"}>
+          <SelectInput
+            value={selectedReportId}
+            onChange={setSelectedReportId}
+            options={reports.map((r) => ({
+                value: r.id,
+                label: `${r.Time ? r.Time + " - " : ""}${r.Subject || "Geen onderwerp"}`,
+            }))}
+            placeholder={reports.some((r) => r.Team === team?.name) ? "" : "Kies een melding..."}
+            disabled={reports.some((r) => r.Team === team?.name)}
           />
         </Field>
       </div>
@@ -290,6 +357,7 @@ export default function TeamModal({
       <div className="up-modal-footer" style={{ display: "flex", gap: "10px" }}>
         {isMapContext && onDeleteMarker && (
           <button
+            type="button"
             className="up-btn up-btn-danger"
             onClick={handleDeleteMarker}
             disabled={saving}
@@ -299,6 +367,7 @@ export default function TeamModal({
           </button>
         )}
         <button
+          type="button"
           className="up-btn up-btn-secondary"
           onClick={onClose}
           disabled={saving}
@@ -306,13 +375,14 @@ export default function TeamModal({
           Annuleren
         </button>
         <button
+          type="submit"
           className="up-btn up-btn-primary"
-          onClick={handleSave}
           disabled={saving}
         >
           {saving ? "Opslaan…" : isEdit ? "Opslaan" : "Aanmaken"}
         </button>
       </div>
+      </form>
     </Modal>
   );
 }

@@ -9,7 +9,6 @@ export default function TeamsTable({ teams, onStatusClick }) {
 
   return (
     <>
-      <h2>Mobiele Teams</h2>
       <div className="team-table-wrapper">
         <table className="team-table">
           <thead>

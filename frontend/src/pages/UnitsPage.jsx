@@ -71,9 +71,7 @@ function SectionCards({ title, accent, items, emptyMsg }) {
         {items.length === 0 ? (
           <div className="up-td-empty">{emptyMsg}</div>
         ) : (
-          <div className="units-unit-list">
-            {items}
-          </div>
+          <div className="units-unit-list">{items}</div>
         )}
       </div>
     </section>
@@ -239,9 +237,8 @@ function DeleteModal({ label, onClose, onConfirm, deleting }) {
 // Workers tab
 // ---------------------------------------------------------------------------
 
-function WorkersTab({ eventId }) {
-  const [workers, setWorkers] = useState([]);
-  const [loading, setLoading] = useState(true);
+function WorkersTab({ eventId, workers = [], reloadData }) {
+  const [localWorkers, setLocalWorkers] = useState([]);
   const [error, setError] = useState("");
   const [showAdd, setShowAdd] = useState(false);
   const [editTarget, setEditTarget] = useState(null);
@@ -252,29 +249,13 @@ function WorkersTab({ eventId }) {
   const [statusSaving, setStatusSaving] = useState(false);
   const [statusError, setStatusError] = useState("");
 
-  const fetchWorkers = useCallback(async () => {
-    try {
-      setError("");
-      setLoading(true);
-
-      const res = await getWorkers({ eventId });
-      const list = Array.isArray(res?.data)
-        ? res.data
-        : Array.isArray(res)
-          ? res
-          : [];
-
-      setWorkers(list);
-    } catch (err) {
-      setError("Fout bij ophalen hulpverleners: " + err.message);
-    } finally {
-      setLoading(false);
-    }
-  }, [eventId]);
-
   useEffect(() => {
-    fetchWorkers();
-  }, [fetchWorkers]);
+    setLocalWorkers(workers);
+  }, [workers]);
+
+  const handleEditClick = (worker) => {
+    setEditTarget(worker);
+  };
 
   const handleDeleteConfirm = async () => {
     setDeleting(true);
@@ -282,7 +263,7 @@ function WorkersTab({ eventId }) {
     try {
       await deleteWorker(deleteTarget.id);
       setDeleteTarget(null);
-      fetchWorkers();
+      if (reloadData) await reloadData();
     } catch (err) {
       setError("Fout bij verwijderen: " + err.message);
     } finally {
@@ -310,7 +291,7 @@ function WorkersTab({ eventId }) {
       });
 
       setStatusTarget(null);
-      await fetchWorkers();
+      if (reloadData) await reloadData();
     } catch (err) {
       setStatusError("Fout bij wijzigen status: " + err.message);
     } finally {
@@ -321,7 +302,9 @@ function WorkersTab({ eventId }) {
   const renderWorkerCard = (w, isAssigned) => (
     <div key={w.id} className="unit-card" onClick={() => setEditTarget(w)}>
       <div className="unit-card-header">
-        <span className="unit-team-name">{w.firstName} {w.lastName}</span>
+        <span className="unit-team-name">
+          {w.firstName} {w.lastName}
+        </span>
         <span
           className="up-delete-icon"
           onClick={(ev) => {
@@ -334,19 +317,25 @@ function WorkersTab({ eventId }) {
         </span>
       </div>
       <div className="unit-card-body">
-        <span className={`unit-label ${getStatusLabelClass(w.status)}`}>{w.callNumber}</span>
-        <span style={{ fontSize: '13px', fontWeight: 500 }}>{w.workerType}</span>
+        <span className={`unit-label ${getStatusLabelClass(w.status)}`}>
+          {w.callNumber}
+        </span>
+        <span style={{ fontSize: "13px", fontWeight: 500 }}>
+          {w.workerType}
+        </span>
       </div>
       {isAssigned && (
-        <div style={{ marginTop: '-4px' }}>
+        <div style={{ marginTop: "-4px" }}>
           <span className="up-team-badge">{w.teamName}</span>
         </div>
       )}
       <div className="unit-card-footer">
-        <span className={`up-status-pill up-status-pill--${w.status?.toLowerCase()}`}>
+        <span
+          className={`up-status-pill up-status-pill--${w.status?.toLowerCase()}`}
+        >
           {statusLabel(w.status)}
         </span>
-        <span className="up-td-muted" style={{ fontSize: '12px' }}>
+        <span className="up-td-muted" style={{ fontSize: "12px" }}>
           {w.updatedAt
             ? new Date(w.updatedAt).toLocaleTimeString("nl-NL", {
                 hour: "2-digit",
@@ -362,13 +351,15 @@ function WorkersTab({ eventId }) {
   const unassigned = workers.filter((w) => !w.teamId);
   const assigned = workers.filter((w) => !!w.teamId);
 
-  const unassignedCards = unassigned.map(w => renderWorkerCard(w, false));
-  const assignedCards = assigned.map(w => renderWorkerCard(w, true));
+  const unassignedCards = unassigned.map((w) => renderWorkerCard(w, false));
+  const assignedCards = assigned.map((w) => renderWorkerCard(w, true));
 
   return (
     <div className="up-tab-content">
       <div className="up-tab-toolbar">
-        <span className="up-tab-count">{workers.length} hulpverlener(s)</span>
+        <span className="up-tab-count">
+          {localWorkers.length} hulpverlener(s)
+        </span>
         <button
           className="up-btn up-btn-primary"
           onClick={() => setShowAdd(true)}
@@ -379,9 +370,9 @@ function WorkersTab({ eventId }) {
 
       {error && <div className="up-api-error">{error}</div>}
 
-      {loading ? (
+      {!workers ? (
         <div className="up-loading">Laden…</div>
-      ) : workers.length === 0 ? (
+      ) : localWorkers.length === 0 ? (
         <div className="up-empty">
           Nog geen hulpverleners. Klik op "+ Toevoegen" om te beginnen.
         </div>
@@ -408,7 +399,10 @@ function WorkersTab({ eventId }) {
           onClose={() => setShowAdd(false)}
           onSaved={() => {
             setShowAdd(false);
-            fetchWorkers();
+            if (reloadData) reloadData();
+            window.dispatchEvent(
+              new StorageEvent("storage", { key: "shared_report_update" }),
+            );
           }}
         />
       )}
@@ -420,7 +414,10 @@ function WorkersTab({ eventId }) {
           onClose={() => setEditTarget(null)}
           onSaved={() => {
             setEditTarget(null);
-            fetchWorkers();
+            if (reloadData) reloadData();
+            window.dispatchEvent(
+              new StorageEvent("storage", { key: "shared_report_update" }),
+            );
           }}
         />
       )}
@@ -460,10 +457,10 @@ function WorkersTab({ eventId }) {
 //   "Afgemeld" — SHORT_BREAK + LONG_BREAK + UNAVAILABLE
 // ---------------------------------------------------------------------------
 
-function TeamsTab({ eventId }) {
+function TeamsTab({ eventId, units = [], reloadData }) {
   const [teams, setTeams] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
   const [showAdd, setShowAdd] = useState(false);
   const [editTarget, setEditTarget] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
@@ -473,29 +470,9 @@ function TeamsTab({ eventId }) {
   const [statusSaving, setStatusSaving] = useState(false);
   const [statusError, setStatusError] = useState("");
 
-  const fetchTeams = useCallback(async () => {
-    try {
-      setError("");
-      setLoading(true);
-
-      const res = await getUnits(eventId);
-      const list = Array.isArray(res?.data)
-        ? res.data
-        : Array.isArray(res)
-          ? res
-          : [];
-
-      setTeams(list);
-    } catch (err) {
-      setError("Fout bij ophalen teams: " + err.message);
-    } finally {
-      setLoading(false);
-    }
-  }, [eventId]);
-
   useEffect(() => {
-    fetchTeams();
-  }, [fetchTeams]);
+    setTeams(units);
+  }, [units]);
 
   const handleEditClick = async (team) => {
     try {
@@ -512,7 +489,7 @@ function TeamsTab({ eventId }) {
     try {
       await deleteUnit(deleteTarget.id);
       setDeleteTarget(null);
-      fetchTeams();
+      if (reloadData) await reloadData();
     } catch (err) {
       setError("Fout bij verwijderen: " + err.message);
     } finally {
@@ -541,7 +518,7 @@ function TeamsTab({ eventId }) {
       });
 
       setStatusTarget(null);
-      await fetchTeams();
+      if (reloadData) await reloadData();
     } catch (err) {
       setStatusError("Fout bij wijzigen status: " + err.message);
     } finally {
@@ -580,10 +557,12 @@ function TeamsTab({ eventId }) {
           </span>
         </div>
         <div className="unit-card-footer">
-          <span className={`up-status-pill up-status-pill--${t.status?.toLowerCase()}`}>
+          <span
+            className={`up-status-pill up-status-pill--${t.status?.toLowerCase()}`}
+          >
             {statusLabel(t.status)}
           </span>
-          <span className="up-td-muted" style={{ fontSize: '12px' }}>
+          <span className="up-td-muted" style={{ fontSize: "12px" }}>
             {t.updatedAt
               ? new Date(t.updatedAt).toLocaleTimeString("nl-NL", {
                   hour: "2-digit",
@@ -598,8 +577,12 @@ function TeamsTab({ eventId }) {
   };
 
   const wachtrij = teams.filter((t) => t.status === "WAIT");
-  const aangemeld = teams.filter((t) => ["AVAILABLE", "NOTIFICATION"].includes(t.status));
-  const afgemeld = teams.filter((t) => ["SHORT_BREAK", "LONG_BREAK", "SIGNED_OUT"].includes(t.status));
+  const aangemeld = teams.filter((t) =>
+    ["AVAILABLE", "NOTIFICATION"].includes(t.status),
+  );
+  const afgemeld = teams.filter((t) =>
+    ["SHORT_BREAK", "LONG_BREAK", "SIGNED_OUT"].includes(t.status),
+  );
 
   return (
     <div className="up-tab-content">
@@ -615,7 +598,7 @@ function TeamsTab({ eventId }) {
 
       {error && <div className="up-api-error">{error}</div>}
 
-      {loading ? (
+      {!units ? (
         <div className="up-loading">Laden…</div>
       ) : teams.length === 0 ? (
         <div className="up-empty">
@@ -651,7 +634,10 @@ function TeamsTab({ eventId }) {
           onClose={() => setShowAdd(false)}
           onSaved={() => {
             setShowAdd(false);
-            fetchTeams();
+            if (reloadData) reloadData();
+            window.dispatchEvent(
+              new StorageEvent("storage", { key: "shared_report_update" }),
+            );
           }}
         />
       )}
@@ -663,7 +649,10 @@ function TeamsTab({ eventId }) {
           onClose={() => setEditTarget(null)}
           onSaved={() => {
             setEditTarget(null);
-            fetchTeams();
+            if (reloadData) reloadData();
+            window.dispatchEvent(
+              new StorageEvent("storage", { key: "shared_report_update" }),
+            );
           }}
         />
       )}
@@ -699,15 +688,21 @@ function TeamsTab({ eventId }) {
 // Page root
 // ---------------------------------------------------------------------------
 
-export default function UnitsPage() {
+export default function UnitsPage({ units = [], workers = [], reloadData }) {
   const navigate = useNavigate();
   const [selectedEvent, setSelectedEvent] = useState(null);
-  const [activeTab, setActiveTab] = useState("teams");
+  const [activeTab, setActiveTab] = useState(() => {
+    return sessionStorage.getItem("units_active_tab") || "teams";
+  });
+
+  useEffect(() => {
+    sessionStorage.setItem("units_active_tab", activeTab);
+  }, [activeTab]);
 
   useEffect(() => {
     const handleKeyDown = (e) => {
       // Alt + N om een nieuwe melding te maken
-      if (e.altKey && e.key.toLowerCase() === 'n') {
+      if (e.altKey && e.key.toLowerCase() === "n") {
         e.preventDefault();
         if (document.activeElement instanceof HTMLElement) {
           document.activeElement.blur();
@@ -754,9 +749,17 @@ export default function UnitsPage() {
       </div>
 
       {activeTab === "teams" ? (
-        <TeamsTab eventId={selectedEvent.id} />
+        <TeamsTab
+          eventId={selectedEvent.id}
+          units={units}
+          reloadData={reloadData}
+        />
       ) : (
-        <WorkersTab eventId={selectedEvent.id} />
+        <WorkersTab
+          eventId={selectedEvent.id}
+          workers={workers}
+          reloadData={reloadData}
+        />
       )}
     </div>
   );
